@@ -2,6 +2,7 @@ import url from 'url';
 import qs from 'querystring';
 import fs from 'fs';
 import stream from 'stream';
+import http from 'http';
 import https from 'https';
 import httpolyglot from 'httpolyglot';
 import express from 'express';
@@ -561,10 +562,26 @@ app.use((req, res) => {
 app.use(expressErrorHandler);
 
 // create http+https server
-const server: https.Server = httpolyglot.createServer({
-	key: fs.readFileSync(cfg.ssl.keyPath),
-	cert: fs.readFileSync(cfg.ssl.certPath)
-}, app);
+
+let server: (http.Server | https.Server | undefined) = undefined;
+if(cfg.ssl) {
+	if(cfg.ssl.keyPath && cfg.ssl.certPath) {
+		server = httpolyglot.createServer({
+			key: fs.readFileSync(cfg.ssl.keyPath),
+			cert: fs.readFileSync(cfg.ssl.certPath)
+		}, app);
+	} else {
+		if(cfg.ssl.keyPath) {
+			console.error("ssl.keyPath is not defined in config");
+		}
+		if(cfg.ssl.certPath) {
+			console.error("ssl.certPath is not defined in config");
+		}
+	}
+}
+if (!server) {
+	server = http.createServer(app);
+}
 
 // handle upgrade to socket
 server.on('upgrade', (req, socket, head) => {
