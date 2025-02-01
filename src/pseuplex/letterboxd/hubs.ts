@@ -2,10 +2,8 @@
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
 import {
-	parsePartialMetadataID,
 	PseuplexPartialMetadataIDString,
-	qualifyPartialMetadataID,
-	stringifyMetadataID
+	qualifyPartialMetadataID
 } from '../metadataidentifier';
 import { PseuplexMetadataTransformOptions } from '../metadata';
 import {
