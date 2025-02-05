@@ -544,6 +544,10 @@ app.get('/activities', (req, res) => {
 
 // proxy requests to plex
 const plexGeneralProxy = plexHttpProxy(cfg, args);
+plexGeneralProxy.on('error', (error) => {
+	console.error();
+	console.error(error);
+});
 app.use('/notifications', (req, res) => {
 	plexGeneralProxy.web(req, res);
 });
