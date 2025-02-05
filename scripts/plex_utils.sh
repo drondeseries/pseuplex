@@ -231,12 +231,12 @@ function get_ssl_cert_p12_password {
 }
 
 function output_ssl_cert {
-	local cert_pass=$(get_cert_password)
+	local cert_pass=$(get_ssl_cert_p12_password)
 	local result=$?
 	if [ $result -ne 0 ]; then
 		return $result
 	fi
-	local cert_path=$(get_cert_path)
+	local cert_path=$(get_ssl_cert_p12_path)
 	result=$?
 	if [ $result -ne 0 ]; then
 		return $result
@@ -250,12 +250,12 @@ function output_ssl_cert {
 }
 
 function output_ssl_privatekey {
-	local cert_pass=$(get_cert_password)
+	local cert_pass=$(get_ssl_cert_p12_password)
 	local result=$?
 	if [ $result -ne 0 ]; then
 		return $result
 	fi
-	local cert_path=$(get_cert_path)
+	local cert_path=$(get_ssl_cert_p12_path)
 	result=$?
 	if [ $result -ne 0 ]; then
 		return $result
