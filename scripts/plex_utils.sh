@@ -340,7 +340,7 @@ case "$subcmd" in
 		shift
 		case "$subcmd" in
 			p12-password)
-				get_cert_password "$@" || exit $?
+				get_ssl_cert_p12_password "$@" || exit $?
 				exit 0
 				;;
 			output-cert)
