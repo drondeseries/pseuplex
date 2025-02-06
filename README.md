@@ -1,4 +1,4 @@
-# Pseuplex
+# Pseuplex for Plex
 
 A middleware proxy for the plex server API. This sits in between the plex client and the plex server, forwarding requests and modifying responses to add some extra features.
 
@@ -93,6 +93,8 @@ At this point, your plex server might not show up on *app.plex.tv* until you sta
 ### Local Access
 
 If you're using a custom domain name for your SSL certificate, you can hardcode the DNS entry mapping on your home router (or pihole if you have it). This way your domain will always resolve to the local ip when accessing via your local network (ie: map `yourdomain.com` to `192.168.1.123` or whatever the local IP of your pseuplex server is).
+
+If you're having issues getting clients to connect through the proxy, try setting a firewall rule to disallow connections directly to plex. Alternatively, you can run Plex inside of docker, and set the external port to anything other than `32400`.
 
 ### Remote Access
 
