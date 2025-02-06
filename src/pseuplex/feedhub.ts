@@ -32,6 +32,8 @@ export type PseuplexFeedHubOptions = {
 	listStartFetchInterval?: ListFetchInterval
 };
 
+const DEFAULT_LOAD_AHEAD_COUNT = 1;
+
 export abstract class PseuplexFeedHub<
 	TItem,
 	TItemToken extends (string | number | void),
@@ -64,6 +66,7 @@ export abstract class PseuplexFeedHub<
 	
 	override async get(params: PseuplexHubPageParams, context: PseuplexHubContext): Promise<PseuplexHubPage> {
 		const opts = this._options;
+		const loadAheadCount = opts.loadAheadCount ?? DEFAULT_LOAD_AHEAD_COUNT;
 		let chunk: LoadableListChunk<TItem,TItemToken>;
 		let start: number;
 		let { listStartToken } = params;
@@ -75,14 +78,14 @@ export abstract class PseuplexFeedHub<
 			start = params.start ?? 0;
 			chunk = await this._itemList.getOrFetchItems(listStartItemToken, start, (params.count ?? opts.defaultItemCount), {
 				unique: opts.uniqueItemsOnly,
-				loadAheadCount: opts.loadAheadCount
+				loadAheadCount
 			});
 		} else {
 			const maxItemCount = params.count ?? opts.defaultItemCount;
 			start = 0;
 			chunk = await this._itemList.getOrFetchStartItems(maxItemCount, {
 				unique: opts.uniqueItemsOnly,
-				loadAheadCount: opts.loadAheadCount
+				loadAheadCount
 			});
 			listStartItemToken = chunk.items[0].token;
 		}

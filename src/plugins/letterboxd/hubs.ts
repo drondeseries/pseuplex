@@ -31,7 +31,6 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 		style: options.style,
 		promoted: options.promoted,
 		uniqueItemsOnly: options.uniqueItemsOnly,
-		loadAheadCount: 1,
 		metadataTransformOptions: options.metadataTransformOptions ?? {
 			metadataBasePath: options.letterboxdMetadataProvider.basePath,
 			qualifiedMetadataId: false
@@ -106,7 +105,6 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 		promoted: options.promoted,
 		defaultItemCount: options.defaultCount ?? 12,
 		uniqueItemsOnly: true,
-		loadAheadCount: 1,
 		listStartFetchInterval: 'never'
 	});
 };
