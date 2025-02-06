@@ -63,8 +63,7 @@ Create a `config.json` file with the following structure, and fill in the config
 
 - **protocol**: The server protocol. Either `http`, `https`, or `http+https` (default is `http+https`)
 - **port**: The port that Pseuplex will run on
-- **plex.port**: The port of your plex server (Usually 32400)
-- **plex.host**: The url of your plex server, not including the port.
+- **plex.serverURL**: The url of your plex server.
 - **plex.token**: The plex API token of the server owner.
 - **ssl.keyPath**: The path to your SSL private key
 - **ssl.certPath**: The path to your SSL certificate
