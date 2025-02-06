@@ -13,7 +13,7 @@ export type Config = {
 		port?: number;
 		token: string;
 	},
-	ssl: {
+	ssl?: {
 		keyPath: string,
 		certPath: string
 	},

@@ -41,8 +41,8 @@ const pseuplex = new PseuplexApp({
 		'X-Plex-Token': cfg.plex.token
 	},
 	serverOptions: {
-		key: cfg.ssl.keyPath ? fs.readFileSync(cfg.ssl.keyPath) : undefined,
-		cert: cfg.ssl.certPath ? fs.readFileSync(cfg.ssl.certPath) : undefined
+		key: cfg.ssl?.keyPath ? fs.readFileSync(cfg.ssl.keyPath) : undefined,
+		cert: cfg.ssl?.certPath ? fs.readFileSync(cfg.ssl.certPath) : undefined
 	},
 	loggingOptions: {
 		logUserRequests: args.logUserRequests,
