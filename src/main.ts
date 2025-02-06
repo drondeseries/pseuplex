@@ -21,14 +21,6 @@ const cfg = readConfigFile(args.configPath);
 if (args.verbose) {
 	console.log(`parsed config:\n${JSON.stringify(cfg, null, '\t')}\n`);
 }
-if (!cfg.ssl?.keyPath) {
-	console.error("No ssl key path specified in config");
-	process.exit(1);
-}
-if (!cfg.ssl?.certPath) {
-	console.error("No ssl cert path specified in config");
-	process.exit(1);
-}
 let plexServerURL = cfg.plex.serverURL;
 if(!plexServerURL) {
 	if(!cfg.plex.host) {
