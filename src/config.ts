@@ -1,29 +1,23 @@
 
 import fs from 'fs';
+import { PseuplexConfigBase } from './pseuplex/configbase';
+import { PseuplexServerProtocol } from './pseuplex/types/server';
+import { LetterboxdPluginConfig } from './plugins/letterboxd';
 
-export interface Config {
+export type Config = {
+	protocol: PseuplexServerProtocol,
 	port: number;
 	plex: {
-		host: string;
-		port: number;
+		serverURL: string;
+		host?: string;
+		port?: number;
 		token: string;
 	},
 	ssl: {
 		keyPath: string,
 		certPath: string
 	},
-	letterboxdSimilarItemsEnabled?: boolean;
-	letterboxdFriendsActivityHubEnabled?: boolean;
-	letterboxdFriendsReviewsEnabled?: boolean;
-	perUser: {
-		[email: string]: {
-			letterboxdUsername?: string | null;
-			letterboxdSimilarItemsEnabled?: boolean;
-			letterboxdFriendsActivityHubEnabled?: boolean;
-			letterboxdFriendsReviewsEnabled?: boolean;
-		}
-	}
-}
+} & PseuplexConfigBase<{}> & LetterboxdPluginConfig;
 
 export const readConfigFile = (path: string): Config => {
 	const data = fs.readFileSync(path, 'utf8');

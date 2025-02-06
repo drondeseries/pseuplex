@@ -1,7 +1,6 @@
 
 import {
 	PlexMetadataItem,
-	PlexMetadataPage,
 	PlexMediaContainer
 } from '../../plex/types';
 

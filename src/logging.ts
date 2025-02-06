@@ -1,7 +1,9 @@
 
-import { CommandArguments } from "./cmdargs";
+export type URLLogStringArgs = {
+	logFullURLs?: boolean
+};
 
-export const urlLogString = (args: CommandArguments, urlString: string) => {
+export const urlLogString = (args: URLLogStringArgs, urlString: string) => {
 	if(args.logFullURLs) {
 		return urlString;
 	}

@@ -4,19 +4,29 @@ import http from 'http';
 import express from 'express';
 import expressHttpProxy from 'express-http-proxy';
 import httpProxy from 'http-proxy';
-import * as constants from '../constants';
-import { Config } from '../config';
-import { CommandArguments } from '../cmdargs';
-import { urlLogString } from '../logging';
 import {
 	parseHttpContentType,
 	serializeResponseContent
 } from './serialization';
+import * as constants from '../constants';
+import {
+	urlLogString,
+	URLLogStringArgs
+} from '../logging';
 
-export const plexThinProxy = (cfg: Config, args: CommandArguments, opts: expressHttpProxy.ProxyOptions = {}) => {
-	const options = {...opts};
-	const innerProxyReqPathResolver = options.proxyReqPathResolver;
-	options.proxyReqPathResolver = async (req) => {
+export type PlexProxyLoggingOptions = {
+	logProxyRequests?: boolean;
+	logProxyResponses?: boolean;
+	logProxyResponseBody?: boolean;
+	logUserResponses?: boolean;
+	logUserResponseBody?: boolean;
+} & URLLogStringArgs;
+export type PlexProxyOptions = PlexProxyLoggingOptions;
+
+export const plexThinProxy = (serverURL: string, args: PlexProxyOptions, proxyOptions: expressHttpProxy.ProxyOptions = {}) => {
+	proxyOptions = {...proxyOptions};
+	const innerProxyReqPathResolver = proxyOptions.proxyReqPathResolver;
+	proxyOptions.proxyReqPathResolver = async (req) => {
 		let url: string;
 		if(innerProxyReqPathResolver) {
 			url = await innerProxyReqPathResolver(req);
@@ -30,11 +40,11 @@ export const plexThinProxy = (cfg: Config, args: CommandArguments, opts: express
 		}
 		return url;
 	};
-	return expressHttpProxy(`${cfg.plex.host.indexOf('://') != -1 ? '' : 'http://'}${cfg.plex.host}:${cfg.plex.port}`, options);
+	return expressHttpProxy(serverURL, proxyOptions);
 };
 
-export const plexProxy = (cfg: Config, args: CommandArguments, opts: expressHttpProxy.ProxyOptions = {}) => {
-	return plexThinProxy(cfg, args, {
+export const plexProxy = (serverURL: string, args: PlexProxyOptions, opts: expressHttpProxy.ProxyOptions = {}) => {
+	return plexThinProxy(serverURL, args, {
 		...opts,
 		userResHeaderDecorator: (headers, userReq, userRes, proxyReq, proxyRes) => {
 			// add a custom header to the response to check if we went through pseuplex
@@ -48,13 +58,13 @@ export const plexProxy = (cfg: Config, args: CommandArguments, opts: expressHttp
 	});
 };
 
-export const plexApiProxy = (cfg: Config, args: CommandArguments, opts: {
+export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 	requestOptionsModifier?: (proxyReqOpts: http.RequestOptions, userReq: express.Request) => http.RequestOptions,
 	requestPathModifier?: (req: express.Request) => string | Promise<string>,
 	requestBodyModifier?: (bodyContent: string, userReq: express.Request) => string | Promise<string>,
 	responseModifier?: (proxyRes: http.IncomingMessage, proxyResData: any, userReq: express.Request, userRes: express.Response) => any
 })=> {
-	return plexProxy(cfg, args, {
+	return plexProxy(serverURL, args, {
 		parseReqBody: opts.requestBodyModifier ? true : undefined,
 		proxyReqOptDecorator: async (proxyReqOpts, userReq) => {
 			// transform xml request to json
@@ -150,17 +160,9 @@ export const plexApiProxy = (cfg: Config, args: CommandArguments, opts: {
 	});
 };
 
-export const plexHttpProxy = (cfg: Config, args: CommandArguments) => {
-	let host = cfg.plex.host;
-	const protocolIndex = host.indexOf('://');
-	if(protocolIndex != -1) {
-		host = host.substring(protocolIndex+3);
-	}
+export const plexHttpProxy = (serverURL: string) => {
 	return httpProxy.createProxyServer({
-		target: {
-			host: host,
-			port: cfg.plex.port
-		},
+		target: serverURL,
 		ws: true,
 		xfwd: true
 	});

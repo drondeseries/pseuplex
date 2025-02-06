@@ -1,5 +1,6 @@
 
 export * from './types';
+export * from './configbase';
 export * from './app';
 export * from './plugin';
 export * from './metadataidentifier';

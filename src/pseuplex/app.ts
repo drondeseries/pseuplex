@@ -1,6 +1,4 @@
 
-import qs from 'querystring';
-import fs from 'fs';
 import http from 'http';
 import https from 'https';
 import stream from 'stream';
@@ -11,7 +9,12 @@ import * as plexServerAPI from '../plex/api';
 import { PlexServerPropertiesStore } from '../plex/serverproperties';
 import { PlexServerAccountsStore } from '../plex/accounts';
 import { createPlexServerIdToGuidCache } from '../plex/metadata';
-import { plexApiProxy, plexHttpProxy } from '../plex/proxy';
+import {
+	plexApiProxy,
+	plexHttpProxy,
+	PlexProxyLoggingOptions,
+	PlexProxyOptions
+} from '../plex/proxy';
 import {
 	createPlexAuthenticationMiddleware,
 	IncomingPlexAPIRequest
@@ -20,8 +23,10 @@ import { parseMetadataIDFromKey } from '../plex/utils';
 import {
 	PseuplexMetadataPage,
 	PseuplexMetadataItem,
-	PseuplexMetadataSource
+	PseuplexMetadataSource,
+	PseuplexServerProtocol
 } from './types';
+import { PseuplexConfigBase } from './configbase';
 import {
 	PseuplexPartialMetadataIDString,
 	stringifyPartialMetadataID,
@@ -55,8 +60,6 @@ import {
 	expressErrorHandler
 } from '../utils';
 import { urlLogString } from '../logging';
-import { Config } from '../config';
-import { CommandArguments } from '../cmdargs';
 
 
 
@@ -76,23 +79,32 @@ export type PseuplexPluginClass = {
 
 // app
 
-export type PseuplexAppMetadataParams = PseuplexMetadataParams & {
+type PseuplexAppMetadataParams = PseuplexMetadataParams & {
 	transformProviderMetadataItem?: (metadataItem: PseuplexMetadataItem, id: PseuplexPartialMetadataIDString, provider: PseuplexMetadataProvider) => PseuplexMetadataItem | Promise<PseuplexMetadataItem>;
 	transformPlexMetadataItem?: (metadataItem: PseuplexMetadataItem, plexId: string) => PseuplexMetadataItem | Promise<PseuplexMetadataItem>;
 };
 
+type PseuplexAppConfig = PseuplexConfigBase<{[key: string]: any}> & {[key: string]: any};
+
+type PseuplexLoggingOptions = {
+	logUserRequests?: boolean;
+} & PlexProxyLoggingOptions;
+
 export type PseuplexAppOptions = {
 	slug?: string;
-	config: Config;
-	args: CommandArguments;
+	protocol?: PseuplexServerProtocol
+	serverOptions: https.ServerOptions;
+	plexServerURL: string;
+	plexAdminAuthContext: plexTypes.PlexAuthContext;
+	loggingOptions: PseuplexLoggingOptions,
 	responseFilterOrders?: PseuplexResponseFilterOrders;
 	plugins: PseuplexPluginClass[];
+	config: PseuplexAppConfig;
 };
 
 export class PseuplexApp {
 	readonly slug: string;
-	readonly config: Config;
-	readonly args: CommandArguments;
+	readonly config: PseuplexAppConfig;
 	readonly plugins: { [slug: string]: PseuplexPlugin } = {};
 	readonly metadataProviders: { [sourceSlug: string]: PseuplexMetadataProvider } = {};
 	readonly responseFilters: PseuplexResponseFilterLists = {};
@@ -112,13 +124,10 @@ export class PseuplexApp {
 	constructor(options: PseuplexAppOptions) {
 		this.slug = options.slug ?? 'pseuplex';
 		this.config = options.config;
-		this.args = options.args;
 		
 		// define properties
-		this.plexServerURL = this.config.plex.host.indexOf('://') != -1 ? `${this.config.plex.host}:${this.config.plex.port}` : `http://${this.config.plex.host}:${this.config.plex.port}`;
-		const plexAdminAuthContext = {
-			'X-Plex-Token': this.config.plex.token
-		};
+		this.plexServerURL = options.plexServerURL;
+		const plexAdminAuthContext = options.plexAdminAuthContext;
 		this.plexServerProperties = new PlexServerPropertiesStore({
 			plexServerURL: this.plexServerURL,
 			plexAuthContext: plexAdminAuthContext
@@ -203,16 +212,17 @@ export class PseuplexApp {
 		}
 
 		// create server
-		this.server = this._createServer();
-	}
-
-	_createServer() {
+		const protocol = options.protocol ?? PseuplexServerProtocol.httpolyglot;
+		const loggingOpts = options.loggingOptions;
+		const plexProxyArgs: PlexProxyOptions = {
+			...loggingOpts
+		};
 		const router = express();
 
 		router.use((req, res, next) => {
 			// log request if needed
-			if(this.args.logUserRequests) {
-				console.log(`\nUser ${req.method} ${urlLogString(this.args, req.originalUrl)}`);
+			if(loggingOpts.logUserRequests) {
+				console.log(`\nUser ${req.method} ${urlLogString(loggingOpts, req.originalUrl)}`);
 			}
 			next();
 		});
@@ -224,7 +234,7 @@ export class PseuplexApp {
 
 		router.get('/hubs', [
 			this.middlewares.plexAuthentication,
-			plexApiProxy(this.config, this.args, {
+			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexLibraryHubsPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					const params: plexTypes.PlexHubListPageParams = parseQueryParams(userReq, (key) => !(key in userReq.plex.authContext));
 					await this.filterResponse('hubs', resData, { proxyRes, userReq, userRes, params });
@@ -235,7 +245,7 @@ export class PseuplexApp {
 
 		router.get('/hubs/promoted', [
 			this.middlewares.plexAuthentication,
-			plexApiProxy(this.config, this.args, {
+			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexLibraryHubsPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					const params: plexTypes.PlexHubListPageParams = parseQueryParams(userReq, (key) => !(key in userReq.plex.authContext));
 					await this.filterResponse('promotedHubs', resData, { proxyRes, userReq, userRes, params });
@@ -273,7 +283,7 @@ export class PseuplexApp {
 				await this.filterResponse('metadata', resData, { userReq:req, userRes:res, params });
 				return resData;
 			}),
-			plexApiProxy(this.config, this.args, {
+			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexMetadataPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					const params: plexTypes.PlexMetadataPageParams = parseQueryParams(userReq, (key) => !(key in userReq.plex.authContext));
 					// process metadata items
@@ -313,7 +323,7 @@ export class PseuplexApp {
 				await this.filterResponse('metadataRelatedHubs', resData, { userReq:req, userRes:res, params, metadataIds });
 				return resData;
 			}),
-			plexApiProxy(this.config, this.args, {
+			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexHubsPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					// get request info
 					const params = parseQueryParams(userReq, (key) => !(key in userReq.plex.authContext));
@@ -327,7 +337,7 @@ export class PseuplexApp {
 
 		router.post('/playQueues', [
 			this.middlewares.plexAuthentication,
-			plexApiProxy(this.config, this.args, {
+			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				requestPathModifier: async (req: IncomingPlexAPIRequest): Promise<string> => {
 					// parse url path
 					const urlPathParts = parseURLPath(req.originalUrl);
@@ -382,7 +392,7 @@ export class PseuplexApp {
 		});*/
 
 		// proxy requests to plex
-		const plexGeneralProxy = plexHttpProxy(this.config, this.args);
+		const plexGeneralProxy = plexHttpProxy(this.plexServerURL);
 		plexGeneralProxy.on('error', (error) => {
 			console.error();
 			console.error(error);
@@ -406,28 +416,25 @@ export class PseuplexApp {
 		
 		// create http/http+https server
 		let server: (http.Server | https.Server | undefined) = undefined;
-		if(this.config.ssl) {
-			if(this.config.ssl.keyPath && this.config.ssl.certPath) {
-				server = httpolyglot.createServer({
-					key: fs.readFileSync(this.config.ssl.keyPath),
-					cert: fs.readFileSync(this.config.ssl.certPath)
-				}, router);
-			} else {
-				if(this.config.ssl.keyPath) {
-					console.error("ssl.keyPath is not defined in config");
-				}
-				if(this.config.ssl.certPath) {
-					console.error("ssl.certPath is not defined in config");
-				}
-			}
+		switch(protocol) {
+			case PseuplexServerProtocol.http:
+				server = http.createServer(options.serverOptions, router);
+				break;
+			case PseuplexServerProtocol.https:
+				server = https.createServer(options.serverOptions, router);
+				break;
+			case PseuplexServerProtocol.httpolyglot:
+				server = httpolyglot.createServer(options.serverOptions, router);
+				break;
+			default:
+				console.warn(`Unknown protocol '${protocol}'`);
+				server = httpolyglot.createServer(options, router);
+				break;
 		}
-		if (!server) {
-			server = http.createServer(router);
-		}
-		
+
 		// handle upgrade to socket
 		server.on('upgrade', (req, socket, head) => {
-			if(this.args.logUserRequests) {
+			if(loggingOpts.logUserRequests) {
 				console.log(`\nupgrade ws ${req.url}`);
 			}
 			const plexToken = plexTypes.parsePlexTokenFromRequest(req);
@@ -449,7 +456,7 @@ export class PseuplexApp {
 					} else {
 						console.error(`Couldn't find socket to remove for ${req.url}`);
 					}
-					if(this.args.logUserRequests) {
+					if(loggingOpts.logUserRequests) {
 						console.log(`closed socket ${req.url}`);
 					}
 				});
@@ -457,7 +464,7 @@ export class PseuplexApp {
 			plexGeneralProxy.ws(req, socket, head);
 		});
 
-		return server;
+		this.server = server;
 	}
 
 
