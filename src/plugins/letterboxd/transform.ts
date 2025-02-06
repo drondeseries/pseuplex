@@ -152,11 +152,17 @@ export const transformLetterboxdFilmHubEntry = async (film: letterboxd.Film, con
 }
 
 export const viewingToPlexReview = (viewing: letterboxd.Viewing): plexTypes.PlexReview => {
+	let ratingString: string;
+	if(viewing.rating) {
+		const solidRating = Math.floor(viewing.rating / 2);
+		const halfRating = viewing.rating % 2;
+		ratingString = `${'★'.repeat(solidRating)}${'½'.repeat(halfRating)}`;
+	}
 	return {
 		source: "Letterboxd",
 		tag: viewing.user.displayName,
-		//image: viewing.user.imageURL,
+		image: (viewing.rating && viewing.rating < 5) ? "rottentomatoes://image.rating.spilled" : "rottentomatoes://image.rating.upright",
 		link: letterboxd.BASE_URL + viewing.href,
-		text: viewing.text
+		text: ratingString ? `${ratingString}\n${viewing.text ?? ''}` : viewing.text
 	};
 };
