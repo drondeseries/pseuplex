@@ -61,6 +61,7 @@ Create a `config.json` file with the following structure, and fill in the config
 }
 ```
 
+- **protocol**: The server protocol. Either `http`, `https`, or `httpolyglot` (default is `httpolyglot`)
 - **port**: The port that Pseuplex will run on
 - **plex.port**: The port of your plex server (Usually 32400)
 - **plex.host**: The url of your plex server, not including the port.
