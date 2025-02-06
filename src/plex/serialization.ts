@@ -121,7 +121,7 @@ export const serializeResponseContent = (userReq: express.Request, userRes: expr
 	} else {
 		// convert to xml
 		return {
-			contentType: 'text/xml',
+			contentType: acceptType || 'text/xml',
 			data: plexJSToXML(data)
 		};
 	}

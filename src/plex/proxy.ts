@@ -70,13 +70,15 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 			// transform xml request to json
 			const acceptType = parseHttpContentType(userReq.headers['accept']).contentType;
 			let isApiRequest = false;
-			if (acceptType == 'text/xml') {
+			if (acceptType == 'text/xml' || acceptType == 'application/xml') {
 				if(opts.responseModifier) {
 					proxyReqOpts.headers['accept'] = 'application/json';
 				}
 				isApiRequest = true;
 			} else if(acceptType == 'application/json') {
 				isApiRequest = true;
+			} else {
+				console.warn(`Unknown content type for Accept header: ${acceptType}`);
 			}
 			// modify request destination
 			/*if(userReq.protocol) {
@@ -100,7 +102,7 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 			if(opts.responseModifier) {
 				// set the accepted content type if we're going to change back from json to xml
 				const acceptType = parseHttpContentType(userReq.headers['accept']).contentType;
-				if(acceptType == 'text/xml') {
+				if(acceptType == 'text/xml' || acceptType == 'application/xml') {
 					headers['content-type'] = acceptType;
 				}
 			} else {
@@ -115,7 +117,7 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 			const contentType = parseHttpContentType(proxyRes.headers['content-type']).contentType;
 			if(contentType != 'application/json') {
 				if(args.logProxyResponses || args.logUserResponses) {
-					console.log(`\nResponse ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
+					console.log(`\nResponse ${proxyRes.statusCode} (${contentType}) for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
 				}
 				return proxyResData;
 			}
