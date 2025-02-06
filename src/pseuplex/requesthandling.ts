@@ -11,7 +11,6 @@ import {
 	IncomingPlexAPIRequest
 } from '../plex/requesthandling';
 import {
-	PseuplexMetadataSource,
 	PseuplexMetadataPage
 } from './types';
 import {
@@ -47,7 +46,7 @@ export const pseuplexMetadataIdRequestMiddleware = <TResult>(handler: (
 			metadataId = qs.unescape(metadataId);
 		}
 		const metadataIdParts = parseMetadataID(metadataId);
-		if(!metadataIdParts.source || metadataIdParts.source == PseuplexMetadataSource.Plex) {
+		if(!metadataIdParts.source) {
 			// id is a plex ID, so no need to handle this request
 			return false;
 		}
@@ -62,8 +61,7 @@ export const pseuplexMetadataIdRequestMiddleware = <TResult>(handler: (
 export const pseuplexMetadataIdsRequestMiddleware = <TResult>(handler: (
 	req: IncomingPlexAPIRequest,
 	res: express.Response,
-	metadataIds: PseuplexMetadataIDParts[],
-	params: {[key: string]: string}) => Promise<TResult>) => {
+	metadataIds: PseuplexMetadataIDParts[]) => Promise<TResult>) => {
 	return asyncRequestHandler(async (req: IncomingPlexAPIRequest, res: express.Response) => {
 		// parse metadata IDs
 		const metadataIdsString = req.params.metadataId;
@@ -71,26 +69,12 @@ export const pseuplexMetadataIdsRequestMiddleware = <TResult>(handler: (
 			throw httpError(400, "No ID provided");
 		}
 		const metadataIds = parseMetadataIdsFromPathParam(metadataIdsString);
-		// map IDs to their providers
-		const metadataProviderIds: {[source in PseuplexMetadataSource]?: Set<string>} = {};
+		// check if any non-plex metadata IDs exist
 		let anyNonPlexIds: boolean = false;
 		for(const metadataId of metadataIds) {
-			if(!metadataId.id) {
-				continue;
-			}
-			let source = metadataId.source;
-			if (!source) {
-				source = PseuplexMetadataSource.Plex;
-			}
-			let plexProviderIds = metadataProviderIds[source];
-			if(!plexProviderIds) {
-				plexProviderIds = new Set<string>();
-				metadataProviderIds[source] = plexProviderIds;
-			}
-			const partialId = stringifyPartialMetadataID(metadataId);
-			plexProviderIds.add(partialId);
-			if(source != PseuplexMetadataSource.Plex) {
+			if(metadataId.source) {
 				anyNonPlexIds = true;
+				break;
 			}
 		}
 		// if there are no non-plex providers, just continue on with proxying the request
@@ -100,8 +84,7 @@ export const pseuplexMetadataIdsRequestMiddleware = <TResult>(handler: (
 		}
 		// fetch from non-plex and plex providers
 		await handlePlexAPIRequest(req, res, async (req: IncomingPlexAPIRequest, res): Promise<TResult> => {
-			const params = parseQueryParams(req, (key) => !(key in req.plex.authContext));
-			return await handler(req, res, metadataIds, params);
+			return await handler(req, res, metadataIds);
 		});
 		return true;
 	});

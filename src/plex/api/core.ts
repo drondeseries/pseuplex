@@ -8,7 +8,7 @@ export const plexServerFetch = async <TResult>(options: {
 	serverURL: string,
 	method?: 'GET' | 'POST' | 'PUT' | 'DELETE',
 	endpoint: string,
-	params?: {[key: string]: string | number | boolean} | null,
+	params?: {[key: string]: string | number | boolean | string[]} | null,
 	headers?: {[key: string]: string},
 	authContext?: PlexAuthContext | null
 }): Promise<TResult> => {

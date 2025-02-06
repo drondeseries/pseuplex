@@ -13,8 +13,9 @@ export enum PseuplexMetadataSource {
 
 export type PseuplexMetadataItem = PlexMetadataItem & {
 	Pseuplex: {
-		metadataId: string;
 		isOnServer: boolean;
+		metadataIds: { [sourceSlug: string]: string };
+		plexMetadataIds?: { [serverURL: string]: string };
 	}
 };
 

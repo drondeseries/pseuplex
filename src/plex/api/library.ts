@@ -1,20 +1,30 @@
 import qs from 'querystring';
-import {
-	PlexAuthContext,
-	PlexMetadataPage,
-	PlexMetadataPageParams
-} from '../types';
+import * as plexTypes from '../types';
 import { plexServerFetch } from './core';
 
 export const getLibraryMetadata = async (id: string | string[], options: {
-	params?: PlexMetadataPageParams,
+	params?: plexTypes.PlexMetadataPageParams,
 	serverURL: string,
-	authContext?: PlexAuthContext | null
-}): Promise<PlexMetadataPage> => {
-	return await plexServerFetch<PlexMetadataPage>({
+	authContext?: plexTypes.PlexAuthContext | null
+}): Promise<plexTypes.PlexMetadataPage> => {
+	return await plexServerFetch<plexTypes.PlexMetadataPage>({
 		serverURL: options.serverURL,
 		method: 'GET',
 		endpoint: `library/metadata/${(id instanceof Array) ? id.map((idVal) => qs.escape(idVal)).join(',') : qs.escape(id)}`,
+		params: options.params,
+		authContext: options.authContext
+	});
+};
+
+export const getLibraryMetadataRelatedHubs = async (id: string | string[], options: {
+	params?: plexTypes.PlexHubListPageParams,
+	serverURL: string,
+	authContext?: plexTypes.PlexAuthContext | null
+}): Promise<plexTypes.PlexHubsPage> => {
+	return await plexServerFetch({
+		serverURL: options.serverURL,
+		method: 'GET',
+		endpoint: `/library/metadata/${(id instanceof Array) ? id.map((idVal) => qs.escape(idVal)).join(',') : qs.escape(id)}/related`,
 		params: options.params,
 		authContext: options.authContext
 	});

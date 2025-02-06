@@ -6,7 +6,7 @@ export type PlexPlayQueueURIParts = {
 	path?: string | undefined;
 };
 
-export const parsePlayQueueURI = (uri: string) => {
+export const parsePlayQueueURI = (uri: string): PlexPlayQueueURIParts => {
 	// parse protocol
 	const protocolIndex = uri.indexOf('://');
 	let protocol: string | undefined;

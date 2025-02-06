@@ -3,32 +3,37 @@ import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
 import * as plexDiscoverAPI from '../../plexdiscover';
 import {
-	PseuplexMetadataSource,
-	PseuplexMetadataItem
-} from '../types';
-import { PlexMediaItemMatchParams } from '../matching';
-import {
+	PseuplexMetadataItem,
+	PlexMediaItemMatchParams,
 	PseuplexMetadataProviderBase,
-	PseuplexMetadataTransformOptions
-} from '../metadata';
+	PseuplexMetadataProviderOptions,
+	PseuplexMetadataTransformOptions,
+	PseuplexHubProvider,
+	PseuplexPartialMetadataIDString,
+	PseuplexMetadataSource
+} from '../../pseuplex';
 import * as lbTransform from './transform';
-import { PseuplexPartialMetadataIDString } from '../metadataidentifier';
 
 
 export type LetterboxdMetadataItem = letterboxd.FilmInfo;
+export type LetterboxdMetadataProviderOptions = PseuplexMetadataProviderOptions & {
+	similarItemsHubProvider: PseuplexHubProvider;
+};
 
 
 export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<LetterboxdMetadataItem> {
+	sourceSlug = PseuplexMetadataSource.Letterboxd;
+	similarItemsHubProvider: PseuplexHubProvider;
 
-	override get source(): PseuplexMetadataSource {
-		return PseuplexMetadataSource.Letterboxd;
+	constructor(options: LetterboxdMetadataProviderOptions) {
+		super(options);
+		this.similarItemsHubProvider = options.similarItemsHubProvider;
 	}
 
 	override async fetchMetadataItem(id: PseuplexPartialMetadataIDString): Promise<LetterboxdMetadataItem> {
 		console.log(`Fetching letterboxd info for ${id}`);
 		const getFilmOpts = lbTransform.getFilmOptsFromPartialMetadataId(id);
 		const filmInfo = await letterboxd.getFilmInfo(getFilmOpts);
-		//fixStringLeaks(filmInfo);
 		return filmInfo;
 	}
 
@@ -47,7 +52,7 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 	override async findMatchForPlexItem(metadataItem: plexTypes.PlexMetadataItem): Promise<letterboxd.FilmInfo | null> {
 		const plexGuid = metadataItem.guid;
 		if(plexGuid) {
-			// try to get the item from the slug
+			// get the slug from the guid if it exists in the cache
 			const id = await this.plexGuidToIDCache.get(plexGuid);
 			if(id) {
 				return this.fetchMetadataItem(id);
@@ -121,31 +126,4 @@ export const getLetterboxdPlexMediaItemMatchParams = (filmInfo: letterboxd.FilmI
 		types: types,
 		guids: guids
 	};
-};
-
-export const attachLetterboxdFriendsReviewsToPlexMetadata = async (metadataItem: plexTypes.PlexMetadataItem, options: {
-	letterboxdMetadataId?: PseuplexPartialMetadataIDString,
-	letterboxdMetadataProvider: LetterboxdMetadataProvider,
-	letterboxdUsername: string
-}): Promise<void> => {
-	try {
-		const letterboxdMetadataId = options.letterboxdMetadataId ? options.letterboxdMetadataId : await options.letterboxdMetadataProvider.getIDForPlexItem(metadataItem);
-		if(letterboxdMetadataId) {
-			const getFilmOpts = lbTransform.getFilmOptsFromPartialMetadataId(letterboxdMetadataId);
-			const friendViewings = await letterboxd.getFriendsReviews({
-				...getFilmOpts,
-				username: options.letterboxdUsername
-			});
-			const reviews = friendViewings.items.map((viewing) => {
-				return lbTransform.viewingToPlexReview(viewing);
-			});
-			if(metadataItem.Review) {
-				metadataItem.Review = reviews.concat(metadataItem.Review);
-			} else {
-				metadataItem.Review = reviews;
-			}
-		}
-	} catch(error) {
-		console.error(error);
-	}
 };

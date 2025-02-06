@@ -1,8 +1,8 @@
 {
-	"port": 32400,
+	"port": 32397,
 	"plex": {
 		"host": "http://127.0.0.1",
-		"port": "32401",
+		"port": "32400",
 		"token": "bxViLIUTBlbdow-iuBVT"
 	},
 	"ssl": {

@@ -4,4 +4,5 @@ export {
 	BASE_URL,
 	guidToMetadataID
 } from './core';
+export * from './library';
 export * from './search';

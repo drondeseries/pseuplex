@@ -189,39 +189,6 @@ export const addQueryArgumentToURLPath = (urlPath: string, queryEntry: string) =
 	return stringifyURLPathParts(parts);
 };
 
-export const unleakString = (str: string) => {
-	return (' '+str).substr(1);
-};
-
-export const fixStringLeaks = (obj: object) => {
-	if(obj == null) {
-		return;
-	}
-	if(obj instanceof Array) {
-		for(let i=0; i<obj.length; i++) {
-			const element = obj[i];
-			if(typeof element === 'string') {
-				obj[i] = unleakString(element);
-			} else if(typeof element === 'object') {
-				if(element != null) {
-					fixStringLeaks(element);
-				}
-			}
-		}
-	} else {
-		for(const key in obj) {
-			const element = obj[key];
-			if(typeof element === 'string') {
-				obj[key] = unleakString(element);
-			} else if(typeof element === 'object') {
-				if(element != null) {
-					fixStringLeaks(element);
-				}
-			}
-		}
-	}
-};
-
 export const forArrayOrSingle = <T>(item: T | T[], callback: (item: T) => void) => {
 	if(item) {
 		if(item instanceof Array) {
@@ -286,6 +253,7 @@ export const asyncRequestHandler = <TRequest extends express.Request = express.R
 
 export const expressErrorHandler = (error, req: express.Request, res: express.Response, next) => {
 	if(error) {
+		console.error(error);
 		res.status(error.statusCode ?? 500).send(error.message);
 		console.log(`Sent error ${error.message}`);
 	} else {

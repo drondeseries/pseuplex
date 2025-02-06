@@ -1,11 +1,14 @@
 
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
-import { PseuplexMetadataTransformOptions } from '../metadata';
-import { PseuplexFeedHub, PseuplexFeedHubOptions } from '../feedhub';
+import {
+	PseuplexFeedHub,
+	PseuplexFeedHubOptions,
+	PseuplexHubContext,
+	PseuplexMetadataTransformOptions
+} from '../../pseuplex';
 import { LetterboxdMetadataProvider } from './metadata';
 import * as lbtransform from './transform';
-import { PseuplexHubContext } from '../hub';
 
 type PageToken = {
 	csrf: string;
@@ -38,7 +41,6 @@ export class LetterboxdActivityFeedHub extends PseuplexFeedHub<letterboxd.Film,n
 
 	override async fetchPage(pageToken: PageToken | null) {
 		const page = await this._fetchPage(pageToken);
-		//fixStringLeaks(page);
 		return {
 			items: page.items.filter((item) => (item.film != null)).map((item) => {
 				const token = Number.parseInt(item.id);

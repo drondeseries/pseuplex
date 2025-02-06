@@ -1,16 +1,9 @@
 
 import qs from 'querystring';
-import { PseuplexMetadataSource } from './types';
 
 export type PseuplexMetadataIDParts = {
-	isURL?: undefined;
-	source?: undefined;
-	directory?: undefined;
-	id: string;
-	relativePath?: undefined;
-} | {
-	isURL: boolean;
-	source: PseuplexMetadataSource;
+	isURL?: boolean;
+	source?: string;
 	directory?: string;
 	id: string;
 	relativePath?: string;
@@ -20,8 +13,8 @@ export type PseuplexMetadataIDString =
 	`${string}`
 	| `${string}:${string}`
 	| `${string}:${string}:${string}`
-	| `${PseuplexMetadataSource}://${string}`
-	| `${PseuplexMetadataSource}://${string}/${string}`;
+	| `${string}://${string}`
+	| `${string}://${string}/${string}`;
 
 export const parseMetadataID = (idString: PseuplexMetadataIDString): PseuplexMetadataIDParts => {
 	// find metadata source / protocol
@@ -32,7 +25,7 @@ export const parseMetadataID = (idString: PseuplexMetadataIDString): PseuplexMet
 			id: qs.unescape(idString)
 		};
 	}
-	const source = idString.substring(0, delimiterIndex) as PseuplexMetadataSource;
+	const source = idString.substring(0, delimiterIndex);
 	// check if link is a url
 	let startIndex: number;
 	let delimiter: string;
@@ -152,6 +145,6 @@ export const stringifyPartialMetadataID = (idParts: PseuplexPartialMetadataIDPar
 	return `${qs.escape(idParts.directory)}:${qs.escape(idParts.id)}`;
 };
 
-export const qualifyPartialMetadataID = (metadataId: PseuplexPartialMetadataIDString, source: PseuplexMetadataSource) => {
+export const qualifyPartialMetadataID = (metadataId: PseuplexPartialMetadataIDString, source: string) => {
 	return `${source}:${metadataId}`;
 };

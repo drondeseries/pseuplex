@@ -1,24 +1,23 @@
 
-import qs from 'querystring';
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
 import {
-	intParam,
-	combinePathSegments
-} from '../../utils';
-import {
-	PseuplexMetadataSource,
-	PseuplexMetadataItem
-} from '../types';
+	PseuplexMetadataItem,
+	PseuplexMetadataSource
+} from '../../pseuplex/types';
 import {
 	parsePartialMetadataID,
 	PseuplexMetadataIDString,
 	PseuplexPartialMetadataIDString,
 	stringifyMetadataID,
 	stringifyPartialMetadataID
-} from '../metadataidentifier';
-import { PseuplexMetadataTransformOptions } from '../metadata';
-import { PseuplexHubContext } from '../hub';
+} from '../../pseuplex/metadataidentifier';
+import { PseuplexMetadataTransformOptions } from '../../pseuplex/metadata';
+import { PseuplexHubContext } from '../../pseuplex/hub';
+import {
+	intParam,
+	combinePathSegments
+} from '../../utils';
 import { LetterboxdMetadataProvider } from './metadata';
 
 export const partialMetadataIdFromFilmInfo = (filmInfo: letterboxd.FilmInfo): PseuplexPartialMetadataIDString => {
@@ -52,10 +51,11 @@ export const fullMetadataIdFromFilmInfo = (filmInfo: letterboxd.FilmInfo, opts:{
 
 export const filmInfoToPlexMetadata = (filmInfo: letterboxd.FilmInfo, options: PseuplexMetadataTransformOptions): PseuplexMetadataItem => {
 	const releasedEvent = filmInfo.ldJson.releasedEvent;
+	const partialMetadataId = partialMetadataIdFromFilmInfo(filmInfo);
 	const fullMetadataId = fullMetadataIdFromFilmInfo(filmInfo,{asUrl:false});
 	return {
-		guid: fullMetadataIdFromFilmInfo(filmInfo, {asUrl:true}),
-		key: combinePathSegments(options.metadataBasePath, options.qualifiedMetadataId ? fullMetadataId : partialMetadataIdFromFilmInfo(filmInfo)),
+		// guid: fullMetadataIdFromFilmInfo(filmInfo, {asUrl:true}),
+		key: combinePathSegments(options.metadataBasePath, options.qualifiedMetadataId ? fullMetadataId : partialMetadataId),
 		ratingKey: fullMetadataId,
 		type: plexTypes.PlexMediaItemType.Movie,
 		title: filmInfo.ldJson.name,
@@ -65,8 +65,10 @@ export const filmInfoToPlexMetadata = (filmInfo: letterboxd.FilmInfo, options: P
 		summary: filmInfo.pageData.description,
 		year: intParam(releasedEvent?.[0]?.startDate),
 		Pseuplex: {
-			metadataId: fullMetadataId,
-			isOnServer: false
+			isOnServer: false,
+			metadataIds: {
+				[PseuplexMetadataSource.Letterboxd]: partialMetadataId
+			}
 		},
 		Guid: filmInfoGuids(filmInfo).map((guid) => {
 			return {id:guid};
@@ -130,7 +132,7 @@ export const filmToPlexMetadata = (film: letterboxd.Film, options: PseuplexMetad
 	const fullMetadataId = fullMetadataIdFromFilm(film, {asUrl:false});
 	const metadataId = options.qualifiedMetadataId ? fullMetadataId : partialMetadataIdFromFilm(film);
 	return {
-		guid: fullMetadataIdFromFilm(film, {asUrl:true}),
+		// guid: fullMetadataIdFromFilm(film, {asUrl:true}),
 		key: combinePathSegments(options.metadataBasePath, metadataId),
 		ratingKey: fullMetadataId,
 		type: plexTypes.PlexMediaItemType.Movie,

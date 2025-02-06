@@ -2,18 +2,15 @@
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
 import {
+	PseuplexFeedHub,
+	PseuplexHubContext,
+	PseuplexMetadataTransformOptions,
 	PseuplexPartialMetadataIDString,
 	qualifyPartialMetadataID
-} from '../metadataidentifier';
-import { PseuplexMetadataTransformOptions } from '../metadata';
-import {
-	PseuplexHubContext
-} from '../hub';
+} from '../../pseuplex';
 import * as lbtransform from './transform';
 import { LetterboxdMetadataProvider } from './metadata';
 import { LetterboxdActivityFeedHub } from './activityfeedhub';
-import { PseuplexMetadataSource } from '../types';
-import { PseuplexFeedHub } from '../feedhub';
 
 
 export const createUserFollowingFeedHub = (letterboxdUsername: string, options: {
@@ -26,7 +23,7 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 }): LetterboxdActivityFeedHub => {
 	return new LetterboxdActivityFeedHub({
 		hubPath: options.hubPath,
-		title: `${letterboxdUsername}'s letterboxd friends activity`,
+		title: `Friend Activity on Letterboxd (${letterboxdUsername})`,
 		type: plexTypes.PlexMediaItemType.Movie,
 		hubIdentifier: `custom.letterboxd.activity.friends.${letterboxdUsername}`,
 		context: 'hub.custom.letterboxd.activity.friends',
@@ -64,10 +61,9 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 	};
 	const filmOpts = lbtransform.getFilmOptsFromPartialMetadataId(metadataId);
 	const metadataIdInPath = metadataTransformOpts.qualifiedMetadataId
-		? qualifyPartialMetadataID(metadataId, PseuplexMetadataSource.Letterboxd)
+		? qualifyPartialMetadataID(metadataId, options.letterboxdMetadataProvider.sourceSlug)
 		: metadataId;
-	const relativePath = options.relativePath.startsWith('/') ? options.relativePath : '/'+options.relativePath;
-	const hubPath = `${metadataTransformOpts.metadataBasePath}/${metadataIdInPath}${relativePath}`;
+	const hubPath = `${metadataTransformOpts.metadataBasePath}/${metadataIdInPath}/${options.relativePath}`;
 	return new class extends PseuplexFeedHub<letterboxd.Film,void,string> {
 		override get metadataBasePath() {
 			return metadataTransformOpts.metadataBasePath;

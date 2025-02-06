@@ -2,8 +2,8 @@ import qs from 'querystring';
 import * as plexTypes from '../../plex/types';
 import { parseMetadataIDFromKey } from '../../plex/utils';
 import {
-	PseuplexMetadataSource,
-	PseuplexMetadataItem
+	PseuplexMetadataItem,
+	PseuplexMetadataSource
 } from '../types';
 import { PseuplexMetadataTransformOptions } from '../metadata';
 import {
@@ -38,15 +38,22 @@ export const transformExternalPlexMetadata = (metadataItem: plexTypes.PlexMetada
 			metadataId = qs.unescape(metadataId);
 		}
 	}
-	let fullMetadataId = createFullMetadataId({
+	const partialMetadataId = createPartialMetadataId({
+		serverURL,
+		metadataId
+	});
+	const fullMetadataId = createFullMetadataId({
 		serverURL,
 		metadataId,
 		asUrl: false
 	});
-	pseuMetadataItem.key = `${transformOpts.metadataBasePath}/${transformOpts.qualifiedMetadataId ? fullMetadataId : metadataId}`;
+	pseuMetadataItem.key = `${transformOpts.metadataBasePath}/${transformOpts.qualifiedMetadataId ? fullMetadataId : partialMetadataId}`;
 	pseuMetadataItem.Pseuplex = {
-		metadataId: fullMetadataId,
-		isOnServer: false
+		isOnServer: false,
+		metadataIds: {},
+		plexMetadataIds: {
+			[serverURL]: metadataId
+		}
 	};
 	return pseuMetadataItem;
 };

@@ -44,7 +44,7 @@ Create a `config.json` file with the following structure, and fill in the config
 
 ```json
 {
-	"port": 32401,
+	"port": 32397,
 	"plex": {
 		"host": "http://127.0.0.1",
 		"port": "32400",
