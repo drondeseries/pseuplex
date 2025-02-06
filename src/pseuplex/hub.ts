@@ -9,7 +9,7 @@ export type PseuplexHubPage = {
 	hub: plexTypes.PlexHub;
 	items: plexTypes.PlexMetadataItem[];
 	offset?: number;
-	totalCount?: number;
+	totalItemCount?: number;
 	more: boolean;
 }
 
@@ -34,7 +34,7 @@ export abstract class PseuplexHub {
 		return {
 			MediaContainer: {
 				size: (page.items?.length ?? 0),
-				totalSize: page.totalCount,
+				totalSize: page.totalItemCount,
 				offset: page.offset,
 				allowSync: false, // TODO figure out what this does
 				identifier: plexTypes.PlexPluginIdentifier.PlexAppLibrary, // TODO figure out what this does
@@ -44,7 +44,7 @@ export abstract class PseuplexHub {
 							key: page.hub.key,
 							type: page.hub.type,
 							title: page.hub.title,
-							active: (page.totalCount != 0)
+							active: (page.totalItemCount != 0)
 						}
 					]
 				},

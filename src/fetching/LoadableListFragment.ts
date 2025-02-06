@@ -13,6 +13,7 @@ export type LoadableListFetchedChunk<ItemType,ItemTokenType,PageTokenType> = {
 export type LoadableListChunk<ItemType,ItemTokenType> = {
 	items: LoadableListItemNode<ItemType,ItemTokenType>[];
 	hasMore: boolean;
+	totalItemCount: number;
 };
 
 export type LoadableListChunkLoader<ItemType,ItemTokenType,PageTokenType> = (pageToken: PageTokenType | null) => Promise<LoadableListFetchedChunk<ItemType,ItemTokenType,PageTokenType>>;
@@ -38,6 +39,7 @@ const checkAndAdjustChunkForFragmentMerge = <ItemType,ItemTokenType,PageTokenTyp
 
 export type GetLoadableListItemsOptions = {
 	unique: boolean;
+	loadAheadCount?: number;
 };
 
 export type LoadableListFragmentOptions<ItemType,ItemTokenType,PageTokenType> = {
@@ -226,7 +228,8 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 				}
 				return {
 					items: slicedItems.concat(nextChunk.items),
-					hasMore: nextChunk.hasMore
+					hasMore: nextChunk.hasMore,
+					totalItemCount: (items.length + nextChunk.totalItemCount)
 				};
 			}
 			hasMore = this._contents.nextPageToken != null;
@@ -237,7 +240,8 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 		}
 		return {
 			items: slicedItems ?? [],
-			hasMore: hasMore
+			hasMore: hasMore,
+			totalItemCount: this.uniqueItemCount
 		};
 	}
 
@@ -259,7 +263,8 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 				}
 				return {
 					items: slicedItems.concat(nextChunk.items),
-					hasMore: nextChunk.hasMore
+					hasMore: nextChunk.hasMore,
+					totalItemCount: (uniqueItemsCount + nextChunk.totalItemCount)
 				};
 			}
 			hasMore = this._contents.nextPageToken != null;
@@ -270,7 +275,8 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 		}
 		return {
 			items: slicedItems ?? [],
-			hasMore: hasMore
+			hasMore: hasMore,
+			totalItemCount: uniqueItemsCount
 		};
 	}
 
@@ -282,8 +288,10 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 			throw new Error(`Invalid offset ${offset}`);
 		}
 		const endOffset = offset + count;
+		const loadAheadCount = (options.loadAheadCount ?? 0);
+		const loadEndOffset = endOffset + loadAheadCount;
 		// load the next chunk if needed
-		while(endOffset > itemsCount
+		while(loadEndOffset > itemsCount
 			&& (this._nextFragment == null || !this._nextFragmentMerged)
 			&& this._contents.nextPageToken != null) {
 			if(this._nextChunkTask == null) {
@@ -325,15 +333,29 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 				contentsItems.slice(offset, offset+count)
 				: null);
 		let hasMore: boolean;
-		if(endOffset > itemsCount) {
+		if(loadEndOffset > itemsCount) {
 			if(this._nextFragment != null && this._nextFragmentMerged) {
-				const nextChunk = await this._nextFragment.getOrFetchItems((offset - itemsCount), (endOffset - itemsCount), options);
+				let nextChunkOptions = options;
+				let remainingItemCount = (endOffset - itemsCount);
+				if(remainingItemCount < 0) {
+					nextChunkOptions = {
+						...nextChunkOptions,
+						loadAheadCount: (loadAheadCount + remainingItemCount)
+					};
+					remainingItemCount = 0;
+				}
+				let nextChunkOffset = (offset - itemsCount);
+				if(nextChunkOffset < 0) {
+					nextChunkOffset = 0;
+				}
+				const nextChunk = await this._nextFragment.getOrFetchItems(nextChunkOffset, remainingItemCount, nextChunkOptions);
 				if(slicedItems == null) {
 					return nextChunk;
 				}
 				return {
 					items: slicedItems.concat(nextChunk.items),
-					hasMore: nextChunk.hasMore
+					hasMore: nextChunk.hasMore,
+					totalItemCount: (itemsCount + nextChunk.totalItemCount)
 				};
 			}
 			hasMore = this._contents.nextPageToken != null;
@@ -346,7 +368,8 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 		}
 		return {
 			items: slicedItems ?? [],
-			hasMore: hasMore
+			hasMore: hasMore,
+			totalItemCount: itemsCount
 		};
 	}
 }

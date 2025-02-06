@@ -59,6 +59,32 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 		return count;
 	}
 
+	get totalLoadedItemCount(): number {
+		if(this._fragment == null) {
+			return 0;
+		}
+		let fragment = this._fragment;
+		let count = 0;
+		while(fragment != null) {
+			count += fragment.itemCount;
+			fragment = fragment._nextFragment;
+		}
+		return count;
+	}
+
+	get totalLoadedUniqueItemCount(): number {
+		if(this._fragment == null) {
+			return 0;
+		}
+		let fragment = this._fragment;
+		let count = 0;
+		while(fragment != null) {
+			count += fragment.uniqueItemCount;
+			fragment = fragment._nextFragment;
+		}
+		return count;
+	}
+
 	_queueFragmentMerge() {
 		if(this._fragmentMergeTimeout != null) {
 			// already queued
@@ -129,12 +155,18 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 			console.warn(`Failed to find token ${startToken}`);
 			return {
 				items: [],
-				hasMore: false
+				hasMore: false,
+				totalItemCount: 0
 			};
 		}
 		// fetch the items
 		const startIndex = options.unique ? (tokenPoint.uniqueIndex+offset) : (tokenPoint.index+offset);
 		const page = await tokenPoint.fragment.getOrFetchItems(startIndex, count, options);
+		if(options.unique) {
+			page.totalItemCount -= tokenPoint.uniqueIndex;
+		} else {
+			page.totalItemCount -= tokenPoint.index;
+		}
 		// merge fragments after a delay
 		if(this._fragment._nextFragment) {
 			this._queueFragmentMerge();

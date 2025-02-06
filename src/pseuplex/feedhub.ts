@@ -28,6 +28,7 @@ export type PseuplexFeedHubOptions = {
 	promoted?: boolean;
 	defaultItemCount: number;
 	uniqueItemsOnly: boolean;
+	loadAheadCount?: number;
 	listStartFetchInterval?: ListFetchInterval
 };
 
@@ -72,11 +73,17 @@ export abstract class PseuplexFeedHub<
 				listStartItemToken = this.parseItemTokenParam(listStartToken);
 			}
 			start = params.start ?? 0;
-			chunk = await this._itemList.getOrFetchItems(listStartItemToken as any, start, params.count ?? opts.defaultItemCount, {unique:opts.uniqueItemsOnly});
+			chunk = await this._itemList.getOrFetchItems(listStartItemToken, start, (params.count ?? opts.defaultItemCount), {
+				unique: opts.uniqueItemsOnly,
+				loadAheadCount: opts.loadAheadCount
+			});
 		} else {
 			const maxItemCount = params.count ?? opts.defaultItemCount;
 			start = 0;
-			chunk = await this._itemList.getOrFetchStartItems(maxItemCount, {unique:opts.uniqueItemsOnly});
+			chunk = await this._itemList.getOrFetchStartItems(maxItemCount, {
+				unique: opts.uniqueItemsOnly,
+				loadAheadCount: opts.loadAheadCount
+			});
 			listStartItemToken = chunk.items[0].token;
 		}
 		let key = opts.hubPath;
@@ -98,7 +105,7 @@ export abstract class PseuplexFeedHub<
 			})),
 			offset: start,
 			more: chunk.hasMore,
-			totalCount: opts.uniqueItemsOnly ? this._itemList.totalUniqueItemCount : this._itemList.totalItemCount
+			totalItemCount: chunk.totalItemCount
 		};
 	}
 }
