@@ -23,7 +23,7 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 }): LetterboxdActivityFeedHub => {
 	return new LetterboxdActivityFeedHub({
 		hubPath: options.hubPath,
-		title: `Friend Activity on Letterboxd (${letterboxdUsername})`,
+		title: `Friends Activity on Letterboxd (${letterboxdUsername})`,
 		type: plexTypes.PlexMediaItemType.Movie,
 		hubIdentifier: `custom.letterboxd.activity.friends.${letterboxdUsername}`,
 		context: 'hub.custom.letterboxd.activity.friends',
