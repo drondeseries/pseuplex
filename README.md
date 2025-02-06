@@ -46,8 +46,7 @@ Create a `config.json` file with the following structure, and fill in the config
 {
 	"port": 32397,
 	"plex": {
-		"host": "http://127.0.0.1",
-		"port": "32400",
+		"serverURL": "http://127.0.0.1:32400",
 		"token": "<PLEX API TOKEN>"
 	},
 	"ssl": {
