@@ -14,7 +14,7 @@
 		"debug": "tsc && node --inspect dist/main.js --config=config/config.json --verbose",
 		"lint": "eslint . --ext .ts"
 	},
-	"author": "",
+	"author": "Luis Finke (luisfinke@gmail.com)",
 	"license": "Zlib",
 	"dependencies": {
 		"express": "^5.0.0",
