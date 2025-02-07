@@ -1,6 +1,6 @@
 import qs from 'querystring';
 import * as plexTypes from '../../plex/types';
-import { parseMetadataIDFromKey } from '../../plex/utils';
+import { parseMetadataIDFromKey } from '../../plex/metadata';
 import {
 	PseuplexMetadataItem,
 	PseuplexMetadataSource

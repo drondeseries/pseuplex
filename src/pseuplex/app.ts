@@ -8,7 +8,10 @@ import * as plexTypes from '../plex/types';
 import * as plexServerAPI from '../plex/api';
 import { PlexServerPropertiesStore } from '../plex/serverproperties';
 import { PlexServerAccountsStore } from '../plex/accounts';
-import { createPlexServerIdToGuidCache } from '../plex/metadata';
+import {
+	createPlexServerIdToGuidCache,
+	parseMetadataIDFromKey
+} from '../plex/metadata';
 import {
 	plexApiProxy,
 	plexHttpProxy,
@@ -19,7 +22,6 @@ import {
 	createPlexAuthenticationMiddleware,
 	IncomingPlexAPIRequest
 } from '../plex/requesthandling';
-import { parseMetadataIDFromKey } from '../plex/utils';
 import {
 	PseuplexMetadataPage,
 	PseuplexMetadataItem,

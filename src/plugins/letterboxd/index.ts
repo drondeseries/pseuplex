@@ -6,7 +6,7 @@ import {
 	IncomingPlexAPIRequest,
 	plexAPIRequestHandler
 } from '../../plex/requesthandling';
-import { parseMetadataIDFromKey } from '../../plex/utils';
+import { parseMetadataIDFromKey } from '../../plex/metadata';
 import {
 	PseuplexApp,
 	PseuplexPlugin,
