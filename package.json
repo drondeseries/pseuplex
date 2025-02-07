@@ -22,7 +22,7 @@
 		"http-proxy": "^1.18.1",
 		"httpolyglot": "^0.1.2",
 		"letterboxd-retriever": "https://github.com/lufinkey/letterboxd-retriever.git",
-		"uuid": "^10.0.0",
+		"uuid": "^11.0.5",
 		"xml2js": "^0.6.2"
 	},
 	"devDependencies": {
