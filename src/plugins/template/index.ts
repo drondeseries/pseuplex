@@ -9,10 +9,10 @@ import {
 } from '../../pseuplex';
 
 type TemplateFlags = {
-	requestsEnabled?: boolean;
+	//
 };
 type TemplatePerUserConfig = {
-	letterboxdUsername?: string;
+	//
 } & TemplateFlags;
 export type TemplatePluginConfig = (PseuplexConfigBase<TemplatePerUserConfig> & TemplateFlags);
 
