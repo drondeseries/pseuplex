@@ -1,5 +1,6 @@
 
 import fs from 'fs';
+import { SSLConfig } from './ssl';
 import { PseuplexConfigBase } from './pseuplex/configbase';
 import { PseuplexServerProtocol } from './pseuplex/types/server';
 import { LetterboxdPluginConfig } from './plugins/letterboxd';
@@ -12,15 +13,19 @@ export type Config = {
 		host?: string;
 		port?: number;
 		token: string;
+		processedMachineIdentifier?: string;
+		appDataPath?: string;
 	},
-	ssl?: {
-		keyPath: string,
-		certPath: string
+	ssl?: SSLConfig & {
+		watchCertChanges?: boolean;
+		certReloadDelay?: number;
+		autoP12Path?: boolean;
+		autoP12Password?: boolean;
 	},
 } & PseuplexConfigBase<{}> & LetterboxdPluginConfig;
 
-export const readConfigFile = (path: string): Config => {
-	const data = fs.readFileSync(path, 'utf8');
+export const readConfigFile = async (path: string): Promise<Config> => {
+	const data = await fs.promises.readFile(path, 'utf8');
 	const cfg: Config = JSON.parse(data);
 	if(!cfg || typeof cfg !== 'object') {
 		throw new Error("Invalid config file");
