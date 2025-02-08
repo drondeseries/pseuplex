@@ -5,7 +5,6 @@ pms_cache_path=
 platform=
 subcmd=
 
-
 # parse command line options
 
 function parse_cmdarg_single_nonempty {
@@ -78,6 +77,10 @@ function get_platform {
 }
 
 function windows_reg_query {
+	if [ -z "$2" ]; then
+		>&2 echo "no registry key provided"
+		return 1
+	fi
 	local line=
 	(reg query "$1" -v "$2" || return $?) | while read -r line; do
 		line=$(tr -d '\0\n\r' <<< "$line")
@@ -92,7 +95,12 @@ function windows_reg_query {
 		echo "$line"
 		return 0
 	done
+	>&2 echo "failed to parse reg query output"
 	return 1
+}
+
+function plex_windows_reg_query {
+	windows_reg_query 'HKEY_CURRENT_USER\Software\Plex, Inc.\Plex Media Server' "$@"
 }
 
 
@@ -106,6 +114,12 @@ function pms_appdata_macos {
 	echo ~/"Library/Application Support/Plex Media Server"
 }
 function pms_appdata_windows {
+	reg_output=$(plex_windows_reg_query "LocalAppDataPath")
+	result=$?
+	if [ $result -eq 0 ] && [ -n "$reg_output" ]; then
+		echo "$reg_output"
+		return 1
+	fi
 	if [ -z "$LOCALAPPDATA" ]; then
 		>&2 echo "LOCALAPPDATA environment variable is not defined"
 		return 1
@@ -136,21 +150,27 @@ function get_appdata_path {
 # Cache paths
 
 function pms_cache_linux {
-	local appdata_path=$(pms_appdata_linux)
+	if [ -z "$pms_appdata_path" ]; then
+		pms_appdata_path=$(pms_appdata_linux)
+	fi
 	local result=$?
 	if [ $result -ne 0 ]; then
 		return $result
 	fi
-	echo "$appdata_path/Cache";
+	echo "$pms_appdata_path/Cache";
 }
-function pms_cache_macos { echo ~/"Library/Caches/PlexMediaServer"; }
+function pms_cache_macos {
+	echo ~/"Library/Caches/PlexMediaServer";
+}
 function pms_cache_windows {
-	local appdata_path=$(pms_appdata_windows)
+	if [ -z "$pms_appdata_path" ]; then
+		pms_appdata_path=$(pms_appdata_windows)
+	fi
 	local result=$?
 	if [ $result -ne 0 ]; then
 		return $result
 	fi
-	echo "$appdata_path/Cache";
+	echo "$pms_appdata_path/Cache";
 }
 
 function get_cache_path {
@@ -296,7 +316,7 @@ function get_prefs_value {
 			defaults read com.plexapp.plexmediaserver "$prefname" || return $?
 			;;
 		Windows)
-			windows_reg_query 'HKEY_CURRENT_USER\Software\Plex, Inc.\Plex Media Server' "$prefname" || return $?
+			plex_windows_reg_query "$prefname" || return $?
 			;;
 		*)
 			>&2 echo "Unknown platform $platform"
