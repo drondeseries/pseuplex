@@ -25,6 +25,7 @@ export type PseuplexResponseFilters = {
 	metadataRelatedHubs?: PseuplexResponseFilter<plexTypes.PlexHubsPage, (PseuplexResponseFilterContext & {
 		metadataIds: PseuplexMetadataIDParts[]
 	})>;
+	findGuidInLibrary?: PseuplexResponseFilter<plexTypes.PlexMetadataPage, PseuplexResponseFilterContext>;
 
 	metadataFromProvider?: PseuplexResponseFilter<PseuplexMetadataPage, (PseuplexResponseFilterContext & {
 		metadataProvider: PseuplexMetadataProvider

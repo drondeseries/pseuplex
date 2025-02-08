@@ -337,6 +337,26 @@ export class PseuplexApp {
 			})
 		]);
 
+		router.get(`/library/all`, [
+			this.middlewares.plexAuthentication,
+			plexApiProxy(this.plexServerURL, plexProxyArgs, {
+				filter: (req, res) => {
+					// only filter if guid is included
+					if(req.query['guid']) {
+						return true;
+					}
+					return false
+				},
+				responseModifier: async (proxyRes, resData, userReq: IncomingPlexAPIRequest, userRes) => {
+					// get request info
+					const params = parseQueryParams(userReq, (key) => !(key in userReq.plex.authContext));
+					// filter metadata
+					await this.filterResponse('findGuidInLibrary', resData, { proxyRes, userReq, userRes, params });
+					return resData;
+				}
+			})
+		]);
+
 		router.post('/playQueues', [
 			this.middlewares.plexAuthentication,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
@@ -442,6 +462,7 @@ export class PseuplexApp {
 			const plexToken = plexTypes.parsePlexTokenFromRequest(req);
 			if(plexToken) {
 				// save socket per plex token
+				// TODO wait until response from plex before adding to socket list
 				let sockets = this.clientWebSockets[plexToken];
 				if(!sockets) {
 					sockets = [];

@@ -59,12 +59,14 @@ export const plexProxy = (serverURL: string, args: PlexProxyOptions, opts: expre
 };
 
 export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
+	filter?: (req: express.Request, res: express.Response) => (boolean | Promise<boolean>),
 	requestOptionsModifier?: (proxyReqOpts: http.RequestOptions, userReq: express.Request) => http.RequestOptions,
 	requestPathModifier?: (req: express.Request) => string | Promise<string>,
 	requestBodyModifier?: (bodyContent: string, userReq: express.Request) => string | Promise<string>,
 	responseModifier?: (proxyRes: http.IncomingMessage, proxyResData: any, userReq: express.Request, userRes: express.Response) => any
 })=> {
 	return plexProxy(serverURL, args, {
+		filter: opts.filter,
 		parseReqBody: opts.requestBodyModifier ? true : undefined,
 		proxyReqOptDecorator: async (proxyReqOpts, userReq) => {
 			// transform xml request to json
