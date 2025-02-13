@@ -93,7 +93,7 @@ In the *Custom server access URLs* field, put the URLs of your pseuplex server, 
 
 ![Plex Server URLs](docs/images/plex_server_urls.png)
 
-If you are using your plex server's default certificate (ie `ssl.autoP12Path` and `ssl.autoP12Password`), you may need to manually add the automatic domains for your plex server here instead.
+If you are using your plex server's default certificate (ie `ssl.autoP12Path` and `ssl.autoP12Password` in your config), you may need to manually add the automatic domains for your plex server here instead.
 
 ![Plex Server Default URLs](docs/images/plex_server_urls_default.png)
 
