@@ -18,11 +18,12 @@ export const plexServerFetch = async <TResult>(options: {
 		serverURL = 'https://'+serverURL;
 	}
 	let url: string;
-	if(options.serverURL.endsWith('/') || options.endpoint.startsWith('/')) {
-		url = options.serverURL + options.endpoint;
+	if(serverURL.endsWith('/') || options.endpoint.startsWith('/')) {
+		url = serverURL + options.endpoint;
 	} else {
 		url = `${serverURL}/${options.endpoint}`;
 	}
+	// add parameters
 	if(options.params || options.authContext) {
 		url += '?';
 		let hasQuery = false;
@@ -64,7 +65,7 @@ export const plexServerFetch = async <TResult>(options: {
 	const contentTypeInfo = parseHttpContentType(res.headers['content-type']);
 	if(contentTypeInfo.contentType == 'application/json') {
 		return JSON.parse(responseText);
-	} else if(contentTypeInfo.contentType == 'text/xml' || responseText.startsWith('<')) {
+	} else if(contentTypeInfo.contentType == 'text/xml' || contentTypeInfo.contentType == 'application/xml' || responseText.startsWith('<')) {
 		return plexXMLToJS(responseText);
 	} else {
 		return JSON.parse(responseText);
