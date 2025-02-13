@@ -8,7 +8,7 @@ import { RequestsPluginConfig } from './plugins/requests';
 import { OverseerrRequestsPluginConfig } from './plugins/requests/providers/overseerr';
 
 export type Config = {
-	protocol: PseuplexServerProtocol,
+	protocol?: PseuplexServerProtocol,
 	port: number;
 	plex: {
 		host?: string;

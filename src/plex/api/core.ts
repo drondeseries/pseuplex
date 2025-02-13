@@ -66,7 +66,7 @@ export const plexServerFetch = async <TResult>(options: {
 	//console.log(`Response (${contentTypeInfo.contentType}):\n${responseText}`);
 	if(contentTypeInfo.contentType == 'application/json') {
 		return JSON.parse(responseText);
-	} else if(contentTypeInfo.contentType == 'text/xml' || contentTypeInfo.contentType == 'application/xml' || responseText.startsWith('<')) {
+	} else if(contentTypeInfo.contentType == 'application/xml' || contentTypeInfo.contentType == 'text/xml' || responseText.startsWith('<')) {
 		return await plexXMLToJS(responseText);
 	} else {
 		return JSON.parse(responseText);

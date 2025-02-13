@@ -6,6 +6,7 @@ import expressHttpProxy from 'express-http-proxy';
 import httpProxy from 'http-proxy';
 import {
 	parseHttpContentType,
+	parseHttpContentTypeFromHeader,
 	serializeResponseContent
 } from './serialization';
 import * as constants from '../constants';
@@ -70,10 +71,11 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 		parseReqBody: opts.requestBodyModifier ? true : undefined,
 		proxyReqOptDecorator: async (proxyReqOpts, userReq) => {
 			// transform xml request to json
-			const acceptType = parseHttpContentType(userReq.headers['accept']).contentType;
+			const acceptType = parseHttpContentTypeFromHeader(userReq, 'accept').contentType;
 			let isApiRequest = false;
-			if (acceptType == 'text/xml' || acceptType == 'application/xml') {
+			if (acceptType == 'application/xml' || acceptType == 'text/xml') {
 				if(opts.responseModifier) {
+					// since we're modifying the response, it's easier to parse as json
 					proxyReqOpts.headers['accept'] = 'application/json';
 				}
 				isApiRequest = true;
@@ -103,9 +105,10 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 		userResHeaderDecorator: (headers, userReq, userRes, proxyReq, proxyRes) => {
 			if(opts.responseModifier) {
 				// set the accepted content type if we're going to change back from json to xml
-				const acceptType = parseHttpContentType(userReq.headers['accept']).contentType;
-				if(acceptType == 'text/xml' || acceptType == 'application/xml') {
-					headers['content-type'] = acceptType;
+				const acceptType = parseHttpContentTypeFromHeader(userReq, 'accept').contentType;
+				if(acceptType != 'application/json') {
+					// response does not need to be json, so transform back into xml
+					headers['content-type'] = acceptType || 'application/xml';
 				}
 			} else {
 				if(args.logProxyResponses || args.logUserResponses) {

@@ -32,6 +32,14 @@ export const parseHttpContentType = (contentType: string): {contentType: string,
 	return {contentType,contentTypeSuffix};
 };
 
+export const parseHttpContentTypeFromHeader = (req: express.Request, header: string) => {
+	let contentType = req.headers[header];
+	if(contentType instanceof Array) {
+		contentType = contentType[0];
+	}
+	return parseHttpContentType(contentType);
+};
+
 const attrKey = '$';
 
 const xmlToJsonParser = new xml2js.Parser({
@@ -112,8 +120,7 @@ export const serializeResponseContent = (userReq: express.Request, userRes: expr
 	contentType: string;
 	data: string;
  } => {
-	const accept = (userReq.headers['Accept'] ?? userReq.headers['accept']) as string;
-	const acceptType = parseHttpContentType(accept).contentType;
+	const acceptType = parseHttpContentTypeFromHeader(userReq, 'accept').contentType;
 	if(acceptType == 'application/json') {
 		return {
 			contentType: 'application/json',
@@ -122,7 +129,7 @@ export const serializeResponseContent = (userReq: express.Request, userRes: expr
 	} else {
 		// convert to xml
 		return {
-			contentType: acceptType || 'text/xml',
+			contentType: acceptType || 'application/xml',
 			data: plexJSToXML(data)
 		};
 	}
