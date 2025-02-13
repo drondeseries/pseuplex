@@ -36,6 +36,10 @@ import { PlexPreferences } from './plex/types/preferences';
 		console.log(`parsed config:\n${JSON.stringify(cfg, null, '\t')}\n`);
 	}
 	let plexServerURL = cfg.plex.host;
+	if(!plexServerURL) {
+		console.error("Missing .plex.host in config");
+		process.exit(1);
+	}
 	if(cfg.plex.port) {
 		plexServerURL += `:${cfg.plex.port}`;
 	}
