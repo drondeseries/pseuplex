@@ -1,4 +1,4 @@
-# Pseuplex for Plex
+# Pseudo Metadata Proxy for Plex
 
 A middleware proxy for the plex server API. This sits in between the plex client and the plex server, forwarding requests and modifying responses to add some extra features.
 
@@ -36,7 +36,7 @@ This project is still very much a WIP and it is not recommended to enable remote
 
 ### SSL
 
-You will need to use your own SSL certificate for your plex server in order for pseuplex to modify requests over HTTPS. Otherwise, pseuplex will only work over HTTP, or it will fallback to the plex server's true address instead of the proxy address.
+You will need to use your own SSL certificate for your plex server in order for this proxy to modify requests over HTTPS. Otherwise, it will only work over HTTP, or it will fallback to the plex server's true address instead of the proxy address.
 
 ### Configuration
 
@@ -50,8 +50,8 @@ Create a `config.json` file with the following structure, and fill in the config
 		"token": "<PLEX API TOKEN>"
 	},
 	"ssl": {
-		"keyPath": "/etc/pseuplex/ssl_cert.key",
-		"certPath": "/etc/pseuplex/ssl_cert.crt"
+		"keyPath": "/etc/pseudo_plex_proxy/ssl_cert.key",
+		"certPath": "/etc/pseudo_plex_proxy/ssl_cert.crt"
 	},
 	"perUser": {
 		"yourplexuseremail@example.com": {
@@ -62,7 +62,7 @@ Create a `config.json` file with the following structure, and fill in the config
 ```
 
 - **protocol**: The server protocol. Either `http`, `https`, or `http+https` (default is `http+https`)
-- **port**: The port that Pseuplex will run on.
+- **port**: The port that this proxy will run on.
 - **plex**
 	- **host**: The url of your plex server.
 	- **token**: The plex API token of the server owner.
@@ -91,7 +91,7 @@ If you have generated your own SSL certificate, configure your server's [Network
 
 ![Plex SSL Prefs](docs/images/plex_ssl_prefs.png)
 
-In the *Custom server access URLs* field, put the URLs of your pseuplex server, separated by commas.
+In the *Custom server access URLs* field, put the URLs of your proxy server, separated by commas.
 
 ![Plex Server URLs](docs/images/plex_server_urls.png)
 
@@ -101,17 +101,17 @@ If you are using your plex server's default certificate (ie `ssl.autoP12Path` an
 
 Ensure *Enable local network discovery (GDM)* and *Enable Relay* are both unchecked, and then save the changes to your server's network settings.
 
-At this point, your plex server might not show up on *app.plex.tv* until you start pseuplex, but you should still be able to access it via its local ip.
+At this point, your plex server might not show up on *app.plex.tv* until you start the proxy server, but you should still be able to access it via its local ip.
 
 ### Local Access
 
-If you're using a custom domain name for your SSL certificate, you can hardcode the DNS entry mapping on your home router (or pihole if you have it). This way your domain will always resolve to the local ip when accessing via your local network (ie: map `yourdomain.com` to `192.168.1.123` or whatever the local IP of your pseuplex server is).
+If you're using a custom domain name for your SSL certificate, you can hardcode the DNS entry mapping on your home router (or pihole if you have it). This way your domain will always resolve to the local ip when accessing via your local network (ie: map `yourdomain.com` to `192.168.1.123` or whatever the local IP of your proxy server is).
 
 If you're having issues getting clients to connect through the proxy, try setting a firewall rule to disallow connections directly to your plex server. Alternatively, you can run Plex inside of docker, and set the external port to anything other than `32400`.
 
 ### Remote Access
 
-If you want to enable pseuplex for remote access, you'll need to port forward your pseuplex proxy instead of your plex server.
+If you want to enable the proxy for remote access, you'll just need to port forward your proxy server instead of your plex server.
 
 ### Running
 
