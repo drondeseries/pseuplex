@@ -112,7 +112,8 @@ export const serializeResponseContent = (userReq: express.Request, userRes: expr
 	contentType: string;
 	data: string;
  } => {
-	const acceptType = parseHttpContentType(userReq.headers['accept']).contentType;
+	const accept = (userReq.headers['Accept'] ?? userReq.headers['accept']) as string;
+	const acceptType = parseHttpContentType(accept).contentType;
 	if(acceptType == 'application/json') {
 		return {
 			contentType: 'application/json',
