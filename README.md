@@ -73,7 +73,7 @@ Create a `config.json` file with the following structure, and fill in the config
 - **ssl.autoP12Path**: (Optional) Automatically locate and use your plex server's SSL p12 file (if it's installed on the same system in a conventional location).
 - **ssl.autoP12Password**: (Optional) Automatically determine the password of your plex server's SSL p12 file.
 - **ssl.watchCertChanges**: (Optional) Automatically reload the SSL certificate/key whenever your cert/key/p12 file changes
-- **ssl.certReloadDelay**: (Optional) The time in milliseconds to wait after your cert/key/p12 file changes before reloading them (if `ssl.watchCertChanges` is `true`). Default is `1000`.
+- **ssl.certReloadDelay**: (Optional) The time in milliseconds to wait after your cert/key/p12 file changes before reloading SSL (if `ssl.watchCertChanges` is `true`). Default is `1000`.
 - **perUser**: A map of settings to configure for each user on your server. The entry keys are the plex email for each the user.
 	- **letterboxdUsername**: The letterboxd username for this user
  	- **letterboxdSimilarItemsEnabled**: (*optional*) Display similar items from letterboxd on plex media item pages for this user
