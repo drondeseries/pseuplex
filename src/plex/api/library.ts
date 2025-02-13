@@ -1,6 +1,9 @@
 import qs from 'querystring';
 import * as plexTypes from '../types';
-import { plexServerFetch } from './core';
+import {
+	plexServerFetch,
+	booleanQueryParam
+} from './core';
 
 export const getLibraryMetadata = async (id: string | string[], options: {
 	params?: plexTypes.PlexMetadataPageParams,
@@ -49,6 +52,37 @@ export const getLibraryMetadataRelatedHubs = async (id: string | string[], optio
 		serverURL: options.serverURL,
 		method: 'GET',
 		endpoint: `/library/metadata/${(id instanceof Array) ? id.map((idVal) => qs.escape(idVal)).join(',') : qs.escape(id)}/related`,
+		params: options.params,
+		authContext: options.authContext
+	});
+};
+
+export const searchLibrary = async (options: {
+	params: {
+		query: string;
+		searchTypes: plexTypes.PlexLibrarySearchType | plexTypes.PlexLibrarySearchType[];
+		limit?: number;
+		includeMetadata?: boolean;
+		filterPeople?: boolean;
+	},
+	serverURL: string,
+	authContext?: plexTypes.PlexAuthContext | null
+}): Promise<plexTypes.PlexLibrarySearchResultsPage> => {
+	// parse params
+	if(options.params?.searchTypes instanceof Array) {
+		options.params.searchTypes = options.params.searchTypes.join(',') as any;
+	}
+	if(options.params.includeMetadata != null) {
+		options.params.includeMetadata = booleanQueryParam(options.params.includeMetadata) as any;
+	}
+	if(options.params.filterPeople != null) {
+		options.params.filterPeople = booleanQueryParam(options.params.filterPeople) as any;
+	}
+	// send request
+	return await plexServerFetch<plexTypes.PlexLibrarySearchResultsPage>({
+		serverURL: options.serverURL,
+		method: 'GET',
+		endpoint: 'library/search',
 		params: options.params,
 		authContext: options.authContext
 	});

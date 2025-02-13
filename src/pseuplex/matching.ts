@@ -1,14 +1,9 @@
 import * as plexDiscoverAPI from '../plexdiscover';
-import {
-	PlexAuthContext,
-	PlexMetadataItem,
-	PlexMetadataPage,
-	PlexMetadataPageParams
-} from '../plex/types';
+import * as plexTypes from '../plex/types';
 
 export type PlexMetadataMatchStoreOptions = {
 	plexServerURL: string,
-	plexAuthContext: PlexAuthContext,
+	plexAuthContext: plexTypes.PlexAuthContext,
 	sharedServersMinLifetime: number
 };
 
@@ -30,8 +25,8 @@ export type PlexMediaItemMatchParams = {
 };
 
 export const findMatchingPlexMediaItem = async (options: PlexMediaItemMatchParams & {
-	authContext?: PlexAuthContext | null,
-	params?: PlexMetadataPageParams
+	authContext?: plexTypes.PlexAuthContext | null,
+	params?: plexTypes.PlexMetadataPageParams
 }) => {
 	var guidsSet = new Set<string>(options.guids);
 	return await findMatchingPlexMetadata({
@@ -56,16 +51,16 @@ export const findMatchingPlexMediaItem = async (options: PlexMediaItemMatchParam
 	});
 };
 
-type SearchResultMatchFilter = (resultItem: plexDiscoverAPI.SearchResult) => boolean;
-type MetadataMatchFilter = (metadataItem: PlexMetadataItem) => boolean;
+type SearchResultMatchFilter = (resultItem: plexTypes.PlexLibrarySearchResult) => boolean;
+type MetadataMatchFilter = (metadataItem: plexTypes.PlexMetadataItem) => boolean;
 
 const findMatchingPlexMetadata = async (options: {
-	authContext?: PlexAuthContext | null,
+	authContext?: plexTypes.PlexAuthContext | null,
 	query: string,
 	limit?: number,
 	searchTypes: plexDiscoverAPI.SearchType | plexDiscoverAPI.SearchType[],
-	params?: PlexMetadataPageParams
-}, filter: SearchResultMatchFilter, validate: MetadataMatchFilter): Promise<PlexMetadataItem | null> => {
+	params?: plexTypes.PlexMetadataPageParams
+}, filter: SearchResultMatchFilter, validate: MetadataMatchFilter): Promise<plexTypes.PlexMetadataItem | null> => {
 	const resultsPage = await plexDiscoverAPI.search({
 		authContext: options.authContext,
 		params: {
@@ -87,7 +82,7 @@ const findMatchingPlexMetadata = async (options: {
 						if(key.endsWith('/children')) {
 							key = key.substring(0, key.length-'/children'.length);
 						}
-						const metadataPage = await plexDiscoverAPI.fetch<PlexMetadataPage>({
+						const metadataPage = await plexDiscoverAPI.fetch<plexTypes.PlexMetadataPage>({
 							endpoint: key,
 							authContext: options.authContext,
 							params: options.params

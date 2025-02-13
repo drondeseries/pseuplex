@@ -71,3 +71,7 @@ export const plexServerFetch = async <TResult>(options: {
 		return JSON.parse(responseText);
 	}
 };
+
+export const booleanQueryParam = (param: boolean | undefined): string | undefined => {
+	return param != null ? (param ? '1' : '0') : undefined;
+};

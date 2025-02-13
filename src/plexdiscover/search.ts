@@ -1,8 +1,5 @@
-import {
-	PlexAuthContext,
-	PlexMetadataItem,
-	PlexMetadataPageParams
-} from '../plex/types';
+import * as plexTypes from '../plex/types';
+import { booleanQueryParam } from '../plex/api/core';
 import { plexDiscoverFetch } from './core';
 
 export enum SearchProvider {
@@ -14,18 +11,14 @@ export enum SearchProvider {
 
 export enum SearchType {
 	AvailabilityPlatforms = 'availabilityPlatforms',
-	Categories = 'caegories',
-	Movies = 'movies',
-	TV = 'tv',
-	People = 'people',
+	Categories = 'categories',
+	Movies = plexTypes.PlexLibrarySearchType.Movies,
+	TV = plexTypes.PlexLibrarySearchType.TV,
+	Music = plexTypes.PlexLibrarySearchType.Music,
+	People = plexTypes.PlexLibrarySearchType.People,
 	TVOnDemand = 'tvod',
 	LiveTV = 'livetv'
 }
-
-export type SearchResult = {
-	score: number; // value between 0 and 1
-	Metadata: PlexMetadataItem
-};
 
 export enum SearchResultsType {
 	Plex = 'plex',
@@ -37,7 +30,7 @@ export type SearchResults = {
 	id: SearchResultsType;
 	title: string;
 	size: number;
-	SearchResult?: SearchResult[];
+	SearchResult?: plexTypes.PlexLibrarySearchResult[];
 };
 
 export type SearchResultsPage = {
@@ -49,10 +42,6 @@ export type SearchResultsPage = {
 	}
 };
 
-const booleanQueryParam = (param: boolean | undefined): string | undefined => {
-	return param != null ? (param ? '1' : '0') : undefined;
-};
-
 export const search = async (options: {
 	params: {
 		query: string;
@@ -61,8 +50,8 @@ export const search = async (options: {
 		limit?: number;
 		includeMetadata?: boolean;
 		filterPeople?: boolean;
-	} & PlexMetadataPageParams,
-	authContext?: PlexAuthContext | null
+	},
+	authContext?: plexTypes.PlexAuthContext | null
 }): Promise<SearchResultsPage> => {
 	// parse params
 	if(options.params?.searchTypes instanceof Array) {
