@@ -1,7 +1,7 @@
 {
 	"port": 32397,
 	"plex": {
-		"serverURL": "http://127.0.0.1:32400",
+		"host": "http://127.0.0.1:32400",
 		"token": "bxViLIUTBlbdow-iuBVT",
 		"appDataPath": "/var/lib/plexmediaserver/Library/Application Support/Plex Media Server"
 	},

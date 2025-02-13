@@ -9,7 +9,6 @@ export type Config = {
 	protocol: PseuplexServerProtocol,
 	port: number;
 	plex: {
-		serverURL: string;
 		host?: string;
 		port?: number;
 		token: string;

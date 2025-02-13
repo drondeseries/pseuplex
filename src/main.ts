@@ -35,16 +35,12 @@ import { PlexPreferences } from './plex/types/preferences';
 	if (args.verbose) {
 		console.log(`parsed config:\n${JSON.stringify(cfg, null, '\t')}\n`);
 	}
-	let plexServerURL = cfg.plex.serverURL;
-	if(!plexServerURL) {
-		if(!cfg.plex.host) {
-			console.error("Missing .plex.serverURL in config");
-			process.exit(1);
-		} else if(!cfg.plex.port) {
-			console.error("Missing .plex.port in config");
-			process.exit(1);
-		}
-		plexServerURL = cfg.plex.host.indexOf('://') != -1 ? `${cfg.plex.host}:${cfg.plex.port}` : `http://${cfg.plex.host}:${cfg.plex.port}`;
+	let plexServerURL = cfg.plex.host;
+	if(cfg.plex.port) {
+		plexServerURL += `:${cfg.plex.port}`;
+	}
+	if(!plexServerURL.indexOf('://')) {
+		plexServerURL = 'http://'+plexServerURL;
 	}
 	const sslConfig: SSLConfig = {
 		p12Path: cfg.ssl?.p12Path,
