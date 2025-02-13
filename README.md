@@ -68,8 +68,8 @@ Create a `config.json` file with the following structure, and fill in the config
 - **plex.appDataPath**: (Optional) Manually specify the path of your plex server's appdata folder if it's in an unconventional place. On Linux, this is typically `/var/lib/plexmediaserver/Library/Application Support/Plex Media Server` unless you're running via docker. This will be used to determine the path of the SSL certificate if `ssl.autoP12Path` is `true`. This will also be used to determine the path of `Preferences.xml` if `ssl.autoP12Password` is `true`.
 - **ssl.p12Path**: The path to your SSL p12 file.
 - **ssl.p12Password**: The password to decrypt your SSL p12 file.
-- **ssl.keyPath**: The path to your SSL private key. This is ignored if `ssl.p12Path` or `ssl.autoP12Path` is set.
-- **ssl.certPath**: The path to your SSL certificate. This is ignored if `ssl.p12Path` or `ssl.autoP12Path` is set.
+- **ssl.keyPath**: The path to your SSL private key. This is ignored if `ssl.p12Path` is set or `ssl.autoP12Path` is `true`.
+- **ssl.certPath**: The path to your SSL certificate. This is ignored if `ssl.p12Path` is set or `ssl.autoP12Path` is `true`.
 - **ssl.autoP12Path**: (Optional) Automatically locate and use your plex server's SSL p12 file (if it's installed on the same system in a conventional location).
 - **ssl.autoP12Password**: (Optional) Automatically determine the password of your plex server's SSL p12 file.
 - **ssl.watchCertChanges**: (Optional) Automatically reload the SSL certificate/key whenever your cert/key/p12 file changes
