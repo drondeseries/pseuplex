@@ -52,7 +52,6 @@ import {
 import { CachedFetcher } from '../fetching/CachedFetcher';
 import {
 	httpError,
-	parseQueryParams,
 	forArrayOrSingle,
 	parseURLPath,
 	stringifyURLPath,
@@ -235,8 +234,7 @@ export class PseuplexApp {
 			this.middlewares.plexAuthentication,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexLibraryHubsPage, userReq: IncomingPlexAPIRequest, userRes) => {
-					const params: plexTypes.PlexHubListPageParams = parseQueryParams(userReq, (key) => !(key in userReq.plex.authContext));
-					await this.filterResponse('hubs', resData, { proxyRes, userReq, userRes, params });
+					await this.filterResponse('hubs', resData, { proxyRes, userReq, userRes });
 					return resData;
 				}
 			})
@@ -246,8 +244,7 @@ export class PseuplexApp {
 			this.middlewares.plexAuthentication,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexLibraryHubsPage, userReq: IncomingPlexAPIRequest, userRes) => {
-					const params: plexTypes.PlexHubListPageParams = parseQueryParams(userReq, (key) => !(key in userReq.plex.authContext));
-					await this.filterResponse('promotedHubs', resData, { proxyRes, userReq, userRes, params });
+					await this.filterResponse('promotedHubs', resData, { proxyRes, userReq, userRes });
 					return resData;
 				}
 			})
@@ -256,7 +253,6 @@ export class PseuplexApp {
 		router.get(`/library/metadata/:metadataId`, [
 			this.middlewares.plexAuthentication,
 			pseuplexMetadataIdsRequestMiddleware(async (req: IncomingPlexAPIRequest, res, metadataIds): Promise<PseuplexMetadataPage> => {
-				const params = parseQueryParams(req, (key) => !(key in req.plex.authContext));
 				// get metadatas
 				const resData = await this.getMetadata(metadataIds, {
 					plexServerURL: this.plexServerURL,
@@ -266,7 +262,7 @@ export class PseuplexApp {
 					transformMatchKeys: true,
 					metadataBasePath: '/library/metadata',
 					qualifiedMetadataIds: true,
-					plexParams: params
+					plexParams: req.plex.requestParams
 				});
 				// process metadata items
 				forArrayOrSingle(resData.MediaContainer.Metadata, (metadataItem) => {
@@ -279,12 +275,11 @@ export class PseuplexApp {
 					}
 				});
 				// filter metadata page
-				await this.filterResponse('metadata', resData, { userReq:req, userRes:res, params });
+				await this.filterResponse('metadata', resData, { userReq:req, userRes:res });
 				return resData;
 			}),
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexMetadataPage, userReq: IncomingPlexAPIRequest, userRes) => {
-					const params: plexTypes.PlexMetadataPageParams = parseQueryParams(userReq, (key) => !(key in userReq.plex.authContext));
 					// process metadata items
 					forArrayOrSingle(resData.MediaContainer.Metadata, (metadataItem: PseuplexMetadataItem) => {
 						const metadataId = parseMetadataIDFromKey(metadataItem.key, '/library/metadata/')?.id;
@@ -301,7 +296,7 @@ export class PseuplexApp {
 						}
 					});
 					// filter metadata page
-					await this.filterResponse('metadata', resData as PseuplexMetadataPage, { proxyRes, userReq, userRes, params });
+					await this.filterResponse('metadata', resData as PseuplexMetadataPage, { proxyRes, userReq, userRes });
 					return resData;
 				}
 			})
@@ -310,25 +305,22 @@ export class PseuplexApp {
 		router.get(`/library/metadata/:metadataId/related`, [
 			this.middlewares.plexAuthentication,
 			pseuplexMetadataIdsRequestMiddleware(async (req: IncomingPlexAPIRequest, res, metadataIds): Promise<plexTypes.PlexHubsPage> => {
-				// get request info
-				const params = parseQueryParams(req, (key) => !(key in req.plex.authContext));
 				// get metadata
 				const resData = await this.getMetadataRelatedHubs(metadataIds, {
-					plexParams: params,
+					plexParams: req.plex.requestParams,
 					plexServerURL: this.plexServerURL,
 					plexAuthContext: req.plex.authContext
 				});
 				// filter hub list page
-				await this.filterResponse('metadataRelatedHubs', resData, { userReq:req, userRes:res, params, metadataIds });
+				await this.filterResponse('metadataRelatedHubs', resData, { userReq:req, userRes:res, metadataIds });
 				return resData;
 			}),
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexHubsPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					// get request info
-					const params = parseQueryParams(userReq, (key) => !(key in userReq.plex.authContext));
 					const metadataIds = parseMetadataIdsFromPathParam(userReq.params.metadataId);
 					// filter hub list page
-					await this.filterResponse('metadataRelatedHubs', resData, { proxyRes, userReq, userRes, params, metadataIds });
+					await this.filterResponse('metadataRelatedHubs', resData, { proxyRes, userReq, userRes, metadataIds });
 					return resData;
 				}
 			})
@@ -345,10 +337,8 @@ export class PseuplexApp {
 					return false
 				},
 				responseModifier: async (proxyRes, resData, userReq: IncomingPlexAPIRequest, userRes) => {
-					// get request info
-					const params = parseQueryParams(userReq, (key) => !(key in userReq.plex.authContext));
 					// filter metadata
-					await this.filterResponse('findGuidInLibrary', resData, { proxyRes, userReq, userRes, params });
+					await this.filterResponse('findGuidInLibrary', resData, { proxyRes, userReq, userRes });
 					return resData;
 				}
 			})

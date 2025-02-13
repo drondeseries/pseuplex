@@ -58,7 +58,7 @@ export type PlexHubPageParams = {
 	includeMeta?: boolean;
 	excludeFields?: string[]; // "summary"
 	start?: number;
-	count?: number
+	count?: number;
 };
 
 export const parsePlexHubPageParams = (req: express.Request, options: {fromListPage: boolean}): PlexHubPageParams => {

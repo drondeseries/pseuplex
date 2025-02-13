@@ -2,7 +2,8 @@
 import express from 'express';
 import {
 	HttpError,
-	httpError
+	httpError,
+	parseQueryParams
 } from '../utils';
 import * as plexTypes from './types';
 import { serializeResponseContent } from './serialization';
@@ -47,7 +48,8 @@ export const plexAPIRequestHandler = <TResult>(handler: (req: express.Request, r
 export type IncomingPlexAPIRequest = express.Request & {
 	plex: {
 		authContext: plexTypes.PlexAuthContext;
-		userInfo: PlexServerAccountInfo
+		userInfo: PlexServerAccountInfo;
+		requestParams: {[key: string]: any}
 	}
 };
 
@@ -62,7 +64,8 @@ export const createPlexAuthenticationMiddleware = (accountsStore: PlexServerAcco
 			const plexReq = req as IncomingPlexAPIRequest;
 			plexReq.plex = {
 				authContext,
-				userInfo
+				userInfo,
+				requestParams: parseQueryParams(req, (key) => !(key in authContext))
 			};
 		} catch(error) {
 			next(error);

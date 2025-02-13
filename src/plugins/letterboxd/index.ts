@@ -35,7 +35,6 @@ import * as lbTransform from './transform';
 import {
 	forArrayOrSingleAsyncParallel,
 	httpError,
-	parseQueryParams,
 	stringParam
 } from '../../utils';
 
@@ -141,8 +140,8 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			plexAPIRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexMetadataPage> => {
 				console.log(`\ngot request for letterboxd item ${req.params.id}`);
 				const reqAuthContext = req.plex.authContext;
-				const reqUserInfo = req.plex.userInfo
-				const params: plexTypes.PlexMetadataPageParams = parseQueryParams(req, (key) => !(key in reqAuthContext));
+				const reqUserInfo = req.plex.userInfo;
+				const params = req.plex.requestParams;
 				const itemIdsStr = req.params.id?.trim();
 				if(!itemIdsStr) {
 					throw httpError(400, "No slug was provided");
@@ -161,7 +160,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					plexParams: params
 				});
 				// filter page
-				await this.app.filterResponse('metadataFromProvider', resData, { userReq:req, userRes:res, params, metadataProvider });
+				await this.app.filterResponse('metadataFromProvider', resData, { userReq:req, userRes:res, metadataProvider });
 				// send unavailable notification(s) if needed
 				if(resData?.MediaContainer?.Metadata) {
 					let metadataItems = resData.MediaContainer.Metadata;
@@ -198,8 +197,8 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			this.app.middlewares.plexAuthentication,
 			plexAPIRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
 				const id = req.params.id;
-				const hubs: plexTypes.PlexHubWithItems[] = [];
 				const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:true});
+				const hubs: plexTypes.PlexHubWithItems[] = [];
 				// add similar items hub
 				const hub = await this.hubs.similar.get(id);
 				const hubEntry = await hub.getHubListEntry(params, {
@@ -396,13 +395,14 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 	async _addFriendReviewsIfNeeded(resData: PseuplexMetadataPage, context: PseuplexResponseFilterContext) {
 		const userInfo = context.userReq.plex.userInfo;
 		const plexAuthContext = context.userReq.plex.authContext;
+		const reqParams = context.userReq.plex.requestParams;
 		// get prefs
 		const config = this.config;
 		const userPrefs = config.perUser[userInfo.email];
 		const letterboxdFriendsReviewsEnabled = (userPrefs?.letterboxdFriendsReviewsEnabled ?? config.letterboxdFriendsReviewsEnabled ?? true);
 		// attach letterboxd friends reviews if needed
 		const letterboxdUsername = userPrefs?.letterboxdUsername;
-		if(letterboxdFriendsReviewsEnabled && letterboxdUsername && context.params?.includeReviews == 1) {
+		if(letterboxdFriendsReviewsEnabled && letterboxdUsername && reqParams?.includeReviews == 1) {
 			await forArrayOrSingleAsyncParallel(resData.MediaContainer.Metadata, async (metadataItem) => {
 				try {
 					// get letterboxd id

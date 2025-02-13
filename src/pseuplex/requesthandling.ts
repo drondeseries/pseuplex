@@ -2,8 +2,7 @@ import qs from 'querystring';
 import express from 'express';
 import {
 	asyncRequestHandler,
-	httpError,
-	parseQueryParams
+	httpError
 } from '../utils';
 import * as plexTypes from '../plex/types';
 import {
@@ -34,8 +33,7 @@ export const parseMetadataIdsFromPathParam = (metadataIdsString: string): Pseupl
 export const pseuplexMetadataIdRequestMiddleware = <TResult>(handler: (
 	req: IncomingPlexAPIRequest,
 	res: express.Response,
-	metadataId: PseuplexMetadataIDParts,
-	params: {[key: string]: string}) => Promise<TResult>) => {
+	metadataId: PseuplexMetadataIDParts) => Promise<TResult>) => {
 	return asyncRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<boolean> => {
 		let metadataId = req.params.metadataId;
 		if(!metadataId) {
@@ -51,8 +49,7 @@ export const pseuplexMetadataIdRequestMiddleware = <TResult>(handler: (
 			return false;
 		}
 		await handlePlexAPIRequest(req, res, async (req: IncomingPlexAPIRequest, res): Promise<TResult> => {
-			const params = parseQueryParams(req, (key) => !(key in req.plex.authContext));
-			return await handler(req, res, metadataIdParts, params);
+			return await handler(req, res, metadataIdParts);
 		});
 		return true;
 	});

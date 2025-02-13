@@ -33,7 +33,6 @@ import {
 	WithOptionalProps,
 	WithOptionalPropsRecursive,
 	HttpError,
-	parseQueryParams,
 	findInArrayOrSingle,
 	forArrayOrSingle,
 	firstOrSingle
@@ -174,7 +173,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 					const season = intParam(req.params.season);
 					const plexUserInfo = req.plex.userInfo;
 					const plexAuthContext = req.plex.authContext;
-					const plexParams = parseQueryParams(req, (key) => !(key in plexAuthContext));
+					const plexParams = req.plex.requestParams;
 					const plexServerURL = this.app.plexServerURL;
 					// find requests provider
 					const reqProvider = this.requestProviders[providerSlug];

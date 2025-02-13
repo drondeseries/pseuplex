@@ -13,7 +13,6 @@ export type PseuplexResponseFilterContext = {
 	userReq: IncomingPlexAPIRequest;
 	userRes: express.Response;
 	proxyRes?: http.IncomingMessage;
-	params?: { [key: string]: any };
 	previousFilterPromises?: Promise<void>[];
 };
 
