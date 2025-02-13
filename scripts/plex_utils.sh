@@ -118,7 +118,7 @@ function pms_appdata_windows {
 	result=$?
 	if [ $result -eq 0 ] && [ -n "$reg_output" ]; then
 		echo "$reg_output"
-		return 1
+		return 0
 	fi
 	if [ -z "$LOCALAPPDATA" ]; then
 		>&2 echo "LOCALAPPDATA environment variable is not defined"
