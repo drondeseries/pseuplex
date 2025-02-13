@@ -18,10 +18,10 @@ export type Config = {
 		appDataPath?: string;
 	},
 	ssl?: SSLConfig & {
-		watchCertChanges?: boolean;
-		certReloadDelay?: number;
 		autoP12Path?: boolean;
 		autoP12Password?: boolean;
+		watchCertChanges?: boolean;
+		certReloadDelay?: number;
 	},
 } & PseuplexConfigBase<{}>
 	& LetterboxdPluginConfig

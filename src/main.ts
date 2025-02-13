@@ -1,8 +1,14 @@
 
 import https from 'https';
 import * as constants from './constants';
-import { readConfigFile } from './config';
-import { parseCmdArgs } from './cmdargs';
+import {
+	Config,
+	readConfigFile
+} from './config';
+import {
+	CommandArguments,
+	parseCmdArgs
+} from './cmdargs';
 import {
 	SSLConfig,
 	readSSLCertAndKey,
@@ -18,11 +24,18 @@ import {
 } from './plex/config';
 import { PlexPreferences } from './plex/types/preferences';
 
-(async () => {
-	let plexPrefs: PlexPreferences;
+let plexPrefs: PlexPreferences | undefined = undefined;
+let cfg: Config;
+let args: CommandArguments;
+const readPlexPrefsIfNeeded = async () => {
+	if(!plexPrefs) {
+		plexPrefs = await readPlexPreferences({appDataPath:cfg.plex?.appDataPath});
+	}
+};
 
+(async () => {
 	// parse command line arguments
-	const args = parseCmdArgs(process.argv.slice(2));
+	args = parseCmdArgs(process.argv.slice(2));
 	if(!args.configPath) {
 		console.error("No config path specified");
 		process.exit(1);
@@ -32,7 +45,7 @@ import { PlexPreferences } from './plex/types/preferences';
 	}
 
 	// load config
-	const cfg = await readConfigFile(args.configPath);
+	cfg = await readConfigFile(args.configPath);
 	if (args.verbose) {
 		console.log(`parsed config:\n${JSON.stringify(cfg, null, '\t')}\n`);
 	}
@@ -55,21 +68,27 @@ import { PlexPreferences } from './plex/types/preferences';
 	};
 	// auto-determine p12 path if needed
 	if(!sslConfig.p12Path && cfg.ssl?.autoP12Path) {
-		if(!plexPrefs) {
-			plexPrefs = await readPlexPreferences({appDataPath:cfg.plex?.appDataPath});
-		}
 		let appDataPath = cfg.plex?.appDataPath;
-		if(process.platform == 'win32' && plexPrefs.LocalAppDataPath) {
-			appDataPath = plexPrefs.LocalAppDataPath;
+		if(!appDataPath) {
+			// determine the path of plex's app data
+			if(process.platform == 'win32') {
+				// on windows, we can read plex's registry config to determine the appdata path
+				await readPlexPrefsIfNeeded();
+				if(plexPrefs.LocalAppDataPath) {
+					appDataPath = plexPrefs.LocalAppDataPath;
+				}
+			}
 		}
 		sslConfig.p12Path = await getPlexP12Path({appDataPath});
 	}
 	// calculate p12 password if needed
 	if(sslConfig.p12Path && !sslConfig.p12Password && cfg.ssl?.autoP12Password) {
-		if(!plexPrefs) {
-			plexPrefs = await readPlexPreferences({appDataPath:cfg.plex?.appDataPath});
+		// get plex ProcessedMachineIdentifier
+		let plexMachineId = cfg.plex.processedMachineIdentifier;
+		if(!plexMachineId) {
+			await readPlexPrefsIfNeeded();
+			plexMachineId = plexPrefs.ProcessedMachineIdentifier;
 		}
-		const plexMachineId = cfg.plex.processedMachineIdentifier || plexPrefs.ProcessedMachineIdentifier;
 		sslConfig.p12Password = calculatePlexP12Password({ProcessedMachineIdentifier:plexMachineId});
 	}
 	// read SSL certificates, if any
@@ -108,7 +127,9 @@ import { PlexPreferences } from './plex/types/preferences';
 
 	// watch for certificate changes if this is an SSL server
 	if(cfg.ssl?.watchCertChanges && (pseuplex.server as https.Server).setSecureContext) {
-		const watcher = watchSSLCertAndKeyChanges(sslConfig, {debounceDelay:(cfg.ssl?.certReloadDelay ?? 1000)}, (sslCertData) => {
+		const watcher = watchSSLCertAndKeyChanges(sslConfig, {
+			debounceDelay: (cfg.ssl?.certReloadDelay ?? 1000)
+		}, (sslCertData) => {
 			try {
 				(pseuplex.server as https.Server).setSecureContext(sslCertData);
 			} catch(error) {
