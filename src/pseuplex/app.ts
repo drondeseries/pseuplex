@@ -447,7 +447,7 @@ export class PseuplexApp {
 				break;
 			default:
 				console.warn(`Unknown protocol '${protocol}'`);
-				server = httpolyglot.createServer(options, router);
+				server = httpolyglot.createServer(options.serverOptions, router);
 				break;
 		}
 
