@@ -133,8 +133,7 @@ export class PseuplexApp {
 			plexAuthContext: this.plexAdminAuthContext
 		});
 		this.plexServerAccounts = new PlexServerAccountsStore({
-			plexServerProperties: this.plexServerProperties,
-			sharedServersMinLifetime: 60 * 5
+			plexServerProperties: this.plexServerProperties
 		});
 		this.plexServerIdToGuidCache = createPlexServerIdToGuidCache({
 			plexServerURL: this.plexServerURL,

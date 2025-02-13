@@ -80,6 +80,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 
 	responseFilters?: PseuplexReadOnlyResponseFilters = {
 		findGuidInLibrary: async (resData, context) => {
+			const plexAuthContext = context.userReq.plex.authContext;
 			const plexUserInfo = context.userReq.plex.userInfo;
 			// check if requests are enabled
 			const requestsEnabled = this.config.perUser[plexUserInfo.email]?.requestsEnabled ?? this.config.requestsEnabled;
@@ -93,7 +94,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 				return;
 			}
 			// get request provider
-			const provider = this._getRequestsProvider();
+			const provider = await this._getRequestsProviderForPlexUser(plexAuthContext['X-Plex-Token'], plexUserInfo);
 			if(!provider) {
 				return;
 			}
@@ -168,16 +169,21 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 			router.get(endpoint, [
 				this.app.middlewares.plexAuthentication,
 				plexAPIRequestHandler(async (req: IncomingPlexAPIRequest, res) => {
+					// get request properties
 					const { providerSlug, guid } = req.params;
 					const season = intParam(req.params.season);
-					const plexParams = parseQueryParams(req, (key) => !(key in req.plex.authContext));
-					const plexAuthContext = req.plex.authContext;
 					const plexUserInfo = req.plex.userInfo;
+					const plexAuthContext = req.plex.authContext;
+					const plexParams = parseQueryParams(req, (key) => !(key in plexAuthContext));
 					const plexServerURL = this.app.plexServerURL;
 					// find requests provider
 					const reqProvider = this.requestProviders[providerSlug];
 					if(!reqProvider) {
 						throw httpError(400, `No requests provider with ID ${providerSlug}`);
+					}
+					// ensure user is allowed to make requests to this request provider
+					if(!(await reqProvider.canPlexUserMakeRequests(plexAuthContext['X-Plex-Token'], plexUserInfo))) {
+						throw httpError(401, `User is not allowed to make ${providerSlug} requests`);
 					}
 					// parse guid
 					const plexGuidParts = parsePlexMetadataGuid(guid);
@@ -275,14 +281,13 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 					// send request if needed
 					let reqInfo: RequestInfo | undefined = undefined;
 					if(itemType != plexTypes.PlexMediaItemType.TVShow && !children) {
-						// send request
+						// send media request
 						const requestedPlexItem = firstOrSingle(requestedPlexItemPage.MediaContainer.Metadata);
 						if(requestedPlexItem) {
 							reqInfo = await reqProvider.requestPlexItem(requestedPlexItem, {
 								plexServerURL: this.app.plexServerURL,
-								plexAuthToken: plexAuthContext,
-								plexMoviesLibraryId: this.config.plex.requestedMoviesLibraryId,
-								plexTVShowsLibraryId: this.config.plex.requestedTVShowsLibraryId,
+								plexUserInfo,
+								plexAuthContext,
 								seasons: season != null ? [season] : undefined
 							});
 							// TODO add request state to the output metadata somehow
@@ -323,10 +328,10 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 		}
 	}
 
-	_getRequestsProvider(): RequestsProvider | null {
+	async _getRequestsProviderForPlexUser(token: string, userInfo: PlexServerAccountInfo): Promise<RequestsProvider | null> {
 		for(const slug in this.requestProviders) {
 			const provider = this.requestProviders[slug];
-			if(provider.isConfigured) {
+			if(provider.isConfigured && await provider.canPlexUserMakeRequests(token, userInfo)) {
 				return provider;
 			}
 		}

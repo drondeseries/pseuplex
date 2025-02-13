@@ -8,6 +8,7 @@ export const plexTVFetch = async <TResult>(options: {
 	method?: 'GET' | 'POST' | 'PUT' | 'DELETE',
 	endpoint: string,
 	params?: {[key: string]: any} | null,
+	headers?: {[key: string]: string},
 	authContext?: PlexAuthContext | null
 }): Promise<TResult> => {
 	// build URL
@@ -34,7 +35,8 @@ export const plexTVFetch = async <TResult>(options: {
 	}
 	// send request
 	const res = await fetch(url, {
-		method: options.method ?? 'GET'
+		method: options.method ?? 'GET',
+		headers: options.headers
 	});
 	if(!res.ok) {
 		res.body?.cancel();

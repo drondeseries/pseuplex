@@ -180,7 +180,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 									if(!metadataItem.Pseuplex.isOnServer) {
 										console.log(`Sending unavailable notifications for ${metadataItem.key} on ${sockets.length} sockets`);
 										sendMediaUnavailableNotifications(sockets, {
-											userID: reqUserInfo.userID,
+											userID: reqUserInfo.serverUserID,
 											metadataKey: metadataItem.key
 										});
 									}

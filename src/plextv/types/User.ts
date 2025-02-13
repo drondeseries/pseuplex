@@ -1,0 +1,68 @@
+
+export type PlexTVCurrentUserInfo = {
+	id: number;
+	uuid: string;
+	username: string;
+	title: string;
+	email: string;
+	friendlyName: string;
+	locale: string;
+	confirmed: boolean;
+	joinedAt: number;
+	emailOnlyAuth: boolean;
+	hasPassword: boolean;
+	protected: boolean;
+	thumb: string;
+	authToken: string;
+	mailingListStatus: string;
+	mailingListActive: boolean;
+	scrobbleTypes: string;
+	country: string;
+	subscription?: {
+		active: boolean;
+		subscribedAt: string;
+		status: string;
+		paymentService: string;
+		plan: string;
+		features: string[];
+	};
+	subscriptionDescription?: string;
+	restricted: boolean;
+	anonymous: boolean;
+	home: boolean;
+	guest: boolean;
+	homeSize: number;
+	homeAdmin: boolean;
+	maxHomeSize: number;
+	rememberExpiresAt: number;
+	profile: {
+		autoSelectAudio: boolean;
+		defaultAudioAccessibility: number;
+		defaultAudioLanguage: string;
+		defaultAudioLanguages: string[] | null;
+		defaultSubtitleLanguage: string;
+		defaultSubtitleLanguages: string[] | null;
+		autoSelectSubtitle: number;
+		defaultSubtitleAccessibility: number;
+		defaultSubtitleForced: number;
+		watchedIndicator: number;
+		mediaReviewsVisibility: number;
+		mediaReviewsLanguages: string[] | null;
+	};
+	entitlements: string[];
+	roles: string[];
+	services: {
+		identifier: string;
+		endpoint: string;
+		token: string | null;
+		secret: string | null;
+		status: string;
+	}[];
+	adsConsent: any;
+	adsConsentSetAt: any;
+	adsConsentReminderAt: any;
+	experimentalFeatures: boolean;
+	twoFactorEnabled: boolean;
+	backupCodesCreated: boolean;
+	attributionPartner: any;
+};

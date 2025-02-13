@@ -3,8 +3,7 @@ import * as plexTypes from '../plex/types';
 
 export type PlexMetadataMatchStoreOptions = {
 	plexServerURL: string,
-	plexAuthContext: plexTypes.PlexAuthContext,
-	sharedServersMinLifetime: number
+	plexAuthContext: plexTypes.PlexAuthContext
 };
 
 export class PlexMetadataMatchStore {

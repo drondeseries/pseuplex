@@ -59,6 +59,17 @@ const overseerrFetch = async (options: {
 
 
 
+export type ResultsPage<T> = {
+	pageInfo: {
+		page: number;
+		pages: number;
+		results: number;
+	},
+	results: T[]
+};
+
+
+
 export enum MediaType {
 	Movie = 'movie',
 	TV = 'tv'
@@ -76,14 +87,40 @@ export type User = {
 	id: number;
 	email: string; // "hey@itsme.com"
 	username: string;
+	plexId?: number;
 	plexToken?: string;
-	plexUsername: string;
+	plexUsername?: string;
 	userType: number;
 	permissions: number;
-	avatar: string;
+	avatar?: string;
 	createdAt: string; // "2020-09-02T05:02:23.000Z"
 	updatedAt: string; // "2020-09-02T05:02:23.000Z"
 	requestCount: number;
+};
+
+export enum UsersSortType {
+	Created = 'created',
+	Updated = 'updated',
+	Requests = 'requests',
+	DisplayName = 'displayname'
+}
+
+export const getUsers = async (options: {
+	params: {
+		take?: number,
+		skip?: number,
+		sort?: UsersSortType
+	},
+	serverURL: string,
+	apiKey?: string
+}): Promise<ResultsPage<User>> => {
+	return await overseerrFetch({
+		serverURL: options.serverURL,
+		method: 'GET',
+		endpoint: 'api/v1/user',
+		apiKey: options.apiKey,
+		params: options.params
+	});
 };
 
 
@@ -130,8 +167,8 @@ export type RequestItem = {
 };
 
 export const request = async (options: {
-	serverURL: string,
 	params: CreateRequestItem,
+	serverURL: string,
 	apiKey?: string
 }) => {
 	return await overseerrFetch({

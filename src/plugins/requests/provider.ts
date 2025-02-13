@@ -1,18 +1,22 @@
 
 import * as plexTypes from '../../plex/types';
+import { PlexServerAccountInfo } from '../../plex/accounts';
 
 export type RequestInfo = {
 	requestId: string;
-}
+};
+
+export type PlexMediaRequestOptions = {
+	seasons?: number[];
+	plexServerURL: string;
+	plexUserInfo: PlexServerAccountInfo;
+	plexAuthContext: plexTypes.PlexAuthContext;
+};
 
 export interface RequestsProvider {
 	readonly slug: string;
 	readonly isConfigured: boolean;
-	requestPlexItem?: (plexItem: plexTypes.PlexMetadataItem, options?: {
-		seasons?: number[];
-		plexMoviesLibraryId?: string | number;
-		plexTVShowsLibraryId?: string | number;
-		plexServerURL?: string;
-		plexAuthToken?: plexTypes.PlexAuthContext;
-	}) => Promise<RequestInfo>;
+	readonly canRequestEpisodes: boolean;
+	canPlexUserMakeRequests: (token: string, userInfo: PlexServerAccountInfo) => Promise<boolean>;
+	requestPlexItem?: (plexItem: plexTypes.PlexMetadataItem, options: PlexMediaRequestOptions) => Promise<RequestInfo>;
 }

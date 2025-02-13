@@ -1,14 +1,17 @@
 
 import * as plexTypes from '../../../../plex/types';
+import { PlexServerAccountInfo } from '../../../../plex/accounts';
 import {
 	PseuplexApp,
 	PseuplexConfigBase
 } from '../../../../pseuplex';
 import {
+	PlexMediaRequestOptions,
 	RequestInfo,
 	RequestsProvider
 } from '../../provider';
 import * as overseerrAPI from './api';
+import { httpError } from '../../../../utils';
 
 type OverseerPerUserPluginConfig = {
 	//
@@ -24,6 +27,13 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 	readonly slug = 'overseerr';
 	readonly app: PseuplexApp;
 	
+	overseerrUsersMinLifetime: number = 60;
+	
+	_overseerrUsers: overseerrAPI.User[] | undefined = undefined;
+	_plexTokensToOverseerrUsersMap: {[token: string]: overseerrAPI.User} = {};
+	_overseerrUsersTask: Promise<void> | null = null;
+	_lastOverseerrUsersFetchTime: number | null = null;
+	
 	constructor(app: PseuplexApp) {
 		this.app = app;
 	}
@@ -33,22 +43,101 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 	}
 	
 	get isConfigured(): boolean {
-		const cfg = this.config;
-		if (cfg.overseerr && cfg.overseerr.host && cfg.overseerr.apiKey) {
+		const cfg = this.config?.overseerr;
+		if (cfg && cfg.host && cfg.apiKey) {
+			return true;
+		}
+		return false;
+	}
+
+	get canRequestEpisodes(): boolean {
+		return false;
+	}
+
+	async _refetchOverseerrUsersIfAble(): Promise<boolean> {
+		// wait for existing fetch operation, if any
+		if(this._overseerrUsersTask) {
+			await this._overseerrUsersTask;
+			return true;
+		}
+		// check if enough time has passed that we can refetch
+		if(this._lastOverseerrUsersFetchTime != null && (process.uptime() - this._lastOverseerrUsersFetchTime) < this.overseerrUsersMinLifetime) {
+			return false;
+		}
+		try {
+			const cfg = this.config.overseerr;
+			// fetch overseer users
+			const task = overseerrAPI.getUsers({
+				serverURL: cfg.host,
+				apiKey: cfg.apiKey,
+				params: {
+					take: 1000
+				}
+			}).then((usersPage) => {
+				this._overseerrUsers = usersPage.results;
+				this._plexTokensToOverseerrUsersMap = {};
+				this._lastOverseerrUsersFetchTime = process.uptime();
+			});
+			// store pending task and wait
+			this._overseerrUsersTask = task;
+			await task;
+			return true;
+		} finally {
+			// delete pending task
+			this._overseerrUsersTask = null;
+		}
+	}
+
+	_findOverseerrUserFromPlexUser(token: string, userInfo: PlexServerAccountInfo): (overseerrAPI.User | null) {
+		let overseerrUser = this._plexTokensToOverseerrUsersMap[token];
+		if(overseerrUser) {
+			return overseerrUser;
+		}
+		overseerrUser = this._overseerrUsers?.find((osrUser) => {
+			return (osrUser.plexId != null && osrUser.plexId == userInfo.plexUserID)
+				|| (osrUser.plexUsername && osrUser.plexUsername == userInfo.plexUsername);
+		});
+		if(overseerrUser) {
+			this._plexTokensToOverseerrUsersMap[token] = overseerrUser;
+			return overseerrUser;
+		}
+		return null;
+	}
+
+	async _getOverseerrUserFromPlexUser(token: string, userInfo: PlexServerAccountInfo): Promise<overseerrAPI.User | null> {
+		let overseerrUser = this._findOverseerrUserFromPlexUser(token, userInfo);
+		if(overseerrUser) {
+			return overseerrUser;
+		}
+		if(await this._refetchOverseerrUsersIfAble()) {
+			return this._findOverseerrUserFromPlexUser(token, userInfo);
+		}
+		return null;
+	}
+
+	async canPlexUserMakeRequests(token: string, userInfo: PlexServerAccountInfo): Promise<boolean> {
+		const overseerrUser = await this._getOverseerrUserFromPlexUser(token, userInfo);
+		if(overseerrUser) {
 			return true;
 		}
 		return false;
 	}
 	
-	async requestPlexItem(plexItem: plexTypes.PlexMetadataItem, options?: {seasons?: number[]}): Promise<RequestInfo> {
+	async requestPlexItem(plexItem: plexTypes.PlexMetadataItem, options: PlexMediaRequestOptions): Promise<RequestInfo> {
+		// get overseerr user info
+		const overseerrUser = await this._getOverseerrUserFromPlexUser(options.plexAuthContext['X-Plex-Token'], options.plexUserInfo);
+		if(!overseerrUser) {
+			throw httpError(401, `User is not allowed to request media from ${this.slug}`);
+		}
+		// get plex item info
 		let guidPrefix: string = 'tmdb://';
-		let idKey: ('tvdbId' | 'mediaId') = 'mediaId';
+		let mediaIdKey: ('tvdbId' | 'mediaId') = 'mediaId';
 		let type: overseerrAPI.MediaType;
 		switch(plexItem.type) {
 			case plexTypes.PlexMediaItemType.Movie:
 				type = overseerrAPI.MediaType.Movie;
 				//guidPrefix = 'tmdb://';
-				//idKey = 'mediaId';
+				//mediaIdKey = 'mediaId';
 				break;
 
 			case plexTypes.PlexMediaItemType.Episode:
@@ -58,7 +147,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 			case plexTypes.PlexMediaItemType.TVShow:
 				type = overseerrAPI.MediaType.TV;
 				//guidPrefix = 'tvdb://';
-				//idKey = 'tvdbId';
+				//mediaIdKey = 'tvdbId';
 				break;
 
 			default:
@@ -68,17 +157,20 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 		if(!matchedGuid) {
 			throw new Error(`Could not find ID to request`);
 		}
-		const matchedId = Number.parseInt(matchedGuid.substring(guidPrefix.length));
-		if(Number.isNaN(matchedId)) {
-			throw new Error(`Failed to parse matched id ${matchedGuid}`);
+		const mediaId = Number.parseInt(matchedGuid.substring(guidPrefix.length));
+		if(Number.isNaN(mediaId)) {
+			throw new Error(`Failed to parse matched guid ${matchedGuid}`);
 		}
 		//console.log(`Parsed ${matchedGuid} to ${matchedId}`);
+		// send request to overseerr
+		const cfg = this.config.overseerr;
 		const resData = await overseerrAPI.request({
-			serverURL: this.config.overseerr.host,
-			apiKey: this.config.overseerr.apiKey,
+			serverURL: cfg.host,
+			apiKey: cfg.apiKey,
 			params: {
 				mediaType: type,
-				[idKey]: matchedId,
+				[mediaIdKey]: mediaId,
+				userId: overseerrUser.id,
 				seasons: options?.seasons
 			}
 		});
