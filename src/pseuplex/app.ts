@@ -210,7 +210,7 @@ export class PseuplexApp {
 			this.plugins[pluginClass.slug] = plugin;
 		}
 
-		// create server
+		// create router and define routes
 		const protocol = options.protocol ?? PseuplexServerProtocol.httpolyglot;
 		const loggingOpts = options.loggingOptions;
 		const plexProxyArgs: PlexProxyOptions = {
