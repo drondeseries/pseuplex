@@ -433,7 +433,7 @@ export class PseuplexApp {
 		}));*/
 		router.use(expressErrorHandler);
 		
-		// create http/http+https server
+		// create http/https/http+https server
 		let server: (http.Server | https.Server | undefined) = undefined;
 		switch(protocol) {
 			case PseuplexServerProtocol.http:
