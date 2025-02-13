@@ -8,10 +8,8 @@ import * as plexTypes from '../plex/types';
 import * as plexServerAPI from '../plex/api';
 import { PlexServerPropertiesStore } from '../plex/serverproperties';
 import { PlexServerAccountsStore } from '../plex/accounts';
-import {
-	createPlexServerIdToGuidCache,
-	parseMetadataIDFromKey
-} from '../plex/metadata';
+import { createPlexServerIdToGuidCache } from '../plex/metadata';
+import { parseMetadataIDFromKey } from '../plex/metadataidentifier';
 import {
 	plexApiProxy,
 	plexHttpProxy,
@@ -129,10 +127,10 @@ export class PseuplexApp {
 		
 		// define properties
 		this.plexServerURL = options.plexServerURL;
-		const plexAdminAuthContext = options.plexAdminAuthContext;
+		this.plexAdminAuthContext = options.plexAdminAuthContext;
 		this.plexServerProperties = new PlexServerPropertiesStore({
 			plexServerURL: this.plexServerURL,
-			plexAuthContext: plexAdminAuthContext
+			plexAuthContext: this.plexAdminAuthContext
 		});
 		this.plexServerAccounts = new PlexServerAccountsStore({
 			plexServerProperties: this.plexServerProperties,
@@ -140,7 +138,7 @@ export class PseuplexApp {
 		});
 		this.plexServerIdToGuidCache = createPlexServerIdToGuidCache({
 			plexServerURL: this.plexServerURL,
-			plexAuthContext: plexAdminAuthContext
+			plexAuthContext: this.plexAdminAuthContext
 		});
 
 		// define middlewares
@@ -342,7 +340,7 @@ export class PseuplexApp {
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				filter: (req, res) => {
 					// only filter if guid is included
-					if(req.query['guid']) {
+					if(req.query['guid'] || req.query['show.guid']) {
 						return true;
 					}
 					return false

@@ -2,6 +2,7 @@
 import { CachedFetcher } from '../fetching/CachedFetcher';
 import * as plexTypes from '../plex/types';
 import * as plexServerAPI from '../plex/api';
+import { parsePlexMetadataGuid } from '../plex/metadataidentifier';
 import * as plexDiscoverAPI from '../plexdiscover';
 import * as extPlexTransform from './externalplex';
 import {
@@ -280,7 +281,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 			// get any remaining guids from plex discover
 			const remainingGuids = guidsToFetch.filter((guid) => !plexMetadataMap[guid]);
 			if(remainingGuids.length > 0) {
-				const discoverResult = await plexDiscoverAPI.getLibraryMetadata(remainingGuids.map((guid) => plexDiscoverAPI.guidToMetadataID(guid)), {
+				const discoverResult = await plexDiscoverAPI.getLibraryMetadata(remainingGuids.map((guid) => parsePlexMetadataGuid(guid)?.id), {
 					authContext: options.plexAuthContext,
 					params: options.plexParams
 				});

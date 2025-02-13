@@ -4,6 +4,8 @@ import { SSLConfig } from './ssl';
 import { PseuplexConfigBase } from './pseuplex/configbase';
 import { PseuplexServerProtocol } from './pseuplex/types/server';
 import { LetterboxdPluginConfig } from './plugins/letterboxd';
+import { RequestsPluginConfig } from './plugins/requests';
+import { OverseerrRequestsPluginConfig } from './plugins/requests/providers/overseerr';
 
 export type Config = {
 	protocol: PseuplexServerProtocol,
@@ -21,7 +23,10 @@ export type Config = {
 		autoP12Path?: boolean;
 		autoP12Password?: boolean;
 	},
-} & PseuplexConfigBase<{}> & LetterboxdPluginConfig;
+} & PseuplexConfigBase<{}>
+	& LetterboxdPluginConfig
+	& RequestsPluginConfig
+	& OverseerrRequestsPluginConfig;
 
 export const readConfigFile = async (path: string): Promise<Config> => {
 	const data = await fs.promises.readFile(path, 'utf8');

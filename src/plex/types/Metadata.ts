@@ -75,31 +75,26 @@ export type PlexMetadataItem = {
 	Director?: PlexPerson[];
 	Writer?: PlexPerson[];
 	Role?: PlexPerson[];
-} & ({} |
-	{
-		librarySectionTitle: string; // "My TV Shows"
-		librarySectionID: number; // 2
-		librarySectionKey: string; // "/library/sections/2"
-	}
-) & ({} |
-	({
-		parentGuid: string; // "plex://season/5464cnhtcb071t52015c02"
-		parentKey: string; // "/library/metadata/20201"
-		parentRatingKey: string; // "20205"
-		parentTitle: string; // "Season 1"
-		parentIndex: number; // 1
-		parentThumb: string; // "/library/metadata/20205/thumb/98535429"
-	} & ({} |
-		{
-			grandparentGuid: string; // "plex://show/0374ctv2rv1c123c40cv01t3"
-			grandparentKey: string; // "/library/metadata/20198"
-			grandparentRatingKey: string; // "20198"
-			grandparentSlug: string; // 'pokemon'
-			grandparentThumb: string; // "/library/metadata/20205/thumb/98535429"
-			grandparentArt: string; // "/library/metadata/20198/art/179430404"
-			grandparentTheme?: string; // "/library/metadata/20198/theme/45343402402354"
-		}))
-);
+
+	librarySectionTitle?: string; // "My TV Shows"
+	librarySectionID?: string | number; // 2
+	librarySectionKey?: string; // "/library/sections/2"
+	
+	parentGuid?: string; // "plex://season/5464cnhtcb071t52015c02"
+	parentKey?: string; // "/library/metadata/20201"
+	parentRatingKey?: string; // "20205"
+	parentTitle?: string; // "Season 1"
+	parentIndex?: number; // 1
+	parentThumb?: string; // "/library/metadata/20205/thumb/98535429"
+
+	grandparentGuid?: string; // "plex://show/0374ctv2rv1c123c40cv01t3"
+	grandparentKey?: string; // "/library/metadata/20198"
+	grandparentRatingKey?: string; // "20198"
+	grandparentSlug?: string; // 'pokemon'
+	grandparentThumb?: string; // "/library/metadata/20205/thumb/98535429"
+	grandparentArt?: string; // "/library/metadata/20198/art/179430404"
+	grandparentTheme?: string; // "/library/metadata/20198/theme/45343402402354"
+};
 
 export type PlexMetadataPage = {
 	MediaContainer: PlexMediaContainer & {

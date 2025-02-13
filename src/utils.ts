@@ -4,6 +4,14 @@ import express from 'express';
 
 export type HttpError = Error & { statusCode: number };
 
+export type WithOptionalProps<T> = {
+	[key in keyof T]?: T[key]
+};
+
+export type WithOptionalPropsRecursive<T> = T extends Array<infer U> ? Array<WithOptionalPropsRecursive<U>> : {
+	[key in keyof T]?: WithOptionalPropsRecursive<T[key]>
+};
+
 export const httpError = (status: number, message: string): HttpError => {
 	const error = new Error(message) as HttpError;
 	error.statusCode = status;
@@ -43,6 +51,23 @@ export const intParam = (value: any): number | undefined => {
 			throw httpError(400, `${value} is not an integer`);
 		}
 		return intVal;
+	}
+	return undefined;
+};
+
+export const intArrayParam = (value: any): number[] | undefined => {
+	if(typeof value === 'number') {
+		return [value];
+	}
+	if(value instanceof Array) {
+		return value.map((val) => {
+			return intParam(val);
+		});
+	}
+	if(typeof value === 'string') {
+		return value.split(',').map((val) => {
+			return intParam(val);
+		});
 	}
 	return undefined;
 };
@@ -233,6 +258,41 @@ export const transformArrayOrSingleAsyncParallel = async <T,U>(item: T | T[] | u
 	} else {
 		return item as any;
 	}
+};
+
+export const pushToArray = <T>(arrayOrSingle: (T | T[] | undefined), item: T): T[] => {
+	if(arrayOrSingle instanceof Array) {
+		arrayOrSingle.push(item);
+		return arrayOrSingle;
+	} else if(arrayOrSingle) {
+		return [arrayOrSingle, item];
+	} else {
+		return [item];
+	}
+};
+
+export const findInArrayOrSingle = <T>(arrayOrSingle: (T | T[] | undefined), predicate: (item: T) => boolean) => {
+	if(arrayOrSingle instanceof Array) {
+		return arrayOrSingle.find(predicate);
+	} else if(arrayOrSingle) {
+		if(predicate(arrayOrSingle)) {
+			return arrayOrSingle;
+		}
+	}
+	return undefined;
+};
+
+export const firstOrSingle = <T>(arrayOrSingle: (T | T[] | undefined)): T | undefined => {
+	if(arrayOrSingle instanceof Array) {
+		return arrayOrSingle[0];
+	} else if(arrayOrSingle) {
+		return arrayOrSingle;
+	}
+	return undefined;
+};
+
+export const isNullOrEmpty = (obj: any) => {
+	return (!obj || (obj instanceof Array && obj.length === 0));
 };
 
 export const asyncRequestHandler = <TRequest extends express.Request = express.Request>(

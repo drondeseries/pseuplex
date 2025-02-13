@@ -6,7 +6,7 @@ import {
 	IncomingPlexAPIRequest,
 	plexAPIRequestHandler
 } from '../../plex/requesthandling';
-import { parseMetadataIDFromKey } from '../../plex/metadata';
+import { parseMetadataIDFromKey } from '../../plex/metadataidentifier';
 import {
 	PseuplexApp,
 	PseuplexPlugin,
@@ -44,10 +44,10 @@ type LetterboxdFlags = {
 	letterboxdFriendsActivityHubEnabled?: boolean;
 	letterboxdFriendsReviewsEnabled?: boolean;
 };
-type LetterboxdPerUserConfig = {
+type LetterboxdPerUserPluginConfig = {
 	letterboxdUsername?: string;
 } & LetterboxdFlags;
-export type LetterboxdPluginConfig = (PseuplexConfigBase<LetterboxdPerUserConfig> & LetterboxdFlags);
+export type LetterboxdPluginConfig = (PseuplexConfigBase<LetterboxdPerUserPluginConfig> & LetterboxdFlags);
 
 export default (class LetterboxdPlugin implements PseuplexPlugin {
 	static slug = 'letterboxd';
@@ -268,12 +268,13 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			idsEndIndex = uri.path.length;
 		}
 		const slugs = uri.path.substring(idsStartIndex, idsEndIndex).split(',');
+		// get letterboxd item(s) (resolving the key(s) if needed)
 		let metadatas = (await this.metadata.get(slugs, {
 			plexServerURL: options.plexServerURL,
 			plexAuthContext: options.plexAuthContext,
 			includeDiscoverMatches: false,
 			includeUnmatched: false,
-			transformMatchKeys: false
+			transformMatchKeys: false // keep the resolved key
 		})).MediaContainer.Metadata;
 		if(!metadatas) {
 			return false;
@@ -281,6 +282,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		if(!(metadatas instanceof Array)) {
 			metadatas = [metadatas];
 		}
+		// apply new metadata key(s)
 		if(metadatas.length <= 0) {
 			return false;
 		} else if(metadatas.length == 1) {
@@ -305,7 +307,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// get prefs
 		const config = this.config;
 		const userPrefs = config.perUser[userInfo.email];
-		const friendsActvityHubEnabled = userPrefs.letterboxdFriendsActivityHubEnabled ?? config.letterboxdFriendsActivityHubEnabled ?? true;
+		const friendsActvityHubEnabled = userPrefs?.letterboxdFriendsActivityHubEnabled ?? config.letterboxdFriendsActivityHubEnabled ?? true;
 		// add friends activity feed hub if enabled
 		if(friendsActvityHubEnabled && userPrefs?.letterboxdUsername) {
 			const params = plexTypes.parsePlexHubPageParams(context.userReq, {fromListPage:true});
@@ -331,7 +333,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		const config = this.config;
 		const userPrefs = config.perUser[userInfo.email];
 		// add similar letterboxd movies hub
-		if(userPrefs.letterboxdSimilarItemsEnabled ?? config.letterboxdSimilarItemsEnabled ?? true) {
+		if(userPrefs?.letterboxdSimilarItemsEnabled ?? config.letterboxdSimilarItemsEnabled ?? true) {
 			// get hubs for metadata ids
 			const hubs = await Promise.all(context.metadataIds.map(async (metadataId) => {
 				try {
@@ -397,7 +399,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// get prefs
 		const config = this.config;
 		const userPrefs = config.perUser[userInfo.email];
-		const letterboxdFriendsReviewsEnabled = (userPrefs.letterboxdFriendsReviewsEnabled ?? config.letterboxdFriendsReviewsEnabled ?? true);
+		const letterboxdFriendsReviewsEnabled = (userPrefs?.letterboxdFriendsReviewsEnabled ?? config.letterboxdFriendsReviewsEnabled ?? true);
 		// attach letterboxd friends reviews if needed
 		const letterboxdUsername = userPrefs?.letterboxdUsername;
 		if(letterboxdFriendsReviewsEnabled && letterboxdUsername && context.params?.includeReviews == 1) {

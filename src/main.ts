@@ -10,6 +10,7 @@ import {
 } from './ssl';
 import { PseuplexApp } from './pseuplex';
 import LetterboxdPlugin from './plugins/letterboxd';
+import RequestsPlugin from './plugins/requests';
 import {
 	calculatePlexP12Password,
 	getPlexP12Path,
@@ -93,7 +94,10 @@ import { PlexPreferences } from './plex/types/preferences';
 			logUserResponseBody: args.logUserResponseBody,
 			logFullURLs: args.logFullURLs
 		},
-		plugins: [LetterboxdPlugin],
+		plugins: [
+			LetterboxdPlugin,
+			RequestsPlugin
+		],
 		config: cfg
 	});
 

@@ -36,6 +36,7 @@ export type PlexContentRating = PlexMovieContentRating | PlexTVContentRating;
 export enum PlexMediaItemType {
 	Movie = 'movie',
 	TVShow = 'show',
+	Season = 'season',
 	Episode = 'episode',
 	Album = 'album',
 	Clip = 'clip',
@@ -45,5 +46,22 @@ export enum PlexMediaItemType {
 }
 
 export enum PlexMediaItemTypeNumeric {
-	Movie = 1
+	Movie = 1,
+	Show = 2,
+	Season = 3,
+	Episode = 4
 }
+
+export const PlexMediaItemTypeToNumeric = {
+	[PlexMediaItemType.Movie]: PlexMediaItemTypeNumeric.Movie,
+	[PlexMediaItemType.TVShow]: PlexMediaItemTypeNumeric.Show,
+	[PlexMediaItemType.Season]: PlexMediaItemTypeNumeric.Season,
+	[PlexMediaItemType.Episode]: PlexMediaItemTypeNumeric.Episode
+};
+
+export const PlexMediaItemNumericToType = {
+	[PlexMediaItemTypeNumeric.Movie]: PlexMediaItemType.Movie,
+	[PlexMediaItemTypeNumeric.Show]: PlexMediaItemType.TVShow,
+	[PlexMediaItemTypeNumeric.Season]: PlexMediaItemType.Season,
+	[PlexMediaItemTypeNumeric.Episode]: PlexMediaItemType.Episode
+};

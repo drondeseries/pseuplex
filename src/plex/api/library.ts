@@ -4,14 +4,38 @@ import { plexServerFetch } from './core';
 
 export const getLibraryMetadata = async (id: string | string[], options: {
 	params?: plexTypes.PlexMetadataPageParams,
+	children?: boolean,
+	serverURL: string,
+	authContext?: plexTypes.PlexAuthContext | null
+}): Promise<plexTypes.PlexMetadataPage> => {
+	const ids = (id instanceof Array) ? id.map((idVal) => qs.escape(idVal)).join(',') : qs.escape(id);
+	return await plexServerFetch<plexTypes.PlexMetadataPage>({
+		serverURL: options.serverURL,
+		method: 'GET',
+		endpoint: `library/metadata/${ids}` + (options.children ? '/children' : ''),
+		params: options.params,
+		authContext: options.authContext
+	});
+};
+
+export type FindLibraryMetadataArgs = (
+	{type?: plexTypes.PlexMediaItemTypeNumeric}
+	& ({guid: string} | {'show.guid': string, 'season.index': number})
+);
+
+export const findLibraryMetadata = async (args: FindLibraryMetadataArgs, options: {
+	params?: plexTypes.PlexMetadataPageParams,
 	serverURL: string,
 	authContext?: plexTypes.PlexAuthContext | null
 }): Promise<plexTypes.PlexMetadataPage> => {
 	return await plexServerFetch<plexTypes.PlexMetadataPage>({
 		serverURL: options.serverURL,
 		method: 'GET',
-		endpoint: `library/metadata/${(id instanceof Array) ? id.map((idVal) => qs.escape(idVal)).join(',') : qs.escape(id)}`,
-		params: options.params,
+		endpoint: 'library/all',
+		params: {
+			...args,
+			...options.params
+		},
 		authContext: options.authContext
 	});
 };

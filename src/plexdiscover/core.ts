@@ -18,18 +18,3 @@ export const plexDiscoverFetch = async <TResult>(options: {
 		authContext: options.authContext
 	});
 };
-
-export const guidToMetadataID = (guid: string) => {
-	if(!guid || !guid.startsWith('plex://')) {
-		return guid;
-	}
-	let endIndex = guid.length;
-	if(guid.endsWith('/')) {
-		endIndex--;
-	}
-	const slashIndex = guid.lastIndexOf('/', endIndex);
-	if(slashIndex == -1) {
-		return guid.substring(0, endIndex);
-	}
-	return guid.substring(slashIndex+1, endIndex);
-};

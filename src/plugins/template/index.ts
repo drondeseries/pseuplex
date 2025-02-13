@@ -1,5 +1,7 @@
 
 import express from 'express';
+import * as plexTypes from '../../plex/types';
+import { IncomingPlexAPIRequest } from '../../plex/requesthandling';
 import {
 	PseuplexApp,
 	PseuplexConfigBase,
@@ -11,13 +13,15 @@ import {
 type TemplateFlags = {
 	//
 };
-type TemplatePerUserConfig = {
+type TemplatePerUserPluginConfig = {
 	//
 } & TemplateFlags;
-export type TemplatePluginConfig = (PseuplexConfigBase<TemplatePerUserConfig> & TemplateFlags);
+export type TemplatePluginConfig = PseuplexConfigBase<TemplatePerUserPluginConfig> & TemplateFlags & {
+	//
+};
 
 export default (class TemplatePlugin implements PseuplexPlugin {
-	static slug = '<template>';
+	static slug = '<plugin_name>';
 	readonly slug = TemplatePlugin.slug;
 	readonly app: PseuplexApp;
 
