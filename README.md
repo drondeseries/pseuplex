@@ -85,7 +85,7 @@ Create a `config.json` file with the following structure, and fill in the config
 
 ### Network Settings
 
-If you have generated your own SSL certificate, configure your server's [Network settings](https://support.plex.tv/articles/200430283-network/) to use it. Do **not** set these settings if using `ssl.autoP12Path` and `ssl.autoP12Password` in your config.
+If you have generated your own SSL certificate, configure your server's [Network settings](https://support.plex.tv/articles/200430283-network/) to use it. You don't need to set these settings if using `ssl.autoP12Path` and `ssl.autoP12Password` in your config.
 
 ![Plex SSL Prefs](docs/images/plex_ssl_prefs.png)
 
