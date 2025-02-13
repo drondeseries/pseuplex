@@ -65,16 +65,16 @@ Create a `config.json` file with the following structure, and fill in the config
 - **port**: The port that Pseuplex will run on.
 - **plex.host**: The url of your plex server.
 - **plex.token**: The plex API token of the server owner.
-- **plex.appDataPath**: (Optional) Manually specify the path of your plex server's appdata folder if it's in an unconventional place. On Linux, this is typically `/var/lib/plexmediaserver/Library/Application Support/Plex Media Server` unless you're running via docker. This will be used to determine the path of the SSL certificate if `ssl.autoP12Path` is `true`. This will also be used to determine the path of `Preferences.xml` if `ssl.autoP12Password` is `true`.
+- **plex.appDataPath**: (*optional*) Manually specify the path of your plex server's appdata folder if it's in an unconventional place. On Linux, this is typically `/var/lib/plexmediaserver/Library/Application Support/Plex Media Server` unless you're running via docker. This will be used to determine the path of the SSL certificate if `ssl.autoP12Path` is `true`. This will also be used to determine the path of `Preferences.xml` if `ssl.autoP12Password` is `true`.
 - **ssl.p12Path**: The path to your SSL p12 file.
 - **ssl.p12Password**: The password to decrypt your SSL p12 file.
 - **ssl.keyPath**: The path to your SSL private key. This is ignored if `ssl.p12Path` is set or `ssl.autoP12Path` is `true`.
 - **ssl.certPath**: The path to your SSL certificate. This is ignored if `ssl.p12Path` is set or `ssl.autoP12Path` is `true`.
-- **ssl.autoP12Path**: (Optional) Automatically locate and use your plex server's SSL p12 file (if it's installed on the same system in a conventional location).
-- **ssl.autoP12Password**: (Optional) Automatically determine the password of your plex server's SSL p12 file.
-- **ssl.watchCertChanges**: (Optional) Automatically reload the SSL certificate/key whenever your cert/key/p12 file changes
-- **ssl.certReloadDelay**: (Optional) The time in milliseconds to wait after your cert/key/p12 file changes before reloading SSL (if `ssl.watchCertChanges` is `true`). Default is `1000`.
-- **perUser**: A map of settings to configure for each user on your server. The entry keys are the plex email for each the user.
+- **ssl.autoP12Path**: (*optional*) Automatically locate and use your plex server's SSL p12 file (if it's installed on the same system in a conventional location).
+- **ssl.autoP12Password**: (*optional*) Automatically determine the password of your plex server's SSL p12 file.
+- **ssl.watchCertChanges**: (*optional*) Automatically reload the SSL certificate/key whenever your cert/key/p12 file changes
+- **ssl.certReloadDelay**: (*optional*) The time in milliseconds to wait after your cert/key/p12 file changes before reloading SSL (if `ssl.watchCertChanges` is `true`). Default is `1000`.
+- **perUser**: A map of settings to configure for each user on your server. The entry keys are the plex email for each user.
 	- **letterboxdUsername**: The letterboxd username for this user
  	- **letterboxdSimilarItemsEnabled**: (*optional*) Display similar items from letterboxd on plex media item pages for this user
   	- **letterboxdFriendsActivityHubEnabled**: (*optional*) Display the letterboxd friends activity hub on the home page for this user
