@@ -67,7 +67,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// create hub providers
 		this.hubs = {
 			userFollowingActivity: new class extends PseuplexHubProvider {
-				readonly path = `/${app.slug}/${self.slug}/hubs/following`;
+				readonly path = `${self.basePath}/hubs/following`;
 				override fetch(letterboxdUsername: string): PseuplexHub | Promise<PseuplexHub> {
 					// TODO validate that the profile exists
 					return createUserFollowingFeedHub(letterboxdUsername, {
@@ -97,9 +97,13 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 
 		// create metadata provider
 		this.metadata = new LetterboxdMetadataProvider({
-			basePath: `/${app.slug}/${this.slug}/metadata`,
+			basePath: `${this.basePath}/metadata`,
 			similarItemsHubProvider: this.hubs.similar
 		});
+	}
+
+	get basePath(): string {
+		return `/${this.app.slug}/${this.slug}`;
 	}
 
 	get config(): LetterboxdPluginConfig {

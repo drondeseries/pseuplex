@@ -18,7 +18,6 @@ import {
 import { PlexMediaContainer } from './MediaContainer';
 import {
 	intParam,
-	stringParam,
 	stringArrayParam,
 	booleanParam
 } from '../../utils';

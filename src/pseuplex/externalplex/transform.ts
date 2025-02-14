@@ -47,6 +47,7 @@ export const transformExternalPlexMetadata = (metadataItem: plexTypes.PlexMetada
 		metadataId,
 		asUrl: false
 	});
+	pseuMetadataItem.ratingKey = fullMetadataId;
 	pseuMetadataItem.key = `${transformOpts.metadataBasePath}/${transformOpts.qualifiedMetadataId ? fullMetadataId : partialMetadataId}`;
 	pseuMetadataItem.Pseuplex = {
 		isOnServer: false,

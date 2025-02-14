@@ -19,7 +19,6 @@ import {
 	stringifyMetadataID
 } from './metadataidentifier';
 import {
-	PseuplexHubContext,
 	pseuplexHubPageParamsFromHubListParams,
 	PseuplexHubProvider
 } from './hub';
@@ -46,7 +45,7 @@ export type PseuplexMetadataChildrenParams = {
 	plexAuthContext: plexTypes.PlexAuthContext;
 	includeDiscoverMatches?: boolean;
 	plexParams?: plexTypes.PlexMetadataPageParams;
-	offset: number;
+	start: number;
 	count: number;
 };
 
@@ -60,13 +59,13 @@ export type PseuplexMetadataProviderParams = PseuplexMetadataParams & {
 	transformMetadataItem?: (metadataItem: PseuplexMetadataItem, id: PseuplexPartialMetadataIDString, provider: PseuplexMetadataProvider) => PseuplexMetadataItem | Promise<PseuplexMetadataItem>;
 };
 
-export type PseuplexMetadataProviderChildrenParams = PseuplexMetadataChildrenParams;
+export type PseuplexMetadataChildrenProviderParams = PseuplexMetadataChildrenParams;
 
 export interface PseuplexMetadataProvider {
 	readonly sourceSlug: string;
 	readonly basePath: string;
 	get(ids: string[], options: PseuplexMetadataProviderParams): Promise<PseuplexMetadataPage>;
-	getChildren(id: string, options: PseuplexMetadataProviderChildrenParams): Promise<PseuplexMetadataPage>;
+	getChildren(id: string, options: PseuplexMetadataChildrenProviderParams): Promise<PseuplexMetadataPage>;
 	getRelatedHubs?: (id: string, options: PseuplexHubListParams) => Promise<plexTypes.PlexHubsPage>;
 }
 
@@ -117,9 +116,9 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 	fetchMetadataItemChildren?: (id: PseuplexPartialMetadataIDString, options: {
 		plexServerURL: string,
 		plexAuthContext: plexTypes.PlexAuthContext,
-		offset?: number,
-		count?: number,
-		plexParams?: plexTypes.PlexMetadataPageParams
+		plexParams?: plexTypes.PlexMetadataPageParams,
+		start?: number,
+		count?: number
 	}) => Promise<PseuplexMetadataListPage<TMetadataItem>>;
 	abstract transformMetadataItem(metadataItem: TMetadataItem, options: PseuplexMetadataTransformOptions): PseuplexMetadataItem;
 	abstract idFromMetadataItem(metadataItem: TMetadataItem): PseuplexPartialMetadataIDString;
@@ -410,7 +409,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		};
 	}
 
-	async getChildren(id: PseuplexPartialMetadataIDString, options: PseuplexMetadataProviderChildrenParams): Promise<PseuplexMetadataPage> {
+	async getChildren(id: PseuplexPartialMetadataIDString, options: PseuplexMetadataChildrenProviderParams): Promise<PseuplexMetadataPage> {
 		if(!this.fetchMetadataItemChildren) {
 			if(options.includeDiscoverMatches) {
 				const extPlexTransformOpts: PseuplexMetadataTransformOptions = {
@@ -451,7 +450,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 			plexServerURL: options.plexServerURL,
 			plexAuthContext: options.plexAuthContext,
 			plexParams: options.plexParams,
-			offset: options.offset,
+			start: options.start,
 			count: options.count
 		});
 		return {

@@ -1,5 +1,4 @@
 
-import qs from 'querystring';
 import express from 'express';
 import * as plexTypes from '../../plex/types';
 import * as plexServerAPI from '../../plex/api';
@@ -25,21 +24,15 @@ import { OverseerrRequestsProvider } from './providers/overseerr';
 import {
 	stringParam,
 	intParam,
-	intArrayParam,
 	pushToArray,
 	isNullOrEmpty,
 	httpError,
-	WithOptionalProps,
-	WithOptionalPropsRecursive,
-	HttpError,
 	findInArrayOrSingle,
 	forArrayOrSingle,
 	firstOrSingle,
 	transformArrayOrSingle
 } from '../../utils';
 import * as reqsTransform from './transform';
-
-const urlChildrenSuffix = '/children';
 
 type RequestsFlags = {
 	requestsEnabled?: boolean;
@@ -74,6 +67,10 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 		}
 	}
 
+	get basePath(): string {
+		return `/${this.app}/${this.slug}`;
+	}
+
 	get config(): RequestsPluginConfig {
 		return this.app.config as RequestsPluginConfig;
 	}
@@ -94,8 +91,8 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 				return;
 			}
 			// get request provider
-			const reqProvider = await this._getRequestsProviderForPlexUser(plexAuthContext['X-Plex-Token'], plexUserInfo);
-			if(!reqProvider) {
+			const requestProvider = await this._getRequestsProviderForPlexUser(plexAuthContext['X-Plex-Token'], plexUserInfo);
+			if(!requestProvider) {
 				return;
 			}
 			// parse params
@@ -109,59 +106,20 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 				}
 				season = intParam(context.userReq.query['season.index']);
 			}
-			// determine properties
-			let requestActionTitle: string;
-			let librarySectionID: string | number;
-			switch(mediaType) {
-				case plexTypes.PlexMediaItemTypeNumeric.Movie:
-					requestActionTitle = "Request Movie";
-					librarySectionID = this.config.plex.requestedMoviesLibraryId;
-					break;
-				case plexTypes.PlexMediaItemTypeNumeric.Show:
-					requestActionTitle = "Request Show";
-					librarySectionID = this.config.plex.requestedTVShowsLibraryId;
-					break;
-				case plexTypes.PlexMediaItemTypeNumeric.Season:
-					requestActionTitle = "Request Season";
-					librarySectionID = this.config.plex.requestedTVShowsLibraryId;
-					break;
-				case plexTypes.PlexMediaItemTypeNumeric.Episode:
-					if(reqProvider.canRequestEpisodes) {
-						requestActionTitle = "Request Episode";
-					} else {
-						requestActionTitle = "Request Season";
-					}
-					librarySectionID = this.config.plex.requestedTVShowsLibraryId;
-					break;
-				default:
-					// can't request type
-					return;
-			}
-			if(librarySectionID == null) {
+			// create hook metadata
+			const metadataItem = reqsTransform.createRequestButtonMetadataItem({
+				pluginBasePath: this.basePath,
+				mediaType,
+				guid,
+				season,
+				requestProvider,
+				moviesLibraryId: this.config.plex.requestedMoviesLibraryId,
+				tvShowsLibraryId: this.config.plex.requestedTVShowsLibraryId
+			});
+			if(!metadataItem) {
 				return;
 			}
-			// create hook metadata
-			const metadataItem: WithOptionalPropsRecursive<plexTypes.PlexMetadataItem> = {
-				guid: guid,
-				key: this._stringifyMetadataKey({
-					providerSlug: reqProvider.slug,
-					itemGuid: guid,
-					season,
-					children: false
-				}),
-				ratingKey: reqsTransform.createFullRequestsMetadataId({
-					providerSlug: reqProvider.slug,
-					itemGuid: guid,
-					season
-				}),
-				librarySectionTitle: requestActionTitle,
-				librarySectionID,
-				librarySectionKey: `/library/sections/${librarySectionID}`,
-				Media: [{
-					videoResolution: requestActionTitle
-				}]
-			};
-			resData.MediaContainer.Metadata = pushToArray(resData.MediaContainer.Metadata, metadataItem as plexTypes.PlexMetadataItem);
+			resData.MediaContainer.Metadata = pushToArray(resData.MediaContainer.Metadata, metadataItem);
 			resData.MediaContainer.size += 1;
 		}
 	}
@@ -174,7 +132,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 			`/${this.app.slug}/${this.slug}/:providerSlug/request/:guid/season/:season`,
 			`/${this.app.slug}/${this.slug}/:providerSlug/request/:guid/season/:season/children`
 		]) {
-			const children = endpoint.endsWith(urlChildrenSuffix);
+			const children = endpoint.endsWith(reqsTransform.ChildrenRelativePath);
 
 			// get metadata for requested item
 			router.get(endpoint, [
@@ -196,7 +154,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 					}
 					// ensure user is allowed to make requests to this request provider
 					if(!(await reqProvider.canPlexUserMakeRequests(plexAuthContext['X-Plex-Token'], plexUserInfo))) {
-						throw httpError(401, `User is not allowed to make ${providerSlug} requests`);
+						throw httpError(401, `User is not allowed to make ${reqProvider.slug} requests`);
 					}
 					// parse guid
 					const plexGuidParts = parsePlexMetadataGuid(guid);
@@ -207,6 +165,10 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 					if(numericMediaType == null) {
 						throw httpError(400, `Unknown media type ${plexGuidParts.type}`);
 					}
+					const transformOpts: reqsTransform.TransformMetadataOptions = {
+						pluginBasePath: this.basePath,
+						requestProviderSlug: reqProvider.slug
+					};
 					// check if item already exists on the plex server
 					const libraryMetadataPage = await plexServerAPI.findLibraryMetadata((
 						(numericMediaType == plexTypes.PlexMediaItemTypeNumeric.Show && season != null) ? {
@@ -226,13 +188,13 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 					if(libraryMetadataItem) {
 						// item already exists on the plex server, so just redirect to the plex server metadata
 						let itemKey = libraryMetadataItem.key;
-						if(itemKey.endsWith(urlChildrenSuffix)) {
+						if(itemKey.endsWith(reqsTransform.ChildrenRelativePath)) {
 							if(!children) {
-								itemKey = itemKey.substring(0, itemKey.length-urlChildrenSuffix.length);
+								itemKey = itemKey.substring(0, (itemKey.length - reqsTransform.ChildrenRelativePath.length));
 							}
 						} else {
 							if(children) {
-								itemKey += urlChildrenSuffix;
+								itemKey += reqsTransform.ChildrenRelativePath;
 							}
 						}
 						const plexDisplayedPage: plexTypes.PlexMetadataPage = await plexServerAPI.fetch({
@@ -242,7 +204,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 							endpoint: itemKey,
 							params: plexParams
 						});
-						// transform metadata item key if not getting children
+						// transform response
 						if(children) {
 							// transform to show requestable seasons if missing any
 							const plexGuidParts = parsePlexMetadataGuid(libraryMetadataItem.guid);
@@ -251,18 +213,21 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 								authContext: plexAuthContext
 							});
 							plexDisplayedPage.MediaContainer.Metadata = transformArrayOrSingle(discoverMetadataPage.MediaContainer.Metadata, (metadataItem) => {
-								const matchingItem = metadataItem.guid ? findInArrayOrSingle(plexDisplayedPage.MediaContainer.Metadata, (cmpMetadataItem) => {
-									return (cmpMetadataItem.guid == metadataItem.guid);
-								}) : undefined;
+								const matchingItem = metadataItem.guid ?
+									findInArrayOrSingle(plexDisplayedPage.MediaContainer.Metadata, (cmpMetadataItem) => {
+										return (cmpMetadataItem.guid == metadataItem.guid);
+									})
+									: undefined;
 								if(matchingItem) {
 									return matchingItem;
 								}
-								this._transformRequestableSeasonMetadata(metadataItem, {providerSlug});
+								reqsTransform.transformRequestableSeasonMetadata(metadataItem, transformOpts);
 								return metadataItem;
 							});
 						} else {
+							// transform metadata item key since not getting children
 							forArrayOrSingle(plexDisplayedPage.MediaContainer.Metadata, (metadataItem) => {
-								this._transformMetadataItemKeyToRequestKey(metadataItem, {providerSlug});
+								reqsTransform.setMetadataItemKeyToRequestKey(metadataItem, transformOpts);
 							});
 						}
 						return plexDisplayedPage;
@@ -335,7 +300,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 						} else if(itemType == plexTypes.PlexMediaItemType.TVShow) {
 							// make seasons requestable
 							forArrayOrSingle(resData.MediaContainer.Metadata, (metadataItem) => {
-								this._transformRequestableSeasonMetadata(metadataItem, {providerSlug});
+								reqsTransform.transformRequestableSeasonMetadata(metadataItem, transformOpts);
 							});
 						}
 					} else {
@@ -346,7 +311,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 							} else {
 								metadataItem.title = `${metadataItem.title} • Requesting...`
 							}
-							this._transformMetadataItemKeyToRequestKey(metadataItem, {providerSlug});
+							reqsTransform.setMetadataItemKeyToRequestKey(metadataItem, transformOpts);
 						});
 					}
 					return resData;
@@ -362,43 +327,15 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 	async _getRequestsProviderForPlexUser(token: string, userInfo: PlexServerAccountInfo): Promise<RequestsProvider | null> {
 		for(const slug in this.requestProviders) {
 			const provider = this.requestProviders[slug];
-			if(provider.isConfigured && await provider.canPlexUserMakeRequests(token, userInfo)) {
-				return provider;
+			try {
+				if(provider.isConfigured && await provider.canPlexUserMakeRequests(token, userInfo)) {
+					return provider;
+				}
+			} catch(error) {
+				console.error(error);
 			}
 		}
 		return null;
-	}
-
-	_transformMetadataItemKeyToRequestKey(metadataItem: plexTypes.PlexMetadataItem, opts: {providerSlug: string, children?: boolean}) {
-		let itemGuid = metadataItem.guid;
-		let season: number = undefined;
-		if(metadataItem.type == plexTypes.PlexMediaItemType.Season) {
-			itemGuid = metadataItem.parentGuid;
-			season = metadataItem.index;
-		}
-		const children = opts?.children ?? metadataItem.key.endsWith(urlChildrenSuffix);
-		metadataItem.key = this._stringifyMetadataKey({
-			providerSlug: opts.providerSlug,
-			itemGuid,
-			season,
-			children
-		});
-	}
-
-	_transformRequestableSeasonMetadata(metadataItem: plexTypes.PlexMetadataItem, opts: {providerSlug: string}) {
-		this._transformMetadataItemKeyToRequestKey(metadataItem, {providerSlug:opts.providerSlug});
-		metadataItem.title = `Request ${metadataItem.title}`;
-	}
-
-	_stringifyMetadataKey(options: {
-		providerSlug: string,
-		itemGuid: string,
-		season?: number,
-		children?: boolean
-	}) {
-		return `/${this.app.slug}/${this.slug}/${options.providerSlug}/request/${qs.escape(options.itemGuid)}`
-			+ (options.season != null ? `/season/${options.season}` : '')
-			+ (options.children ? urlChildrenSuffix : '');
 	}
 
 } as PseuplexPluginClass);
