@@ -13,8 +13,9 @@ export type PseuplexMetadataIDString =
 	`${string}`
 	| `${string}:${string}`
 	| `${string}:${string}:${string}`
+	| `${string}:${string}:${string}:${string}`
 	| `${string}://${string}`
-	| `${string}://${string}/${string}`;
+	| `${string}://${string}/${string}${string}`;
 
 export const parseMetadataID = (idString: PseuplexMetadataIDString): PseuplexMetadataIDParts => {
 	// find metadata source / protocol
@@ -45,75 +46,89 @@ export const parseMetadataID = (idString: PseuplexMetadataIDString): PseuplexMet
 	delimiterIndex = idString.indexOf(delimiter, startIndex);
 	if(delimiterIndex == -1) {
 		// format was source:ID or source://ID
+		const remainingString = idString.substring(startIndex);
 		let id: string;
 		let relativePath: string | undefined;
 		if(isURL) {
-			id = idString.substring(startIndex);
-			relativePath = undefined;
-		} else {
-			delimiterIndex = idString.indexOf('/', startIndex);
-			if(delimiterIndex == -1) {
-				id = id.substring(startIndex);
-				relativePath = undefined;
+			// format was source://ID
+			delimiterIndex = remainingString.search(/(\/|\?|\#)/);
+			if(delimiterIndex != -1) {
+				// format was source://ID?relativepath
+				id = remainingString.substring(0, delimiterIndex);
+				relativePath = remainingString.substring(delimiterIndex); // "?key=value"
 			} else {
-				id = id.substring(startIndex, delimiterIndex);
-				relativePath = id.substring(delimiterIndex);
+				// format was source://ID
+				id = remainingString;
+				relativePath = undefined;
 			}
+		} else {
+			// format was source:ID
+			id = remainingString;
+			relativePath = undefined;
 		}
-		id = qs.unescape(id);
 		return {
 			isURL,
 			source: source,
-			id: id,
+			id: qs.unescape(id),
 			relativePath
 		};
 	}
+	// format was source:directory:ID or source://directory/ID
 	let directory = idString.substring(startIndex, delimiterIndex);
 	directory = qs.unescape(directory);
 	// parse id and relative path
 	startIndex = delimiterIndex+1;
 	const remainingStr = idString.substring(startIndex);
-	delimiterIndex = remainingStr.search(/(\/|\?|\#)/);
+	delimiterIndex = isURL ? remainingStr.search(/(\/|\?|\#)/) : remainingStr.indexOf(delimiter);
 	let id: string;
 	let relativePath: string | undefined;
-	if(delimiterIndex == -1) {
+	if(delimiterIndex != -1) {
+		// format was source:directory:ID:relativepath or source://directory/ID/relativepath
+		id = remainingStr.substring(0, delimiterIndex);
+		let relPathStartIndex = delimiterIndex;
+		if(!isURL) {
+			relPathStartIndex++;
+		}
+		relativePath = remainingStr.substring(relPathStartIndex);
+	} else {
+		// format was source:directory:ID or source://directory/ID
 		id = remainingStr;
 		relativePath = undefined;
-	} else {
-		id = remainingStr.substring(0, delimiterIndex);
-		relativePath = remainingStr.substring(delimiterIndex);
 	}
-	// format was source:basePath:ID
 	return {
 		isURL,
 		source: source,
 		directory: directory,
 		id: qs.unescape(id),
-		relativePath: relativePath
+		relativePath: isURL ? relativePath : qs.unescape(relativePath)
 	};
 };
 
 export const stringifyMetadataID = (idParts: PseuplexMetadataIDParts): PseuplexMetadataIDString => {
 	let idString: string;
 	if(idParts.isURL) {
-		if(idParts.directory == null) {
+		if(idParts.directory == null && idParts.relativePath == null) {
 			idString = `${idParts.source}://${qs.escape(idParts.id)}`;
 		} else {
-			idString = `${idParts.source}://${qs.escape(idParts.directory)}/${qs.escape(idParts.id)}`;
+			idString = `${idParts.source}://${qs.escape(idParts.directory ?? '')}/${qs.escape(idParts.id)}`;
 		}
 	} else {
 		if(idParts.source == null) {
 			return idParts.id;
 		} else {
-			if(idParts.directory == null) {
+			if(idParts.directory == null && idParts.relativePath == null) {
 				idString = `${idParts.source}:${qs.escape(idParts.id)}`;
 			} else {
-				idString = `${idParts.source}:${qs.escape(idParts.directory)}:${qs.escape(idParts.id)}`;
+				idString = `${idParts.source}:${qs.escape(idParts.directory ?? '')}:${qs.escape(idParts.id)}`;
 			}
 		}
 	}
 	if(idParts.relativePath != null) {
-		idString += idParts.relativePath;
+		if(idParts.isURL) {
+			idString += idParts.relativePath;
+		} else {
+			idString += `:${qs.escape(idParts.relativePath)}`;
+		}
 	}
 	return idString;
 };
@@ -121,28 +136,43 @@ export const stringifyMetadataID = (idParts: PseuplexMetadataIDParts): PseuplexM
 export type PseuplexPartialMetadataIDParts = {
 	directory?: string;
 	id: string;
+	relativePath?: string;
 };
 
 export type PseuplexPartialMetadataIDString =
 	`${string}`
-	| `${string}:${string}`;
+	| `${string}:${string}`
+	| `${string}:${string}:${string}`;
 
 export const parsePartialMetadataID = (metadataId: PseuplexPartialMetadataIDString): PseuplexPartialMetadataIDParts => {
-	const colonIndex = metadataId.indexOf(':');
+	let colonIndex = metadataId.indexOf(':');
 	if(colonIndex == -1) {
 		return {id:metadataId};
 	}
+	let prefixEndIndex = colonIndex;
+	colonIndex = metadataId.indexOf(':', prefixEndIndex+1);
+	if(colonIndex == -1) {
+		return {
+			directory: qs.unescape(metadataId.substring(0, prefixEndIndex)),
+			id: qs.unescape(metadataId.substring(prefixEndIndex+1))
+		};
+	}
 	return {
-		directory: qs.unescape(metadataId.substring(0, colonIndex)),
-		id: qs.unescape(metadataId.substring(colonIndex+1))
+		directory: qs.unescape(metadataId.substring(0, prefixEndIndex)),
+		id: qs.unescape(metadataId.substring(prefixEndIndex+1, colonIndex)),
+		relativePath: qs.unescape(metadataId.substring(colonIndex+1))
 	};
 };
 
 export const stringifyPartialMetadataID = (idParts: PseuplexPartialMetadataIDParts): PseuplexPartialMetadataIDString => {
-	if(idParts.directory == null) {
-		return idParts.id;
+	if(idParts.relativePath == null) {
+		if(idParts.directory == null) {
+			return idParts.id;
+		} else {
+			return `${qs.escape(idParts.directory)}:${qs.escape(idParts.id)}`;
+		}
 	}
-	return `${qs.escape(idParts.directory)}:${qs.escape(idParts.id)}`;
+	return `${qs.escape(idParts.directory)}:${qs.escape(idParts.id)}:${qs.escape(idParts.relativePath)}`;
 };
 
 export const qualifyPartialMetadataID = (metadataId: PseuplexPartialMetadataIDString, source: string) => {

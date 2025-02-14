@@ -131,6 +131,7 @@ const readPlexPrefsIfNeeded = async () => {
 			debounceDelay: (cfg.ssl?.certReloadDelay ?? 1000)
 		}, (sslCertData) => {
 			try {
+				console.log("\nUpdating SSL certificate");
 				(pseuplex.server as https.Server).setSecureContext(sslCertData);
 			} catch(error) {
 				console.error("\nFailed to set secure context:");

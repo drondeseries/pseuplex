@@ -29,7 +29,7 @@ export const partialMetadataIdFromFilmInfo = (filmInfo: letterboxd.FilmInfo): Ps
 
 export const getFilmOptsFromPartialMetadataId = (metadataId: PseuplexPartialMetadataIDString): letterboxd.FilmURLOptions => {
 	const idParts = parsePartialMetadataID(metadataId);
-	if(idParts.directory == null) {
+	if(!idParts.directory) {
 		if(idParts.id.indexOf('/') != -1) {
 			return {href:idParts.id};
 		} else {

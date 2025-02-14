@@ -1,4 +1,3 @@
-
 import express from 'express';
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
@@ -21,6 +20,7 @@ import {
 	PseuplexMetadataIDParts,
 	PseuplexMetadataSource,
 	PseuplexConfigBase,
+	PseuplexSimilarItemsHubProvider,
 	sendMediaUnavailableNotifications,
 	stringifyMetadataID
 } from '../../pseuplex';
@@ -35,6 +35,7 @@ import * as lbTransform from './transform';
 import {
 	forArrayOrSingleAsyncParallel,
 	httpError,
+	pushToArray,
 	stringParam
 } from '../../utils';
 
@@ -54,8 +55,8 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 	readonly app: PseuplexApp;
 	readonly metadata: LetterboxdMetadataProvider;
 	readonly hubs: {
-		userFollowingActivity: PseuplexHubProvider & {path: string};
-		similar: PseuplexHubProvider & {relativePath: string};
+		readonly userFollowingActivity: PseuplexHubProvider & {readonly path: string};
+		readonly similar: PseuplexSimilarItemsHubProvider;
 	};
 
 
@@ -66,7 +67,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// create hub providers
 		this.hubs = {
 			userFollowingActivity: new class extends PseuplexHubProvider {
-				path = `/${app.slug}/${self.slug}/hubs/following`;
+				readonly path = `/${app.slug}/${self.slug}/hubs/following`;
 				override fetch(letterboxdUsername: string): PseuplexHub | Promise<PseuplexHub> {
 					// TODO validate that the profile exists
 					return createUserFollowingFeedHub(letterboxdUsername, {
@@ -80,7 +81,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			}(),
 	
 			similar: new class extends PseuplexHubProvider {
-				relativePath = 'similar';
+				readonly relativePath = 'similar';
 				override fetch(metadataId: PseuplexPartialMetadataIDString): PseuplexHub | Promise<PseuplexHub> {
 					return createSimilarItemsHub(metadataId, {
 						relativePath: this.relativePath,
@@ -325,7 +326,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		}
 	}
 
-	async _addSimilarItemsHubIfNeeded(resData: plexTypes.PlexHubsPage, context: PseuplexResponseFilterContext & {metadataIds: PseuplexMetadataIDParts[]}) {
+	async _addSimilarItemsHubIfNeeded(resData: plexTypes.PlexHubsPage, context: PseuplexResponseFilterContext & {metadataId: PseuplexMetadataIDParts}) {
 		const userInfo = context.userReq.plex.userInfo;
 		const plexAuthContext = context.userReq.plex.authContext;
 		// get prefs
@@ -333,60 +334,40 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		const userPrefs = config.perUser[userInfo.email];
 		// add similar letterboxd movies hub
 		if(userPrefs?.letterboxdSimilarItemsEnabled ?? config.letterboxdSimilarItemsEnabled ?? true) {
-			// get hubs for metadata ids
-			const hubs = await Promise.all(context.metadataIds.map(async (metadataId) => {
-				try {
-					// get plex guid from metadata id
-					let plexGuid: string;
-					if(metadataId.source == PseuplexMetadataSource.Plex) {
-						plexGuid = stringifyMetadataID({
-							...metadataId,
-							isURL:true
-						});
-					} else if(metadataId.source == null) {
-						plexGuid = await this.app.plexServerIdToGuidCache.getOrFetch(metadataId.id);
-					} else {
-						return null;
-					}
-					if(!plexGuid) {
-						return null;
-					}
-					// get letterboxd id for plex guid
-					const letterboxdId = await this.metadata.getIDForPlexGUID(plexGuid, {
-						plexAuthContext
-					});
-					if(!letterboxdId) {
-						return null;
-					}
-					// get letterboxd similar movies hub
-					return await this.hubs.similar.get(letterboxdId);
-				} catch(error) {
-					console.error(error);
-				}
-			}));
-			if(hubs.length == 0) {
+			const metadataId = context.metadataId;
+			// get plex guid from metadata id
+			let plexGuid: string;
+			if(metadataId.source == PseuplexMetadataSource.Plex) {
+				plexGuid = stringifyMetadataID({
+					...metadataId,
+					isURL:true
+				});
+			} else if(metadataId.source == null) {
+				plexGuid = await this.app.plexServerIdToGuidCache.getOrFetch(metadataId.id);
+			} else {
 				return;
 			}
-			const hubPageParams = plexTypes.parsePlexHubPageParams(context.userReq, { fromListPage:true });
-			// append hubs
-			let hubEntries = resData.MediaContainer.Hub;
-			if(!hubEntries) {
-				hubEntries = [];
-				resData.MediaContainer.Hub = hubEntries;
+			if(!plexGuid) {
+				return;
 			}
-			for(const hub of hubs) {
-				if(!hub) {
-					continue;
-				}
-				try {
-					const hubEntry = await hub.getHubListEntry(hubPageParams, {
-						plexServerURL: this.app.plexServerURL,
-						plexAuthContext
-					});
-					hubEntries.push(hubEntry);
-				} catch(error) {
-					console.error(error);
-				}
+			// get letterboxd id for plex guid
+			const letterboxdId = await this.metadata.getIDForPlexGUID(plexGuid, {
+				plexAuthContext
+			});
+			if(!letterboxdId) {
+				return;
+			}
+			// get letterboxd similar movies hub
+			const hub =  await this.hubs.similar.get(letterboxdId);
+			const hubPageParams = plexTypes.parsePlexHubPageParams(context.userReq, { fromListPage:true });
+			const hubEntry = await hub.getHubListEntry(hubPageParams, {
+				plexServerURL: this.app.plexServerURL,
+				plexAuthContext
+			});
+			resData.MediaContainer.Hub = pushToArray(resData.MediaContainer.Hub, hubEntry);
+			resData.MediaContainer.size = (resData.MediaContainer.size ?? 0) + 1;
+			if(resData.MediaContainer.totalSize != null) {
+				resData.MediaContainer.totalSize += 1;
 			}
 		}
 		return resData;

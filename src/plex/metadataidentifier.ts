@@ -71,3 +71,16 @@ export const parsePlexMetadataGuid = (guid: string): PlexMetadataGuidParts => {
 		id
 	};
 };
+
+export const parsePlexExternalGuids = (guids: plexTypes.PlexGuid[]): {[source: string]: string} => {
+	const ids: {[source: string]: string} = {};
+	if(guids) {
+		for(const guid of guids) {
+			const delimiterIndex = guid.id?.indexOf('://') ?? -1;
+			if(delimiterIndex != -1) {
+				ids[guid.id.substring(0, delimiterIndex)] = guid.id.substring(delimiterIndex+3);
+			}
+		}
+	}
+	return ids;
+};

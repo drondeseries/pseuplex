@@ -7,7 +7,8 @@ import {
 export enum PseuplexMetadataSource {
 	Plex = 'plex',
 	PlexServer = 'plexserver',
-	Letterboxd = 'letterboxd'
+	Letterboxd = 'letterboxd',
+	Requests = 'requests'
 };
 
 export type PseuplexMetadataItem = PlexMetadataItem & {

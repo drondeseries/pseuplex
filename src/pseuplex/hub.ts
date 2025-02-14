@@ -95,3 +95,13 @@ export abstract class PseuplexHubProvider<THub extends PseuplexHub = PseuplexHub
 		return this.cache.getOrFetch(id);
 	}
 }
+
+
+
+export const pseuplexHubPageParamsFromHubListParams = (hubListParams: plexTypes.PlexHubListPageParams): PseuplexHubPageParams => {
+	const params: plexTypes.PlexHubListPageParams = {...hubListParams};
+	delete params.count;
+	delete (params as PseuplexHubPageParams).start;
+	delete (params as PseuplexHubPageParams).listStartToken;
+	return params;
+};

@@ -22,7 +22,7 @@ export type PseuplexResponseFilters = {
 	promotedHubs?: PseuplexResponseFilter<plexTypes.PlexLibraryHubsPage>;
 	metadata?: PseuplexResponseFilter<PseuplexMetadataPage>;
 	metadataRelatedHubs?: PseuplexResponseFilter<plexTypes.PlexHubsPage, (PseuplexResponseFilterContext & {
-		metadataIds: PseuplexMetadataIDParts[]
+		metadataId: PseuplexMetadataIDParts
 	})>;
 	findGuidInLibrary?: PseuplexResponseFilter<plexTypes.PlexMetadataPage, PseuplexResponseFilterContext>;
 
@@ -44,7 +44,7 @@ export type PseuplexPlayQueueURIResolverOptions = {
 
 export interface PseuplexPlugin {
 	readonly metadata?: PseuplexMetadataProvider;
-	readonly hubs?: { [hubName: string]: PseuplexHubProvider };
+	readonly hubs?: { readonly [hubName: string]: PseuplexHubProvider };
 	readonly responseFilters?: PseuplexReadOnlyResponseFilters;
 
 	defineRoutes?: (router: express.Express) => void;

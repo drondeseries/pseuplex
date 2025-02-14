@@ -14,8 +14,7 @@ import {
 } from './types';
 import {
 	parseMetadataID,
-	PseuplexMetadataIDParts,
-	stringifyPartialMetadataID
+	PseuplexMetadataIDParts
 } from './metadataidentifier';
 
 export const parseMetadataIdsFromPathParam = (metadataIdsString: string): PseuplexMetadataIDParts[] => {
@@ -30,6 +29,13 @@ export const parseMetadataIdsFromPathParam = (metadataIdsString: string): Pseupl
 	});
 };
 
+export const parseMetadataIdFromPathParam = (metadataIdString: string): PseuplexMetadataIDParts => {
+	if(metadataIdString.indexOf(':') == -1 && metadataIdString.indexOf('%') != -1) {
+		metadataIdString = qs.unescape(metadataIdString);
+	}
+	return parseMetadataID(metadataIdString);
+};
+
 export const pseuplexMetadataIdRequestMiddleware = <TResult>(handler: (
 	req: IncomingPlexAPIRequest,
 	res: express.Response,
@@ -40,10 +46,7 @@ export const pseuplexMetadataIdRequestMiddleware = <TResult>(handler: (
 			// let plex handle the empty api request
 			return false;
 		}
-		if(metadataId.indexOf(':') == -1 && metadataId.indexOf('%') != -1) {
-			metadataId = qs.unescape(metadataId);
-		}
-		const metadataIdParts = parseMetadataID(metadataId);
+		const metadataIdParts = parseMetadataIdFromPathParam(metadataId);
 		if(!metadataIdParts.source) {
 			// id is a plex ID, so no need to handle this request
 			return false;

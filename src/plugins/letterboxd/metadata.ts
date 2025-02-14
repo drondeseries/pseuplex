@@ -1,34 +1,22 @@
 
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
+import { parsePlexExternalGuids } from '../../plex/metadataidentifier';
 import * as plexDiscoverAPI from '../../plexdiscover';
 import {
 	PseuplexMetadataItem,
 	PlexMediaItemMatchParams,
 	PseuplexMetadataProviderBase,
-	PseuplexMetadataProviderOptions,
 	PseuplexMetadataTransformOptions,
-	PseuplexHubProvider,
 	PseuplexPartialMetadataIDString,
-	PseuplexMetadataSource
+	PseuplexMetadataSource,
 } from '../../pseuplex';
 import * as lbTransform from './transform';
 
-
 export type LetterboxdMetadataItem = letterboxd.FilmInfo;
-export type LetterboxdMetadataProviderOptions = PseuplexMetadataProviderOptions & {
-	similarItemsHubProvider: PseuplexHubProvider;
-};
-
 
 export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<LetterboxdMetadataItem> {
-	sourceSlug = PseuplexMetadataSource.Letterboxd;
-	similarItemsHubProvider: PseuplexHubProvider;
-
-	constructor(options: LetterboxdMetadataProviderOptions) {
-		super(options);
-		this.similarItemsHubProvider = options.similarItemsHubProvider;
-	}
+	readonly sourceSlug = PseuplexMetadataSource.Letterboxd;
 
 	override async fetchMetadataItem(id: PseuplexPartialMetadataIDString): Promise<LetterboxdMetadataItem> {
 		console.log(`Fetching letterboxd info for ${id}`);
@@ -41,7 +29,7 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 		return lbTransform.filmInfoToPlexMetadata(metadataItem, transformOpts);
 	}
 
-	override idFromMetadataItem(metadataItem: letterboxd.FilmInfo): string {
+	override idFromMetadataItem(metadataItem: LetterboxdMetadataItem): PseuplexPartialMetadataIDString {
 		return lbTransform.partialMetadataIdFromFilmInfo(metadataItem);
 	}
 
@@ -49,7 +37,7 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 		return getLetterboxdPlexMediaItemMatchParams(metadataItem);
 	}
 
-	override async findMatchForPlexItem(metadataItem: plexTypes.PlexMetadataItem): Promise<letterboxd.FilmInfo | null> {
+	override async findMatchForPlexItem(metadataItem: plexTypes.PlexMetadataItem): Promise<LetterboxdMetadataItem | null> {
 		const plexGuid = metadataItem.guid;
 		if(plexGuid) {
 			// get the slug from the guid if it exists in the cache
@@ -61,25 +49,19 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 			}
 		}
 		// match against guids
-		if(!metadataItem.Guid || metadataItem.Guid.length == 0) {
-			return null;
-		}
 		let getFilmOpts: letterboxd.GetFilmOptions | undefined = undefined;
-		// match against tmdb ID
-		const tmdbGuid = metadataItem.Guid.find((guid) => guid.id.startsWith('tmdb://'));
-		if(tmdbGuid) {
-			const tmdbId = tmdbGuid.id.substring(7);
+		const idMap = parsePlexExternalGuids(metadataItem.Guid);
+		const tmdbId = idMap['tmdb'];
+		if(tmdbId) {
 			getFilmOpts = {tmdbId};
 		}
-		// match against imdb ID
 		if(!getFilmOpts) {
-			const imdbGuid = metadataItem.Guid.find((guid) => guid.id.startsWith('imdb://'));
-			if(imdbGuid) {
-				const imdbId = imdbGuid.id.substring(7);
+			const imdbId = idMap['imdb'];
+			if(imdbId) {
 				getFilmOpts = {imdbId};
 			}
 		}
-		// stop if no matches
+		// stop if no ids to match
 		if(!getFilmOpts) {
 			return null;
 		}
@@ -103,7 +85,7 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 
 
 
-export const getLetterboxdPlexMediaItemMatchParams = (filmInfo: letterboxd.FilmInfo): PlexMediaItemMatchParams | null => {
+export const getLetterboxdPlexMediaItemMatchParams = (filmInfo: LetterboxdMetadataItem): PlexMediaItemMatchParams | null => {
 	let types: plexDiscoverAPI.SearchType[];
 	const tmdbInfo = filmInfo.pageData.tmdb;
 	if(tmdbInfo && tmdbInfo.type) {

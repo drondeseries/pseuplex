@@ -11,14 +11,14 @@ import {
 	stringifyPartialMetadataID
 } from '../metadataidentifier';
 
-export const createPartialMetadataId = (opts:{serverURL: string, metadataId: string}): string => {
+export const createPartialExternalPlexMetadataId = (opts:{serverURL: string, metadataId: string}): string => {
 	return stringifyPartialMetadataID({
 		directory: opts.serverURL,
 		id: opts.metadataId
 	});
 };
 
-export const createFullMetadataId = (opts:{serverURL: string, metadataId: string, asUrl: boolean}): string => {
+export const createFullExternalPlexMetadataId = (opts:{serverURL: string, metadataId: string, asUrl: boolean}): string => {
 	return stringifyMetadataID({
 		isURL: opts.asUrl,
 		source: PseuplexMetadataSource.PlexServer,
@@ -38,11 +38,11 @@ export const transformExternalPlexMetadata = (metadataItem: plexTypes.PlexMetada
 			metadataId = qs.unescape(metadataId);
 		}
 	}
-	const partialMetadataId = createPartialMetadataId({
+	const partialMetadataId = createPartialExternalPlexMetadataId({
 		serverURL,
 		metadataId
 	});
-	const fullMetadataId = createFullMetadataId({
+	const fullMetadataId = createFullExternalPlexMetadataId({
 		serverURL,
 		metadataId,
 		asUrl: false

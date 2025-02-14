@@ -15,8 +15,7 @@ import {
 	PseuplexConfigBase,
 	PseuplexPlugin,
 	PseuplexPluginClass,
-	PseuplexReadOnlyResponseFilters,
-	stringifyMetadataID
+	PseuplexReadOnlyResponseFilters
 } from '../../pseuplex';
 import {
 	RequestInfo,
@@ -37,6 +36,7 @@ import {
 	forArrayOrSingle,
 	firstOrSingle
 } from '../../utils';
+import * as reqsTransform from './transform';
 
 const urlChildrenSuffix = '/children';
 
@@ -93,8 +93,8 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 				return;
 			}
 			// get request provider
-			const provider = await this._getRequestsProviderForPlexUser(plexAuthContext['X-Plex-Token'], plexUserInfo);
-			if(!provider) {
+			const reqProvider = await this._getRequestsProviderForPlexUser(plexAuthContext['X-Plex-Token'], plexUserInfo);
+			if(!reqProvider) {
 				return;
 			}
 			// parse params
@@ -135,12 +135,16 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 			// create hook metadata
 			const metadataItem: WithOptionalPropsRecursive<plexTypes.PlexMetadataItem> = {
 				guid: guid,
-				key: `/${this.app.slug}/${this.slug}/${provider.slug}/request/${qs.escape(guid)}`
-					+ (season != null ? `/season/${season}` : ''),
-				ratingKey: stringifyMetadataID({ // TODO include providerSlug and season in this key somehow
-					source: this.slug, // TODO metadata provider
-					directory: mediaType != null ? `${mediaType}` : undefined,
-					id: guid
+				key: this._stringifyMetadataKey({
+					providerSlug: reqProvider.slug,
+					itemGuid: guid,
+					season,
+					children: false
+				}),
+				ratingKey: reqsTransform.createFullRequestsMetadataId({
+					providerSlug: reqProvider.slug,
+					itemGuid: guid,
+					season
 				}),
 				librarySectionTitle: requestActionTitle,
 				librarySectionID,
@@ -179,6 +183,8 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 					const reqProvider = this.requestProviders[providerSlug];
 					if(!reqProvider) {
 						throw httpError(400, `No requests provider with ID ${providerSlug}`);
+					} else if(!reqProvider.isConfigured) {
+						throw httpError(418, `Requests provider with ID ${providerSlug} is not configured`);
 					}
 					// ensure user is allowed to make requests to this request provider
 					if(!(await reqProvider.canPlexUserMakeRequests(plexAuthContext['X-Plex-Token'], plexUserInfo))) {
@@ -345,9 +351,23 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 			season = metadataItem.index;
 		}
 		const children = opts?.children ?? metadataItem.key.endsWith(urlChildrenSuffix);
-		metadataItem.key = `/${this.app.slug}/${this.slug}/${providerSlug}/request/${qs.escape(itemGuid)}`
-			+ (season != null ? `/season/${season}` : '')
-			+ (children ? urlChildrenSuffix : '');
+		metadataItem.key = this._stringifyMetadataKey({
+			providerSlug,
+			itemGuid,
+			season,
+			children
+		});
+	}
+
+	_stringifyMetadataKey(options: {
+		providerSlug: string,
+		itemGuid: string,
+		season?: number,
+		children?: boolean
+	}) {
+		return `/${this.app.slug}/${this.slug}/${options.providerSlug}/request/${qs.escape(options.itemGuid)}`
+			+ (options.season != null ? `/season/${options.season}` : '')
+			+ (options.children ? urlChildrenSuffix : '');
 	}
 
 } as PseuplexPluginClass);
