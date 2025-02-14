@@ -426,9 +426,8 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 				const metadataItem = firstOrSingle(metadataItemsPage.MediaContainer?.Metadata);
 				if(metadataItem?.guid) {
 					const plexGuidParts = parsePlexMetadataGuid(metadataItem.guid);
-					const mappedMetadataPage = await plexDiscoverAPI.getLibraryMetadata(plexGuidParts.id, {
+					const mappedMetadataPage = await plexDiscoverAPI.getLibraryMetadataChildren(plexGuidParts.id, {
 						authContext: options.plexAuthContext,
-						children: true,
 						params: options.plexParams
 					});
 					mappedMetadataPage.MediaContainer.Metadata = await transformArrayOrSingleAsyncParallel(mappedMetadataPage.MediaContainer.Metadata, async (metadataItem) => {

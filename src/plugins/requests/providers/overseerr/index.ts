@@ -1,6 +1,8 @@
 
 import * as plexTypes from '../../../../plex/types';
 import { PlexServerAccountInfo } from '../../../../plex/accounts';
+import { parsePlexMetadataGuid } from '../../../../plex/metadataidentifier';
+import * as plexDiscoverAPI from '../../../../plexdiscover';
 import {
 	PseuplexApp,
 	PseuplexConfigBase
@@ -11,7 +13,7 @@ import {
 	RequestsProvider
 } from '../../provider';
 import * as overseerrAPI from './api';
-import { httpError } from '../../../../utils';
+import { firstOrSingle, httpError } from '../../../../utils';
 
 type OverseerPerUserPluginConfig = {
 	//
@@ -141,9 +143,47 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				break;
 
 			case plexTypes.PlexMediaItemType.Episode:
-				// TODO request season instead
+				// get season to request instead
+				type = overseerrAPI.MediaType.TV;
+				//guidPrefix = 'tvdb://';
+				//mediaIdKey = 'tvdbId';
+				if(plexItem.parentIndex == null) {
+					throw httpError(500, `Unable to request season for episode`);
+				}
+				if(!plexItem.grandparentGuid) {
+					throw httpError(500, `Unable to determine show for episode`);
+				}
+				const grandparentGuidParts = parsePlexMetadataGuid(plexItem.grandparentGuid);
+				options.seasons = [plexItem.parentIndex];
+				plexItem = firstOrSingle((await plexDiscoverAPI.getLibraryMetadata(grandparentGuidParts.id, {
+					authContext: options.plexAuthContext
+				})).MediaContainer.Metadata);
+				if(!plexItem) {
+					throw httpError(500, `Unable to fetch show for episode`);
+				}
+				break;
+
 			case plexTypes.PlexMediaItemType.Season:
-				// TODO get show metadata and set seasons
+				// get show for season to request
+				type = overseerrAPI.MediaType.TV;
+				//guidPrefix = 'tvdb://';
+				//mediaIdKey = 'tvdbId';
+				if(plexItem.index == null) {
+					throw httpError(500, `Unable to determine season index`);
+				}
+				if(!plexItem.parentGuid) {
+					throw httpError(500, `Unable to determine show for season`);
+				}
+				const parentGuidParts = parsePlexMetadataGuid(plexItem.parentGuid);
+				options.seasons = [plexItem.index];
+				plexItem = firstOrSingle((await plexDiscoverAPI.getLibraryMetadata(parentGuidParts.id, {
+					authContext: options.plexAuthContext
+				})).MediaContainer.Metadata);
+				if(!plexItem) {
+					throw httpError(500, `Unable to fetch show for season`);
+				}
+				break;
+				
 			case plexTypes.PlexMediaItemType.TVShow:
 				type = overseerrAPI.MediaType.TV;
 				//guidPrefix = 'tvdb://';
@@ -153,6 +193,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 			default:
 				throw new Error(`Unsupported media type ${type}`);
 		}
+		// find matching media id
 		const matchedGuid = plexItem.Guid?.find((guid) => guid.id?.startsWith(guidPrefix))?.id;
 		if(!matchedGuid) {
 			throw new Error(`Could not find ID to request`);

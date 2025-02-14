@@ -7,15 +7,28 @@ import {
 
 export const getLibraryMetadata = async (id: string | string[], options: {
 	params?: plexTypes.PlexMetadataPageParams,
-	children?: boolean,
 	serverURL: string,
 	authContext?: plexTypes.PlexAuthContext | null
 }): Promise<plexTypes.PlexMetadataPage> => {
-	const ids = (id instanceof Array) ? id.map((idVal) => qs.escape(idVal)).join(',') : qs.escape(id);
+	const idString = (id instanceof Array) ? id.map((idVal) => qs.escape(idVal)).join(',') : qs.escape(id);
 	return await plexServerFetch<plexTypes.PlexMetadataPage>({
 		serverURL: options.serverURL,
 		method: 'GET',
-		endpoint: `library/metadata/${ids}` + (options.children ? '/children' : ''),
+		endpoint: `library/metadata/${idString}`,
+		params: options.params,
+		authContext: options.authContext
+	});
+};
+
+export const getLibraryMetadataChildren = async (id: string, options: {
+	params?: plexTypes.PlexMetadataPageParams,
+	serverURL: string,
+	authContext?: plexTypes.PlexAuthContext | null
+}): Promise<plexTypes.PlexMetadataPage> => {
+	return await plexServerFetch<plexTypes.PlexMetadataPage>({
+		serverURL: options.serverURL,
+		method: 'GET',
+		endpoint: `library/metadata/${qs.escape(id)}/children`,
 		params: options.params,
 		authContext: options.authContext
 	});
