@@ -3,7 +3,7 @@ import * as plexTypes from '../../plex/types';
 import { PlexServerAccountInfo } from '../../plex/accounts';
 
 export type RequestInfo = {
-	requestId: string;
+	requestId: string | number;
 };
 
 export type PlexMediaRequestOptions = {

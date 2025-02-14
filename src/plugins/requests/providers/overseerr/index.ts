@@ -13,6 +13,7 @@ import {
 	RequestsProvider
 } from '../../provider';
 import * as overseerrAPI from './api';
+import * as overseerrTypes from './apitypes'
 import { firstOrSingle, httpError } from '../../../../utils';
 
 type OverseerPerUserPluginConfig = {
@@ -31,8 +32,8 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 	
 	overseerrUsersMinLifetime: number = 60;
 	
-	_overseerrUsers: overseerrAPI.User[] | undefined = undefined;
-	_plexTokensToOverseerrUsersMap: {[token: string]: overseerrAPI.User} = {};
+	_overseerrUsers: overseerrTypes.User[] | undefined = undefined;
+	_plexTokensToOverseerrUsersMap: {[token: string]: overseerrTypes.User} = {};
 	_overseerrUsersTask: Promise<void> | null = null;
 	_lastOverseerrUsersFetchTime: number | null = null;
 	
@@ -90,7 +91,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 		}
 	}
 
-	_findOverseerrUserFromPlexUser(token: string, userInfo: PlexServerAccountInfo): (overseerrAPI.User | null) {
+	_findOverseerrUserFromPlexUser(token: string, userInfo: PlexServerAccountInfo): (overseerrTypes.User | null) {
 		let overseerrUser = this._plexTokensToOverseerrUsersMap[token];
 		if(overseerrUser) {
 			return overseerrUser;
@@ -106,7 +107,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 		return null;
 	}
 
-	async _getOverseerrUserFromPlexUser(token: string, userInfo: PlexServerAccountInfo): Promise<overseerrAPI.User | null> {
+	async _getOverseerrUserFromPlexUser(token: string, userInfo: PlexServerAccountInfo): Promise<overseerrTypes.User | null> {
 		let overseerrUser = this._findOverseerrUserFromPlexUser(token, userInfo);
 		if(overseerrUser) {
 			return overseerrUser;
@@ -134,19 +135,15 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 		// get plex item info
 		let guidPrefix: string = 'tmdb://';
 		let mediaIdKey: ('tvdbId' | 'mediaId') = 'mediaId';
-		let type: overseerrAPI.MediaType;
+		let type: overseerrTypes.MediaType;
 		switch(plexItem.type) {
 			case plexTypes.PlexMediaItemType.Movie:
-				type = overseerrAPI.MediaType.Movie;
-				//guidPrefix = 'tmdb://';
-				//mediaIdKey = 'mediaId';
+				type = overseerrTypes.MediaType.Movie;
 				break;
 
 			case plexTypes.PlexMediaItemType.Episode:
 				// get season to request instead
-				type = overseerrAPI.MediaType.TV;
-				//guidPrefix = 'tvdb://';
-				//mediaIdKey = 'tvdbId';
+				type = overseerrTypes.MediaType.TV;
 				if(plexItem.parentIndex == null) {
 					throw httpError(500, `Unable to request season for episode`);
 				}
@@ -165,9 +162,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 
 			case plexTypes.PlexMediaItemType.Season:
 				// get show for season to request
-				type = overseerrAPI.MediaType.TV;
-				//guidPrefix = 'tvdb://';
-				//mediaIdKey = 'tvdbId';
+				type = overseerrTypes.MediaType.TV;
 				if(plexItem.index == null) {
 					throw httpError(500, `Unable to determine season index`);
 				}
@@ -185,15 +180,13 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				break;
 				
 			case plexTypes.PlexMediaItemType.TVShow:
-				type = overseerrAPI.MediaType.TV;
-				//guidPrefix = 'tvdb://';
-				//mediaIdKey = 'tvdbId';
+				type = overseerrTypes.MediaType.TV;
 				break;
 
 			default:
 				throw new Error(`Unsupported media type ${type}`);
 		}
-		// find matching media id
+		// parse media id
 		const matchedGuid = plexItem.Guid?.find((guid) => guid.id?.startsWith(guidPrefix))?.id;
 		if(!matchedGuid) {
 			throw new Error(`Could not find ID to request`);
@@ -203,8 +196,35 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 			throw new Error(`Failed to parse matched guid ${matchedGuid}`);
 		}
 		//console.log(`Parsed ${matchedGuid} to ${matchedId}`);
-		// send request to overseerr
+		// ensure request hasn't already been sent by this user
 		const cfg = this.config.overseerr;
+		let mediaItemInfo: (overseerrTypes.Movie | overseerrTypes.TVShow);
+		switch(type) {
+			case overseerrTypes.MediaType.Movie:
+				mediaItemInfo = await overseerrAPI.getMovie(mediaId, {
+					serverURL: cfg.host,
+					apiKey: cfg.apiKey
+				});
+				break;
+
+			case overseerrTypes.MediaType.TV:
+				mediaItemInfo = await overseerrAPI.getTV(mediaId, {
+					serverURL: cfg.host,
+					apiKey: cfg.apiKey
+				});
+				break;
+
+			default:
+				throw httpError(400, `Cannot handle media type ${type}`);
+		}
+		const matchingRequest = mediaItemInfo.mediaInfo?.requests?.find((reqInfo) => {
+			return reqInfo.requestedBy?.id == overseerrUser.id
+		});
+		if(matchingRequest) {
+			// already requested by this user
+			return this._transformRequestInfo(matchingRequest);
+		}
+		// send request to overseerr
 		const resData = await overseerrAPI.request({
 			serverURL: cfg.host,
 			apiKey: cfg.apiKey,
@@ -215,8 +235,13 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				seasons: options?.seasons
 			}
 		});
+		return this._transformRequestInfo(resData);
+	}
+
+
+	_transformRequestInfo(request: overseerrTypes.MediaRequestItem | overseerrTypes.MediaRequestInfo): RequestInfo {
 		return {
-			requestId: resData.id
+			requestId: request.id
 		};
 	}
 }
