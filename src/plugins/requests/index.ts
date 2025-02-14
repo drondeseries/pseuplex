@@ -137,6 +137,9 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 					// can't request type
 					return;
 			}
+			if(librarySectionID == null) {
+				return;
+			}
 			// create hook metadata
 			const metadataItem: WithOptionalPropsRecursive<plexTypes.PlexMetadataItem> = {
 				guid: guid,
