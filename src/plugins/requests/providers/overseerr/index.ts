@@ -14,7 +14,10 @@ import {
 } from '../../provider';
 import * as overseerrAPI from './api';
 import * as overseerrTypes from './apitypes'
-import { firstOrSingle, httpError } from '../../../../utils';
+import {
+	firstOrSingle,
+	httpError
+} from '../../../../utils';
 
 type OverseerPerUserPluginConfig = {
 	//
