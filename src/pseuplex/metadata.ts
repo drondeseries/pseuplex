@@ -66,7 +66,7 @@ export interface PseuplexMetadataProvider {
 	readonly basePath: string;
 	get(ids: string[], options: PseuplexMetadataProviderParams): Promise<PseuplexMetadataPage>;
 	getChildren(id: string, options: PseuplexMetadataChildrenProviderParams): Promise<PseuplexMetadataPage>;
-	getRelatedHubs?: (id: string, options: PseuplexHubListParams) => Promise<plexTypes.PlexHubsPage>;
+	getRelatedHubs(id: string, options: PseuplexHubListParams): Promise<plexTypes.PlexHubsPage>;
 }
 
 export type PseuplexSimilarItemsHubProvider = PseuplexHubProvider & {
@@ -466,18 +466,23 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		};
 	}
 
-	get getRelatedHubs() {
-		const hubProvider = this.similarItemsHubProvider;
-		if(!hubProvider) {
-			return undefined;
-		}
-		return async (id: string, options: PseuplexHubListParams): Promise<plexTypes.PlexHubsPage> => {
-			const params = pseuplexHubPageParamsFromHubListParams(options.plexParams);
-			const hub = await hubProvider.get(id);
-			return await hub.getHub(params, {
+	async getRelatedHubs(id: string, options: PseuplexHubListParams): Promise<plexTypes.PlexHubsPage> {
+		const hubEntries: plexTypes.PlexHubWithItems[] = [];
+		if(this.similarItemsHubProvider) {
+			const hub = await this.similarItemsHubProvider.get(id);
+			const hubListEntry = await hub.getHubListEntry(options.plexParams, {
 				plexServerURL: options.plexServerURL,
 				plexAuthContext: options.plexAuthContext
 			});
+			hubEntries.push(hubListEntry);
+		}
+		return {
+			MediaContainer: {
+				size: hubEntries.length,
+				totalSize: hubEntries.length,
+				identifier: plexTypes.PlexPluginIdentifier.PlexAppLibrary,
+				Hub: hubEntries
+			}
 		};
 	}
 }

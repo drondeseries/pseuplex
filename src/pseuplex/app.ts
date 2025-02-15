@@ -644,15 +644,6 @@ export class PseuplexApp {
 		if(!metadataProvider) {
 			throw httpError(404, `Unknown metadata source ${metadataId.source}`);
 		}
-		if(!metadataProvider.getRelatedHubs) {
-			return {
-				MediaContainer: {
-					size: 0,
-					totalSize: 0,
-					Hub: []
-				}
-			};
-		}
 		const providerMetadataId = stringifyPartialMetadataID(metadataId);
 		return await metadataProvider.getRelatedHubs(providerMetadataId, options);
 	}
