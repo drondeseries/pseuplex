@@ -12,9 +12,10 @@ export type WithOptionalPropsRecursive<T> = T extends Array<infer U> ? Array<Wit
 	[key in keyof T]?: WithOptionalPropsRecursive<T[key]>
 };
 
-export const httpError = (status: number, message: string): HttpError => {
+export const httpError = (status: number, message: string, props?: {[key: string]: any}): HttpError => {
 	const error = new Error(message) as HttpError;
 	error.statusCode = status;
+	Object.assign(error, props);
 	return error;
 };
 

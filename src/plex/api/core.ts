@@ -71,7 +71,9 @@ export const plexServerFetch = async <TResult>(options: {
 	});
 	if(!res.ok) {
 		res.body?.cancel();
-		throw httpError(res.status, res.statusText);
+		throw httpError(res.status, res.statusText, {
+			url
+		});
 	}
 	// parse response
 	const responseText = await res.text();

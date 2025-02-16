@@ -46,6 +46,8 @@ export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, opti
 	if(options.year) {
 		const matchesPage = await metadataClient.getMatches({
 			type: options.types,
+			title: options.title,
+			year: options.year as number
 		});
 		const lowercaseTitle = options.title.toLowerCase();
 		const metadataItem = findInArrayOrSingle(matchesPage.MediaContainer.Metadata, (metadataItem) => {
