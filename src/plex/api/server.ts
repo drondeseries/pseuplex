@@ -1,6 +1,7 @@
 import {
 	PlexAuthContext,
-	PlexServerIdentityPage
+	PlexServerIdentityPage,
+	PlexServerMediaProvidersPage
 } from '../types';
 import { plexServerFetch } from './core';
 
@@ -12,6 +13,18 @@ export const getServerIdentity = async (options: {
 		serverURL: options.serverURL,
 		method: 'GET',
 		endpoint: 'identity',
+		authContext: options.authContext
+	});
+};
+
+export const getMediaProviders = async (options: {
+	serverURL: string,
+	authContext: PlexAuthContext
+}): Promise<PlexServerMediaProvidersPage> => {
+	return await plexServerFetch<PlexServerMediaProvidersPage>({
+		serverURL: options.serverURL,
+		method: 'GET',
+		endpoint: 'media/providers',
 		authContext: options.authContext
 	});
 };

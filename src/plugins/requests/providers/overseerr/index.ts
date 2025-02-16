@@ -2,7 +2,6 @@
 import * as plexTypes from '../../../../plex/types';
 import { PlexServerAccountInfo } from '../../../../plex/accounts';
 import { parsePlexMetadataGuid } from '../../../../plex/metadataidentifier';
-import * as plexDiscoverAPI from '../../../../plexdiscover';
 import {
 	PseuplexApp,
 	PseuplexConfigBase
@@ -155,7 +154,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				}
 				const grandparentGuidParts = parsePlexMetadataGuid(plexItem.grandparentGuid);
 				options.seasons = [plexItem.parentIndex];
-				plexItem = firstOrSingle((await plexDiscoverAPI.getLibraryMetadata(grandparentGuidParts.id, {
+				plexItem = firstOrSingle((await this.app.plexMetadataClient.getMetadata(grandparentGuidParts.id, undefined, {
 					authContext: options.plexAuthContext
 				})).MediaContainer.Metadata);
 				if(!plexItem) {
@@ -174,7 +173,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				}
 				const parentGuidParts = parsePlexMetadataGuid(plexItem.parentGuid);
 				options.seasons = [plexItem.index];
-				plexItem = firstOrSingle((await plexDiscoverAPI.getLibraryMetadata(parentGuidParts.id, {
+				plexItem = firstOrSingle((await this.app.plexMetadataClient.getMetadata(parentGuidParts.id, undefined, {
 					authContext: options.plexAuthContext
 				})).MediaContainer.Metadata);
 				if(!plexItem) {

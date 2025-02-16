@@ -20,6 +20,7 @@ import {
 	createPlexAuthenticationMiddleware,
 	IncomingPlexAPIRequest
 } from '../plex/requesthandling';
+import { PlexClient } from '../plex/client';
 import * as extPlexTransform from './externalplex/transform';
 import {
 	PseuplexMetadataPage,
@@ -30,9 +31,8 @@ import {
 import { PseuplexConfigBase } from './configbase';
 import {
 	stringifyPartialMetadataID,
-	PseuplexMetadataIDParts,
 	stringifyMetadataID,
-	PseuplexPartialMetadataIDString
+	PseuplexMetadataIDParts
 } from './metadataidentifier';
 import {
 	PseuplexHubListParams,
@@ -92,9 +92,7 @@ type PseuplexAppMetadataParams = {
 type PseuplexAppMetadataChildrenParams = {
 	plexServerURL: string;
 	plexAuthContext: plexTypes.PlexAuthContext;
-	plexParams?: plexTypes.PlexMetadataPageParams;
-	start: number;
-	count: number;
+	plexParams?: plexTypes.PlexMetadataChildrenPageParams;
 };
 
 type PseuplexAppConfig = PseuplexConfigBase<{[key: string]: any}> & {[key: string]: any};
@@ -109,6 +107,7 @@ export type PseuplexAppOptions = {
 	serverOptions: https.ServerOptions;
 	plexServerURL: string;
 	plexAdminAuthContext: plexTypes.PlexAuthContext;
+	plexMetadataClient: PlexClient;
 	loggingOptions: PseuplexLoggingOptions,
 	responseFilterOrders?: PseuplexResponseFilterOrders;
 	plugins: PseuplexPluginClass[];
@@ -129,6 +128,8 @@ export class PseuplexApp {
 	readonly clientWebSockets: {[plexToken: string]: stream.Duplex[]} = {};
 	readonly plexServerIdToGuidCache: CachedFetcher<string>;
 
+	readonly plexMetadataClient: PlexClient;
+
 	readonly middlewares: {
 		plexAuthentication: express.RequestHandler;
 	};
@@ -148,6 +149,7 @@ export class PseuplexApp {
 		this.plexServerAccounts = new PlexServerAccountsStore({
 			plexServerProperties: this.plexServerProperties
 		});
+		this.plexMetadataClient = options.plexMetadataClient;
 		this.plexServerIdToGuidCache = createPlexServerIdToGuidCache({
 			plexServerURL: this.plexServerURL,
 			plexAuthContext: this.plexAdminAuthContext
@@ -315,12 +317,15 @@ export class PseuplexApp {
 			this.middlewares.plexAuthentication,
 			pseuplexMetadataIdRequestMiddleware(async (req: IncomingPlexAPIRequest, res, metadataId): Promise<plexTypes.PlexMetadataPage | PseuplexMetadataPage> => {
 				// get metadatas
+				const plexParams = {
+					...req.plex.requestParams,
+					'X-Plex-Container-Start': intParam(req.query['X-Plex-Container-Start'] ?? req.header('x-plex-container-start')),
+					'X-Plex-Container-Size': intParam(req.query['X-Plex-Container-Size'] ?? req.header('x-plex-container-size'))
+				}
 				return await this.getMetadataChildren(metadataId, {
 					plexServerURL: this.plexServerURL,
 					plexAuthContext: req.plex.authContext,
-					plexParams: req.plex.requestParams,
-					start: intParam(req.query['X-Plex-Container-Start'] ?? req.header('x-plex-container-start')),
-					count: intParam(req.query['X-Plex-Container-Size'] ?? req.header('x-plex-container-size'))
+					plexParams: plexParams
 				});
 			})
 		]);

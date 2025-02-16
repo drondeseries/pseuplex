@@ -23,6 +23,7 @@ import {
 	readPlexPreferences
 } from './plex/config';
 import { PlexPreferences } from './plex/types/preferences';
+import { PlexClient } from './plex/client';
 
 let plexPrefs: PlexPreferences | undefined = undefined;
 let cfg: Config;
@@ -60,6 +61,8 @@ const readPlexPrefsIfNeeded = async () => {
 	if(!plexServerURL.indexOf('://')) {
 		plexServerURL = 'http://'+plexServerURL;
 	}
+
+	// initialize server SSL
 	const sslConfig: SSLConfig = {
 		p12Path: cfg.ssl?.p12Path,
 		p12Password: cfg.ssl?.p12Password,
@@ -101,6 +104,12 @@ const readPlexPrefsIfNeeded = async () => {
 		plexAdminAuthContext: {
 			'X-Plex-Token': cfg.plex.token
 		},
+		plexMetadataClient: new PlexClient({
+			serverURL: cfg.plex.metadataHost || 'https://metadata.provider.plex.tv',
+			authContext: {
+				'X-Plex-Token': cfg.plex.token
+			}
+		}),
 		serverOptions: {
 			...sslCertData
 		},

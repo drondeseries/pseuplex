@@ -2,7 +2,6 @@
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
 import { parsePlexExternalGuids } from '../../plex/metadataidentifier';
-import * as plexDiscoverAPI from '../../plexdiscover';
 import {
 	PseuplexMetadataItem,
 	PlexMediaItemMatchParams,
@@ -33,8 +32,30 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 		return lbTransform.partialMetadataIdFromFilmInfo(metadataItem);
 	}
 
-	override getPlexMatchParams(metadataItem: LetterboxdMetadataItem): PlexMediaItemMatchParams {
-		return getLetterboxdPlexMediaItemMatchParams(metadataItem);
+	override getPlexMatchParams(filmInfo: LetterboxdMetadataItem): PlexMediaItemMatchParams {
+		let types: plexTypes.PlexMediaItemTypeNumeric[];
+		const tmdbInfo = filmInfo.pageData.tmdb;
+		const imdbInfo = filmInfo.pageData.imdb;
+		if(tmdbInfo && tmdbInfo.type) {
+			if(tmdbInfo.type == 'movie') {
+				types = [plexTypes.PlexMediaItemTypeNumeric.Movie];
+			} else if(tmdbInfo.type == 'tv') {
+				types = [plexTypes.PlexMediaItemTypeNumeric.Show];
+			}
+		}
+		const guids = lbTransform.filmInfoGuids(filmInfo);
+		if(guids.length == 0) {
+			return null;
+		}
+		if(!types) {
+			types = [plexTypes.PlexMediaItemTypeNumeric.Movie,plexTypes.PlexMediaItemTypeNumeric.Show];
+		}
+		return {
+			title: filmInfo.pageData.name,
+			year: filmInfo.pageData.year,
+			types: types,
+			guids: guids
+		};
 	}
 
 	override async findMatchForPlexItem(metadataItem: plexTypes.PlexMetadataItem): Promise<LetterboxdMetadataItem | null> {
@@ -82,30 +103,3 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 		return await filmInfoTask;
 	}
 }
-
-
-
-export const getLetterboxdPlexMediaItemMatchParams = (filmInfo: LetterboxdMetadataItem): PlexMediaItemMatchParams | null => {
-	let types: plexDiscoverAPI.SearchType[];
-	const tmdbInfo = filmInfo.pageData.tmdb;
-	if(tmdbInfo && tmdbInfo.type) {
-		if(tmdbInfo.type == 'movie') {
-			types = [plexDiscoverAPI.SearchType.Movies];
-		} else if(tmdbInfo.type == 'tv') {
-			types = [plexDiscoverAPI.SearchType.TV];
-		}
-	}
-	const guids = lbTransform.filmInfoGuids(filmInfo);
-	if(guids.length == 0) {
-		return null;
-	}
-	if(!types) {
-		types = [plexDiscoverAPI.SearchType.Movies,plexDiscoverAPI.SearchType.TV];
-	}
-	return {
-		title: filmInfo.pageData.name,
-		year: filmInfo.pageData.year,
-		types: types,
-		guids: guids
-	};
-};

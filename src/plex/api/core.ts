@@ -8,7 +8,7 @@ export const plexServerFetch = async <TResult>(options: {
 	serverURL: string,
 	method?: 'GET' | 'POST' | 'PUT' | 'DELETE',
 	endpoint: string,
-	params?: {[key: string]: string | number | boolean | string[]} | null,
+	params?: {[key: string]: string | number | boolean | string[] | number[]} | null,
 	headers?: {[key: string]: string},
 	authContext?: PlexAuthContext | null
 }): Promise<TResult> => {
@@ -23,12 +23,28 @@ export const plexServerFetch = async <TResult>(options: {
 	} else {
 		url = `${serverURL}/${options.endpoint}`;
 	}
+	// process params
+	let params = options.params;
+	if(params) {
+		const serializedParams: {[key: string]: any} = {};
+		for(const paramName in params) {
+			const paramVal = params[paramName];
+			if(typeof paramVal == 'boolean') {
+				serializedParams[paramName] = paramVal ? 1 : 0;
+			} else if(paramVal instanceof Array) {
+				serializedParams[paramName] = paramVal.join(',');
+			} else if(paramVal !== undefined) {
+				serializedParams[paramName] = paramVal;
+			}
+		}
+		params = serializedParams;
+	}
 	// add parameters
-	if(options.params || options.authContext) {
+	if(params || options.authContext) {
 		url += '?';
 		let hasQuery = false;
-		if(options.params) {
-			const paramsQs = qs.stringify(options.params);
+		if(params) {
+			const paramsQs = qs.stringify(params);
 			if(paramsQs.length > 0) {
 				url += paramsQs;
 				hasQuery = true;
@@ -71,8 +87,4 @@ export const plexServerFetch = async <TResult>(options: {
 	} else {
 		return JSON.parse(responseText);
 	}
-};
-
-export const booleanQueryParam = (param: boolean | undefined): string | undefined => {
-	return param != null ? (param ? '1' : '0') : undefined;
 };

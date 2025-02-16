@@ -31,6 +31,12 @@ export type PlexMetadataPageParams = {
 	includeUserState?: PlexXMLBoolean;
 };
 
+export type PlexMetadataChildrenPageParams = {
+	excludeAllLeaves?: boolean;
+	'X-Plex-Container-Start'?: number;
+	'X-Plex-Container-Size'?: number;
+};
+
 export type PlexMetadataItem = {
 	guid?: string; // "plex://episode/6rv4x76r8x9bqb98xqt9qbt29r"
 	key: string; // "/library/metadata/20205"

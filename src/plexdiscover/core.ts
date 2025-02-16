@@ -8,13 +8,11 @@ export const plexDiscoverFetch = async <TResult>(options: {
 	method?: 'GET' | 'POST' | 'PUT' | 'DELETE',
 	endpoint: string,
 	params?: {[key: string]: any} | null,
+	headers?: {[key: string]: string},
 	authContext?: PlexAuthContext | null
 }): Promise<TResult> => {
 	return await plexServerAPI.fetch({
-		serverURL: BASE_URL,
-		method: options.method,
-		endpoint: options.endpoint,
-		params: options.params,
-		authContext: options.authContext
+		...options,
+		serverURL: BASE_URL
 	});
 };

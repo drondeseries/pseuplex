@@ -98,6 +98,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// create metadata provider
 		this.metadata = new LetterboxdMetadataProvider({
 			basePath: `${this.basePath}/metadata`,
+			plexMetadataClient: this.app.plexMetadataClient,
 			similarItemsHubProvider: this.hubs.similar
 		});
 	}

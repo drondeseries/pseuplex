@@ -1,7 +1,6 @@
 
 import qs from 'querystring';
 import * as plexTypes from '../../plex/types';
-import * as plexDiscoverAPI from '../../plexdiscover';
 import {
 	PseuplexMetadataItem,
 	PlexMediaItemMatchParams,
@@ -48,18 +47,18 @@ export class TemplateMetadataProvider extends PseuplexMetadataProviderBase<Templ
 	}
 
 	override getPlexMatchParams(metadataItem: TemplateMetadataItem): PlexMediaItemMatchParams {
-		let types: plexDiscoverAPI.SearchType[];
+		let types: plexTypes.PlexMediaItemTypeNumeric[];
 		switch(metadataItem.type) {
 			case 'movie':
-				types = [plexDiscoverAPI.SearchType.Movies];
+				types = [plexTypes.PlexMediaItemTypeNumeric.Movie];
 				break;
 
 			case 'tv':
-				types = [plexDiscoverAPI.SearchType.TV];
+				types = [plexTypes.PlexMediaItemTypeNumeric.Show];
 				break;
 
 			default:
-				types = [plexDiscoverAPI.SearchType.Movies, plexDiscoverAPI.SearchType.TV];
+				types = [plexTypes.PlexMediaItemTypeNumeric.Movie, plexTypes.PlexMediaItemTypeNumeric.Show];
 		}
 		return {
 			title: metadataItem.title,

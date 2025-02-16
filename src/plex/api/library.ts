@@ -1,9 +1,11 @@
 import qs from 'querystring';
 import * as plexTypes from '../types';
 import {
-	plexServerFetch,
-	booleanQueryParam
+	plexServerFetch
 } from './core';
+import {
+	booleanQueryParam
+} from './serialization';
 
 export const getLibraryMetadata = async (id: string | string[], options: {
 	params?: plexTypes.PlexMetadataPageParams,
@@ -21,7 +23,7 @@ export const getLibraryMetadata = async (id: string | string[], options: {
 };
 
 export const getLibraryMetadataChildren = async (id: string, options: {
-	params?: plexTypes.PlexMetadataPageParams,
+	params?: plexTypes.PlexMetadataChildrenPageParams,
 	serverURL: string,
 	authContext?: plexTypes.PlexAuthContext | null
 }): Promise<plexTypes.PlexMetadataPage> => {
@@ -71,25 +73,13 @@ export const getLibraryMetadataRelatedHubs = async (id: string | string[], optio
 };
 
 export const searchLibrary = async (options: {
-	params: {
-		query: string;
-		searchTypes: plexTypes.PlexLibrarySearchType | plexTypes.PlexLibrarySearchType[];
-		limit?: number;
-		includeMetadata?: boolean;
-		filterPeople?: boolean;
-	},
+	params: plexTypes.PlexLibrarySearchParams,
 	serverURL: string,
 	authContext?: plexTypes.PlexAuthContext | null
 }): Promise<plexTypes.PlexLibrarySearchResultsPage> => {
 	// parse params
 	if(options.params?.searchTypes instanceof Array) {
 		options.params.searchTypes = options.params.searchTypes.join(',') as any;
-	}
-	if(options.params.includeMetadata != null) {
-		options.params.includeMetadata = booleanQueryParam(options.params.includeMetadata) as any;
-	}
-	if(options.params.filterPeople != null) {
-		options.params.filterPeople = booleanQueryParam(options.params.filterPeople) as any;
 	}
 	// send request
 	return await plexServerFetch<plexTypes.PlexLibrarySearchResultsPage>({

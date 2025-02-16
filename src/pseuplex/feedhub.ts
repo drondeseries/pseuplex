@@ -87,7 +87,7 @@ export abstract class PseuplexFeedHub<
 				unique: opts.uniqueItemsOnly,
 				loadAheadCount
 			});
-			listStartItemToken = chunk.items[0].token;
+			listStartItemToken = chunk.items[0]?.token;
 		}
 		let key = opts.hubPath;
 		if(listStartItemToken != null) {

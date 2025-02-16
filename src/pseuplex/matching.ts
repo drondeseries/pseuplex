@@ -1,5 +1,6 @@
-import * as plexDiscoverAPI from '../plexdiscover';
 import * as plexTypes from '../plex/types';
+import { PlexClient } from '../plex/client';
+import { findInArrayOrSingle, firstOrSingle } from '../utils';
 
 export type PlexMetadataMatchStoreOptions = {
 	plexServerURL: string,
@@ -19,84 +20,39 @@ export class PlexMetadataMatchStore {
 export type PlexMediaItemMatchParams = {
 	title: string,
 	year?: number | string,
-	types: plexDiscoverAPI.SearchType | plexDiscoverAPI.SearchType[],
-	guids: `${string}://${string}`[],
+	types: plexTypes.PlexMediaItemTypeNumeric | plexTypes.PlexMediaItemTypeNumeric[],
+	guids: `${string}://${string}`[]
 };
 
-export const findMatchingPlexMediaItem = async (options: PlexMediaItemMatchParams & {
-	authContext?: plexTypes.PlexAuthContext | null,
-	params?: plexTypes.PlexMetadataPageParams
-}) => {
-	var guidsSet = new Set<string>(options.guids);
-	return await findMatchingPlexMetadata({
-		query: options.year ? `${options.title} ${options.year}` : options.title,
-		searchTypes: options.types,
-		authContext: options.authContext,
-		params: options.params
-	}, (searchResult) => {
-		/*return ((searchResult.Metadata.title == options.title || searchResult.Metadata.originalTitle == options.title)
-			&& (searchResult.Metadata.year == options.year));*/
-		return true;
-	}, (metadata) => {
-		if(metadata.Guid && metadata.Guid.length > 0 && options.guids.length > 0) {
-			for(const guid of metadata.Guid) {
-				if(guidsSet.has(guid.id)) {
-					return true;
-				}
+export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, options: PlexMediaItemMatchParams & {
+	authContext?: plexTypes.PlexAuthContext | null
+}): Promise<plexTypes.PlexMetadataItem | null> => {
+	// match against guids
+	if(options.guids) {
+		for(const guid of options.guids) {
+			const matchesPage = await metadataClient.getMatches({
+				type: options.types,
+				guid
+			}, {
+				authContext: options.authContext
+			});
+			const metadataItem = firstOrSingle(matchesPage.MediaContainer.Metadata);
+			if(metadataItem) {
+				return metadataItem;
 			}
-			return false;
 		}
-		return true;
-	});
-};
-
-type SearchResultMatchFilter = (resultItem: plexTypes.PlexLibrarySearchResult) => boolean;
-type MetadataMatchFilter = (metadataItem: plexTypes.PlexMetadataItem) => boolean;
-
-const findMatchingPlexMetadata = async (options: {
-	authContext?: plexTypes.PlexAuthContext | null,
-	query: string,
-	limit?: number,
-	searchTypes: plexDiscoverAPI.SearchType | plexDiscoverAPI.SearchType[],
-	params?: plexTypes.PlexMetadataPageParams
-}, filter: SearchResultMatchFilter, validate: MetadataMatchFilter): Promise<plexTypes.PlexMetadataItem | null> => {
-	const resultsPage = await plexDiscoverAPI.search({
-		authContext: options.authContext,
-		params: {
-			...options.params,
-			query: options.query,
-			searchProviders: plexDiscoverAPI.SearchProvider.Discover,
-			searchTypes: options.searchTypes,
-			limit: options.limit ?? 10
-		}
-	});
-	const searchResultsList = resultsPage.MediaContainer?.SearchResults;
-	if(searchResultsList) {
-		for(const searchResults of searchResultsList) {
-			if(searchResults.SearchResult) {
-				for(const searchResult of searchResults.SearchResult) {
-					if(filter(searchResult)) {
-						// fetch metadata details
-						let key = searchResult.Metadata.key;
-						if(key.endsWith('/children')) {
-							key = key.substring(0, key.length-'/children'.length);
-						}
-						const metadataPage = await plexDiscoverAPI.fetch<plexTypes.PlexMetadataPage>({
-							endpoint: key,
-							authContext: options.authContext,
-							params: options.params
-						});
-						let metadataItems = metadataPage?.MediaContainer?.Metadata;
-						const metadataItem = (metadataItems instanceof Array) ? metadataItems[0] : metadataItems;
-						if(metadataItem) {
-							// validate metadata
-							if(validate(metadataItem)) {
-								return metadataItem;
-							}
-						}
-					}
-				}
-			}
+	}
+	// no matches against guids, so try finding by title and year if possible
+	if(options.year) {
+		const matchesPage = await metadataClient.getMatches({
+			type: options.types,
+		});
+		const lowercaseTitle = options.title.toLowerCase();
+		const metadataItem = findInArrayOrSingle(matchesPage.MediaContainer.Metadata, (metadataItem) => {
+			return (metadataItem.title.toLowerCase() == lowercaseTitle && metadataItem.year == options.year);
+		});
+		if(metadataItem) {
+			return metadataItem;
 		}
 	}
 	return null;

@@ -8,7 +8,6 @@ import {
 	plexAPIRequestHandler
 } from '../../plex/requesthandling';
 import { PlexServerAccountInfo } from '../../plex/accounts';
-import * as plexDiscoverAPI from '../../plexdiscover';
 import {
 	PseuplexApp,
 	PseuplexConfigBase,
@@ -208,8 +207,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 						if(children) {
 							// transform to show requestable seasons if missing any
 							const plexGuidParts = parsePlexMetadataGuid(libraryMetadataItem.guid);
-							const discoverMetadataPage = await plexDiscoverAPI.getLibraryMetadataChildren(plexGuidParts.id, {
-								params: plexParams,
+							const discoverMetadataPage = await this.app.plexMetadataClient.getMetadataChildren(plexGuidParts.id, plexParams, {
 								authContext: plexAuthContext
 							});
 							plexDisplayedPage.MediaContainer.Metadata = transformArrayOrSingle(discoverMetadataPage.MediaContainer.Metadata, (metadataItem) => {
@@ -232,13 +230,12 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 						}
 						return plexDisplayedPage;
 					}
-					// since item is not on server, get from plex discover
 					// get the plex discover ID of the metadata
 					let itemId: string;
 					let itemType: plexTypes.PlexMediaItemType | string;
 					if(season != null && plexGuidParts.type == plexTypes.PlexMediaItemType.TVShow) {
 						// get guid for season
-						const showChildrenPage = await plexDiscoverAPI.getLibraryMetadataChildren(plexGuidParts.id, {
+						const showChildrenPage = await this.app.plexMetadataClient.getMetadataChildren(plexGuidParts.id, undefined, {
 							authContext: plexAuthContext
 						});
 						const seasonItem = findInArrayOrSingle(showChildrenPage.MediaContainer.Metadata, (item) => {
@@ -261,16 +258,14 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 					}
 					// fetch item (and maybe children) from plex discover
 					const resDataPromise = children ?
-						plexDiscoverAPI.getLibraryMetadataChildren(itemId, {
-							authContext: plexAuthContext,
-							params: plexParams
+						this.app.plexMetadataClient.getMetadataChildren(itemId, plexParams, {
+							authContext: plexAuthContext
 						})
-						: plexDiscoverAPI.getLibraryMetadata(itemId, {
-							authContext: plexAuthContext,
-							params: plexParams
+						: this.app.plexMetadataClient.getMetadata(itemId, plexParams, {
+							authContext: plexAuthContext
 						});
 					const requestedPlexItemPage = (children || itemId != plexGuidParts.id) ?
-						await plexDiscoverAPI.getLibraryMetadata(plexGuidParts.id, {
+						await this.app.plexMetadataClient.getMetadata(plexGuidParts.id, undefined, {
 							authContext: plexAuthContext
 						})
 						: await resDataPromise;

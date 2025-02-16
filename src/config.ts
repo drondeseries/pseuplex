@@ -16,6 +16,7 @@ export type Config = {
 		token: string;
 		processedMachineIdentifier?: string;
 		appDataPath?: string;
+		metadataHost?: string;
 	},
 	ssl?: SSLConfig & {
 		autoP12Path?: boolean;

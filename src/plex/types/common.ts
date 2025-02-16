@@ -1,7 +1,8 @@
 
 export enum PlexPluginIdentifier {
 	PlexAppLibrary = 'com.plexapp.plugins.library',
-	PlexTVDiscover = 'tv.plex.provider.discover'
+	PlexTVDiscover = 'tv.plex.provider.discover',
+	PlexTVMetadata = 'tv.plex.provider.metadata'
 }
 
 export type PlexXMLBoolean = '1' | '0' | 1 | 0 | boolean;
@@ -32,6 +33,10 @@ export enum PlexTVContentRating {
 }
 
 export type PlexContentRating = PlexMovieContentRating | PlexTVContentRating;
+
+export enum PlexLanguage {
+	EnglishUS = 'en-US'
+}
 
 export enum PlexMediaItemType {
 	Movie = 'movie',
