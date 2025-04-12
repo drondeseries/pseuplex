@@ -1,5 +1,7 @@
 # Pseudo Metadata Proxy for Plex
 
+Note: Some or all functionality may be broken in the new mobile apps
+
 A middleware proxy for the plex server API. This sits in between the plex client and the plex server, forwarding requests and modifying responses to add some extra features.
 
 Inspired by [Replex](https://github.com/lostb1t/replex)
