@@ -9,6 +9,7 @@
 	},
 	"scripts": {
 		"build": "tsc",
+		"setup-dev-modules": "rm -rf node_modules/letterboxd-retriever && ln -s \"$PWD/../letterboxd-retriever\" node_modules/letterboxd-retriever",
 		"start": "tsc && node dist/main.js",
 		"start_test": "tsc && node --trace-deprecation dist/main.js --config=config/config.json --verbose",
 		"debug": "tsc && node --inspect dist/main.js --config=config/config.json --verbose",
