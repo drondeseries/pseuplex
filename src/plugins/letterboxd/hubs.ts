@@ -37,6 +37,7 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 		},
 		letterboxdMetadataProvider: options.letterboxdMetadataProvider
 	}, async (pageToken) => {
+		console.log(`Fetching user following feed for ${letterboxdUsername}`);
 		return await letterboxd.getUserFollowingFeed(letterboxdUsername, {
 			after: pageToken?.token ?? undefined,
 			csrf: pageToken?.csrf ?? undefined
@@ -77,6 +78,7 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 		}
 
 		override async fetchPage(pageToken: string | null) {
+			console.log(`Fetching letterboxd similar items hub for ${metadataId}`);
 			const page = await letterboxd.getSimilar(filmOpts);
 			return {
 				items: page.items.map((film) => {
