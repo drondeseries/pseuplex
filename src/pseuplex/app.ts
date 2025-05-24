@@ -33,7 +33,7 @@ import {
 	stringifyPartialMetadataID,
 	stringifyMetadataID,
 	PseuplexMetadataIDParts,
-	parseMetadataID
+	parseMetadataID,
 } from './metadataidentifier';
 import {
 	PseuplexHubListParams,
@@ -56,14 +56,13 @@ import {
 import { CachedFetcher } from '../fetching/CachedFetcher';
 import {
 	httpError,
-	forArrayOrSingle,
 	parseURLPath,
 	stringifyURLPath,
+	forArrayOrSingleAsyncParallel,
 	transformArrayOrSingle,
 	transformArrayOrSingleAsyncParallel,
 	expressErrorHandler,
 	intParam,
-	forArrayOrSingleAsyncParallel
 } from '../utils';
 import { urlLogString } from '../logging';
 
@@ -286,6 +285,25 @@ export class PseuplexApp {
 							this.plexServerIdToGuidCache.setSync(metadataId, metadataItem.guid);
 						}
 					}
+					// filter related hubs if included
+					if(req.plex.requestParams['includeRelated'] == 1) {
+						// get metadata id
+						let metadataIdString = parseMetadataIDFromKey(metadataItem.key, '/library/metadata/')?.id;
+						if(!metadataIdString) {
+							metadataIdString = metadataItem.ratingKey;
+						}
+						if(metadataIdString) {
+							// filter related hubs
+							const metadataId = parseMetadataID(metadataIdString);
+							const relatedHubsResponse: plexTypes.PlexHubsPage = {
+								MediaContainer: metadataItem.Related
+							};
+							await this.filterResponse('metadataRelatedHubs', relatedHubsResponse, { userReq:req, userRes:res, metadataId });
+							metadataItem.Related = relatedHubsResponse.MediaContainer;
+						} else {
+							console.error("Failed to determine metadataId from metadata item");
+						}
+					}
 				});
 				// filter metadata page
 				await this.filterResponse('metadata', resData, { userReq:req, userRes:res });
@@ -307,7 +325,7 @@ export class PseuplexApp {
 						if(metadataItem.guid && metadataId) {
 							this.plexServerIdToGuidCache.setSync(metadataId, metadataItem.guid);
 						}
-						// append related hubs if included
+						// filter related hubs if included
 						if(userReq.plex.requestParams['includeRelated'] == 1) {
 							// filter related hubs
 							const metadataIdParts = parseMetadataID(metadataId);

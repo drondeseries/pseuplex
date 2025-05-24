@@ -7,15 +7,20 @@ import {
 } from '../types';
 import { PseuplexMetadataTransformOptions } from '../metadata';
 import {
+	PseuplexPartialMetadataIDParts,
 	stringifyMetadataID,
 	stringifyPartialMetadataID
 } from '../metadataidentifier';
 
-export const createPartialExternalPlexMetadataId = (opts:{serverURL: string, metadataId: string}): string => {
-	return stringifyPartialMetadataID({
+export const createPartialExternalPlexMetadataIdParts = (opts: {serverURL: string, metadataId: string}): PseuplexPartialMetadataIDParts => {
+	return {
 		directory: opts.serverURL,
 		id: opts.metadataId
-	});
+	};
+};
+
+export const createPartialExternalPlexMetadataId = (opts: {serverURL: string, metadataId: string}): string => {
+	return stringifyPartialMetadataID(createPartialExternalPlexMetadataIdParts(opts));
 };
 
 export const createFullExternalPlexMetadataId = (opts:{serverURL: string, metadataId: string, asUrl: boolean}): string => {

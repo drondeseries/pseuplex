@@ -22,7 +22,8 @@ import {
 	PseuplexConfigBase,
 	PseuplexSimilarItemsHubProvider,
 	sendMediaUnavailableNotifications,
-	stringifyMetadataID
+	stringifyMetadataID,
+	parsePartialMetadataID
 } from '../../pseuplex';
 import {
 	LetterboxdMetadataProvider
@@ -213,13 +214,20 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					plexAuthContext: req.plex.authContext
 				});
 				hubs.push(hubEntry);
-				return {
+				// create response
+				const resData: plexTypes.PlexHubsPage = {
 					MediaContainer: {
 						size: hubs.length,
 						identifier: plexTypes.PlexPluginIdentifier.PlexAppLibrary,
 						Hub: hubs
 					}
 				};
+				// filter response
+				const metadataId = parsePartialMetadataID(id);
+				const metadataProvider = this.metadata;
+				await this.app.filterResponse('metadataRelatedHubsFromProvider', resData, { userReq:req, userRes:res, metadataId, metadataProvider });
+				// return response
+				return resData;
 			})
 		]);
 		

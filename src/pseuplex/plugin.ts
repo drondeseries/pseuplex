@@ -6,7 +6,7 @@ import { IncomingPlexAPIRequest } from '../plex/requesthandling';
 import { PseuplexMetadataPage } from './types';
 import { PseuplexHubProvider } from './hub';
 import { PseuplexMetadataProvider } from './metadata';
-import { PseuplexMetadataIDParts } from './metadataidentifier';
+import { PseuplexMetadataIDParts, PseuplexPartialMetadataIDParts } from './metadataidentifier';
 
 
 export type PseuplexResponseFilterContext = {
@@ -27,6 +27,10 @@ export type PseuplexResponseFilters = {
 	findGuidInLibrary?: PseuplexResponseFilter<plexTypes.PlexMetadataPage, PseuplexResponseFilterContext>;
 
 	metadataFromProvider?: PseuplexResponseFilter<PseuplexMetadataPage, (PseuplexResponseFilterContext & {
+		metadataProvider: PseuplexMetadataProvider
+	})>;
+	metadataRelatedHubsFromProvider?: PseuplexResponseFilter<plexTypes.PlexHubsPage, (PseuplexResponseFilterContext & {
+		metadataId: PseuplexPartialMetadataIDParts,
 		metadataProvider: PseuplexMetadataProvider
 	})>;
 };

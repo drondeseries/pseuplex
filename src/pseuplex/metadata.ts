@@ -261,7 +261,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 			});
 			providerItems[id] = itemTask;
 			if(plexGuid !== null) {
-				// find matching plex GUID for metadata item
+				// find matching plex metadata for metadata item
 				const metadataTask = (async () => {
 					const item = await itemTask;
 					const matchParams = this.getPlexMatchParams(item);
@@ -380,6 +380,9 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 						metadataId = id;
 					}
 					metadataItem.key = `${transformOpts.metadataBasePath}/${metadataId}`;
+					if(!metadataItem.Pseuplex.isOnServer) {
+						metadataItem.ratingKey = metadataId;
+					}
 				}
 			} else if(options.includeUnmatched ?? true) {
 				// get or fetch the metadata item
