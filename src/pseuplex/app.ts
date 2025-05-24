@@ -32,7 +32,8 @@ import { PseuplexConfigBase } from './configbase';
 import {
 	stringifyPartialMetadataID,
 	stringifyMetadataID,
-	PseuplexMetadataIDParts
+	PseuplexMetadataIDParts,
+	parseMetadataID
 } from './metadataidentifier';
 import {
 	PseuplexHubListParams,
@@ -61,7 +62,8 @@ import {
 	transformArrayOrSingle,
 	transformArrayOrSingleAsyncParallel,
 	expressErrorHandler,
-	intParam
+	intParam,
+	forArrayOrSingleAsyncParallel
 } from '../utils';
 import { urlLogString } from '../logging';
 
@@ -276,7 +278,7 @@ export class PseuplexApp {
 					plexParams: req.plex.requestParams
 				});
 				// process metadata items
-				forArrayOrSingle(resData.MediaContainer.Metadata, (metadataItem) => {
+				await forArrayOrSingleAsyncParallel(resData.MediaContainer.Metadata, async (metadataItem) => {
 					if(metadataItem.guid) {
 						// cache plex id => guid mapping if exists
 						const metadataId = metadataItem.Pseuplex.plexMetadataIds?.[this.plexServerURL];
@@ -292,7 +294,7 @@ export class PseuplexApp {
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexMetadataPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					// process metadata items
-					forArrayOrSingle(resData.MediaContainer.Metadata, (metadataItem: PseuplexMetadataItem) => {
+					await forArrayOrSingleAsyncParallel(resData.MediaContainer.Metadata, async (metadataItem: PseuplexMetadataItem) => {
 						const metadataId = parseMetadataIDFromKey(metadataItem.key, '/library/metadata/')?.id;
 						metadataItem.Pseuplex = {
 							isOnServer: true,
@@ -304,6 +306,16 @@ export class PseuplexApp {
 						// cache id => guid mapping
 						if(metadataItem.guid && metadataId) {
 							this.plexServerIdToGuidCache.setSync(metadataId, metadataItem.guid);
+						}
+						// append related hubs if included
+						if(userReq.plex.requestParams['includeRelated'] == 1) {
+							// filter related hubs
+							const metadataIdParts = parseMetadataID(metadataId);
+							const relatedHubsResponse: plexTypes.PlexHubsPage = {
+								MediaContainer: metadataItem.Related
+							};
+							await this.filterResponse('metadataRelatedHubs', relatedHubsResponse, { proxyRes, userReq, userRes, metadataId:metadataIdParts });
+							metadataItem.Related = relatedHubsResponse.MediaContainer;
 						}
 					});
 					// filter metadata page
@@ -669,12 +681,12 @@ export class PseuplexApp {
 	}
 
 
-	async filterResponse<TFilterName extends PseuplexResponseFilterName>(filterName: TFilterName, resData: any, context: Parameters<PseuplexResponseFilters[TFilterName]>[1]) {
+	async filterResponse<TFilterName extends PseuplexResponseFilterName>(filterName: TFilterName, resData: Parameters<PseuplexResponseFilters[TFilterName]>[0], context: Parameters<PseuplexResponseFilters[TFilterName]>[1]) {
 		const filtersList = this.responseFilters[filterName];
 		if (filtersList) {
 			const promises = context.previousFilterPromises?.slice(0) ?? [];
 			for(const filterDef of filtersList) {
-				const result = filterDef.filter(resData, {
+				const result = filterDef.filter(resData as any, {
 					...context,
 					previousFilterPromises: promises.slice(0)
 				} as any);

@@ -2,7 +2,7 @@
 import { PlexPluginIdentifier } from './common';
 
 export type PlexMediaContainer = {
-	size: number;
+	size?: number;
 	totalSize?: number;
 	offset?: number;
 	allowSync?: boolean;

@@ -4,6 +4,7 @@ import {
 	PlexMediaItemType,
 	PlexXMLBoolean
 } from './common';
+import { PlexHubWithItems } from './Hub';
 import {
 	PlexMedia
 } from './Media';
@@ -81,6 +82,7 @@ export type PlexMetadataItem = {
 	Director?: PlexPerson[];
 	Writer?: PlexPerson[];
 	Role?: PlexPerson[];
+	Related?: {Hub?: PlexHubWithItems[]};
 
 	librarySectionTitle?: string; // "My TV Shows"
 	librarySectionID?: string | number; // 2

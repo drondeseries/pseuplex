@@ -208,7 +208,8 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		// get metadata item
 		let metadataItem = options.metadataItem;
 		if(!metadataItem) {
-			const metadatas = (await this.plexMetadataClient.getMetadata(plexGuid, {}, {
+			const guidParts = parsePlexMetadataGuid(plexGuid);
+			const metadatas = (await this.plexMetadataClient.getMetadata(guidParts.id, {}, {
 				authContext: options.plexAuthContext
 			}))?.MediaContainer?.Metadata;
 			metadataItem = (metadatas instanceof Array) ? metadatas[0] : metadatas;
