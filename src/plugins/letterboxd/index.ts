@@ -118,9 +118,10 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 
 		promotedHubs: async (resData, context) => {
 			const pinnedContentDirectoryID = context.userReq.query['pinnedContentDirectoryID'];
-			const contentDirectoryID = context.userReq.query['contentDirectoryID'];
 			const pinnedContentDirIds = (typeof pinnedContentDirectoryID == 'string') ? pinnedContentDirectoryID.split(',') : pinnedContentDirectoryID;
-			if(!pinnedContentDirIds || pinnedContentDirIds.length == 0 || !contentDirectoryID || contentDirectoryID == pinnedContentDirIds[0]) {
+			const contentDirectoryID = context.userReq.query['contentDirectoryID'];
+			const contentDirIds = (typeof contentDirectoryID == 'string') ? contentDirectoryID.split(',') : contentDirectoryID;
+			if(!pinnedContentDirIds || pinnedContentDirIds.length == 0 || !contentDirIds || contentDirIds.length == 0 || contentDirIds[0] == pinnedContentDirIds[0]) {
 				// this is the first pinned content directory
 				await this._addFriendsActivityHubIfNeeded(resData, context);
 			}
