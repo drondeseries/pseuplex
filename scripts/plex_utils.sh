@@ -196,9 +196,10 @@ function get_cache_path {
 # SSL Certificate
 
 function get_ssl_cert_p12_path {
+	local result=0
 	if [ -z "$platform" ]; then
 		platform=$(get_platform)
-		local result=$?
+		result=$?
 		if [ $result -ne 0 ]; then
 			return $result
 		fi
@@ -207,38 +208,30 @@ function get_ssl_cert_p12_path {
 		Linux)
 			if [ -z "$pms_cache_path" ]; then
 				pms_cache_path=$(pms_cache_linux)
+				result=$?
 			fi
-			result=$?
-			if [ $result -ne 0 ]; then
-				return $result
-			fi
-			echo "$pms_cache_path/cert-v2.p12"
 			;;
 		MacOS)
 			if [ -z "$pms_cache_path" ]; then
 				pms_cache_path=$(pms_cache_macos)
+				result=$?
 			fi
-			result=$?
-			if [ $result -ne 0 ]; then
-				return $result
-			fi
-			echo "$pms_cache_path/certificate.p12"
 			;;
 		Windows)
 			if [ -z "$pms_cache_path" ]; then
 				pms_cache_path=$(pms_cache_windows)
+				result=$?
 			fi
-			result=$?
-			if [ $result -ne 0 ]; then
-				return $result
-			fi
-			echo "$pms_cache_path/cert-v2.p12"
 			;;
 		*)
 			>&2 echo "Cannot determine SSL p12 path for platform $platform"
 			return 1
 			;;
 	esac
+	if [ $result -ne 0 ]; then
+		return $result
+	fi
+	echo "$pms_cache_path/cert-v2.p12"
 }
 
 function get_ssl_cert_p12_password {

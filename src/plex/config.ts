@@ -90,7 +90,7 @@ export const getPlexP12Path = (opts: {appDataPath?: string}) => {
 			return `${opts?.appDataPath || `${os.homedir()}/AppData/Local/Plex Media Server`}/Cache/cert-v2.p12`;
 
 		case 'darwin':
-			return `${os.homedir()}/Library/Caches/PlexMediaServer/certificate.p12`;
+			return `${os.homedir()}/Library/Caches/PlexMediaServer/cert-v2.p12`;
 
 		case 'linux':
 		default:
