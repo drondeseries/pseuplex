@@ -75,7 +75,7 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 		}
 
 		override compareItemTokens(itemToken1: void, itemToken2: void): number {
-			// Since we only load this list once,
+			// Since we only load this list once (listStartFetchInterval = 'never'),
 			//  we will always assume "reloads" of the list come before the old version
 			return -1;
 		}

@@ -76,14 +76,15 @@ export abstract class PseuplexFeedHub<
 				listStartItemToken = this.parseItemTokenParam(listStartToken);
 			}
 			start = params.start ?? 0;
-			chunk = await this._itemList.getOrFetchItems(listStartItemToken, start, (params.count ?? opts.defaultItemCount), {
+			const itemCount = params.count ?? opts.defaultItemCount;
+			chunk = await this._itemList.getOrFetchItems(listStartItemToken, start, itemCount, {
 				unique: opts.uniqueItemsOnly,
 				loadAheadCount
 			});
 		} else {
-			const maxItemCount = params.count ?? opts.defaultItemCount;
 			start = 0;
-			chunk = await this._itemList.getOrFetchStartItems(maxItemCount, {
+			const itemCount = params.count ?? opts.defaultItemCount;
+			chunk = await this._itemList.getOrFetchStartItems(itemCount, {
 				unique: opts.uniqueItemsOnly,
 				loadAheadCount
 			});

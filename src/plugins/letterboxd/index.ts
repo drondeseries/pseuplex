@@ -246,6 +246,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					throw httpError(400, "No user provided");
 				}
 				const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:false});
+				//console.log(`params: ${JSON.stringify(params)}`);
 				const hub = await this.hubs.userFollowingActivity.get(letterboxdUsername);
 				return await hub.getHub({
 					...params,

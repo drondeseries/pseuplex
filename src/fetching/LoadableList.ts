@@ -101,7 +101,7 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 		}, 0);
 	}
 	
-	async getOrFetchStartItems(maxCount: number, options: GetLoadableListItemsOptions): Promise<LoadableListChunk<ItemType,ItemTokenType>> {
+	async getOrFetchStartItems(count: number, options: GetLoadableListItemsOptions): Promise<LoadableListChunk<ItemType,ItemTokenType>> {
 		let startFragment: LoadableListFragment<ItemType,ItemTokenType,PageTokenType>;
 		if(this._newFragmentTask == null) {
 			// determine if the start fragment needs to be fetched again
@@ -128,15 +128,15 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 			startFragment = await this._newFragmentTask;
 		}
 		// attempt to load atleast 1 item into the list
-		await startFragment.getOrFetchItems(0, 1, options);
+		await startFragment.getOrFetchItems(0, Math.max(1, count), options);
 		// merge fragments after a delay
 		if(this._fragment._nextFragment) {
 			this._queueFragmentMerge();
 		}
 		// return the items from the start of the list
 		return options.unique ?
-			startFragment.getUniqueItems(0, maxCount)
-			: startFragment.getItems(0, maxCount);
+			startFragment.getUniqueItems(0, count)
+			: startFragment.getItems(0, count);
 	}
 	
 	async getOrFetchItems(startToken: ItemTokenType | null, offset: number, count: number, options: GetLoadableListItemsOptions): Promise<LoadableListChunk<ItemType,ItemTokenType>> {
