@@ -6,7 +6,7 @@ Inspired by [Replex](https://github.com/lostb1t/replex)
 
 This project is still very much a WIP and it is not recommended to enable remote access yet.
 
-Note: Some or all functionality may be broken in the new mobile apps
+**Note: Some functionality may be broken in the new mobile apps**
 
 ## Features
 
@@ -31,6 +31,8 @@ Note: Some or all functionality may be broken in the new mobile apps
 - ### Letterboxd Friends Reviews
 
 	Reviews from your letterboxd friends can be included alongside the RottenTomatoes reviews
+
+	**NOTE: In the newer mobile apps, Plex for some reason now fetches critics reviews from plex.tv instead of from your server, so this feature sadly no longer works for those apps. It's unclear if this is intentional or a mistake, but hopefully they will decide to fix this.**
 
 	![Letterboxd Friends Reviews](docs/images/letterboxd_friends_reviews.png)
 
