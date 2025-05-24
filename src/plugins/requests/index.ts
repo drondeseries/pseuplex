@@ -5,7 +5,6 @@ import * as plexServerAPI from '../../plex/api';
 import { parsePlexMetadataGuid } from '../../plex/metadataidentifier';
 import {
 	IncomingPlexAPIRequest,
-	plexAPIRequestHandler
 } from '../../plex/requesthandling';
 import { PlexServerAccountInfo } from '../../plex/accounts';
 import {
@@ -136,7 +135,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 			// get metadata for requested item
 			router.get(endpoint, [
 				this.app.middlewares.plexAuthentication,
-				plexAPIRequestHandler(async (req: IncomingPlexAPIRequest, res) => {
+				this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res) => {
 					// get request properties
 					const { providerSlug, guid } = req.params;
 					const season = intParam(req.params.season);
