@@ -55,7 +55,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 	readonly app: PseuplexApp;
 	readonly metadata: LetterboxdMetadataProvider;
 	readonly hubs: {
-		readonly userFollowingActivity: PseuplexHubProvider & {readonly path: string};
+		readonly userFollowingActivity: PseuplexHubProvider & {readonly basePath: string};
 		readonly similar: PseuplexSimilarItemsHubProvider;
 	};
 
@@ -67,11 +67,11 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// create hub providers
 		this.hubs = {
 			userFollowingActivity: new class extends PseuplexHubProvider {
-				readonly path = `${self.basePath}/hubs/following`;
+				readonly basePath = `${self.basePath}/hubs/following`;
 				override fetch(letterboxdUsername: string): PseuplexHub | Promise<PseuplexHub> {
 					// TODO validate that the profile exists
 					return createUserFollowingFeedHub(letterboxdUsername, {
-						hubPath: `${this.path}?letterboxdUsername=${letterboxdUsername}`,
+						hubPath: `${this.basePath}/${letterboxdUsername}`,
 						style: plexTypes.PlexHubStyle.Shelf,
 						promoted: true,
 						uniqueItemsOnly: true,
@@ -238,10 +238,10 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		]);
 		
 		// get letterboxd friend activity hub
-		router.get(this.hubs.userFollowingActivity.path, [
+		router.get(`${this.hubs.userFollowingActivity.basePath}/:letterboxdUsername`, [
 			this.app.middlewares.plexAuthentication,
 			plexAPIRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexMetadataPage> => {
-				const letterboxdUsername = stringParam(req.query['letterboxdUsername']);
+				const letterboxdUsername = req.params['letterboxdUsername'];
 				if(!letterboxdUsername) {
 					throw httpError(400, "No user provided");
 				}
