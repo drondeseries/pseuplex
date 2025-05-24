@@ -23,8 +23,10 @@ export type LoadableListItemTokenComparer<TokenType> = (token1: TokenType, token
 const checkAndAdjustChunkForFragmentMerge = <ItemType,ItemTokenType,PageTokenType>(
 	chunk: LoadableListFetchedChunk<ItemType,ItemTokenType,PageTokenType>,
 	nextFragmentStartToken: ItemTokenType,
-	tokenComparer: LoadableListItemTokenComparer<ItemTokenType>) => {
-	const mergeIndex = chunk.items.findIndex((itemNode) => (tokenComparer(nextFragmentStartToken, itemNode.token) <= 0));
+	tokenComparer: LoadableListItemTokenComparer<ItemTokenType>
+) => {
+	// find first index where the token comes after or matches the next fragment start token
+	const mergeIndex = chunk.items.findIndex((itemNode) => (tokenComparer(itemNode.token, nextFragmentStartToken) >= 0));
 	if(mergeIndex != -1) {
 		chunk.items = chunk.items.slice(0, mergeIndex);
 		chunk.nextPageToken = null;
@@ -184,7 +186,8 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 		for(const itemNode of this._contents.items) {
 			const uniqueId = this._uniqueItemIds[uniqueIndex];
 			const isUniqueItem = (itemNode.id === uniqueId);
-			if(tokenComparer(token, itemNode.token) <= 0) {
+			// if the item node comes after or matches the token, then we've found the index of the token
+			if(tokenComparer(itemNode.token, token) >= 0) {
 				return {
 					fragment: this,
 					index: index,

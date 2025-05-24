@@ -70,11 +70,14 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 		}
 
 		override parseItemTokenParam(itemToken: string): void {
+			// similar list items dont have tokens
 			return undefined;
 		}
 
 		override compareItemTokens(itemToken1: void, itemToken2: void): number {
-			return 1;
+			// Since we only load this list once,
+			//  we will always assume "reloads" of the list come before the old version
+			return -1;
 		}
 
 		override async fetchPage(pageToken: string | null) {
