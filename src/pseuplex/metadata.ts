@@ -367,21 +367,23 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 				metadataItem.Pseuplex.metadataIds[this.sourceSlug] = id;
 				// transform metadata item key if needed
 				if(options.transformMatchKeys || !metadataItem.Pseuplex.isOnServer) {
+					// get full metadata id
+					const idParts = parsePartialMetadataID(id);
+					const fullMetadataId = stringifyMetadataID({
+						...idParts,
+						source: this.sourceSlug,
+						isURL: false
+					});
 					// transform keys back to the original key used to fetch this item
 					let metadataId: string;
 					if(transformOpts.qualifiedMetadataId) {
-						const idParts = parsePartialMetadataID(id);
-						metadataId = stringifyMetadataID({
-							...idParts,
-							source: this.sourceSlug,
-							isURL: false
-						});
+						metadataId = fullMetadataId;
 					} else {
 						metadataId = id;
 					}
 					metadataItem.key = `${transformOpts.metadataBasePath}/${metadataId}`;
 					if(!metadataItem.Pseuplex.isOnServer) {
-						metadataItem.ratingKey = metadataId;
+						metadataItem.ratingKey = fullMetadataId;
 					}
 				}
 			} else if(options.includeUnmatched ?? true) {
