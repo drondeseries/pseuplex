@@ -4,14 +4,11 @@ import {
 	asyncRequestHandler,
 	httpError
 } from '../utils';
-import * as plexTypes from '../plex/types';
 import {
 	handlePlexAPIRequest,
-	IncomingPlexAPIRequest
+	IncomingPlexAPIRequest,
+	PlexAPIRequestHandlerOptions
 } from '../plex/requesthandling';
-import {
-	PseuplexMetadataPage
-} from './types';
 import {
 	parseMetadataID,
 	PseuplexMetadataIDParts
@@ -36,10 +33,13 @@ export const parseMetadataIdFromPathParam = (metadataIdString: string): Pseuplex
 	return parseMetadataID(metadataIdString);
 };
 
-export const pseuplexMetadataIdRequestMiddleware = <TResult>(handler: (
-	req: IncomingPlexAPIRequest,
-	res: express.Response,
-	metadataId: PseuplexMetadataIDParts) => Promise<TResult>) => {
+export const pseuplexMetadataIdRequestMiddleware = <TResult>(
+	handler: (
+		req: IncomingPlexAPIRequest,
+		res: express.Response,
+		metadataId: PseuplexMetadataIDParts) => Promise<TResult>,
+	options?: PlexAPIRequestHandlerOptions,
+) => {
 	return asyncRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<boolean> => {
 		let metadataId = req.params.metadataId;
 		if(!metadataId) {
@@ -53,15 +53,18 @@ export const pseuplexMetadataIdRequestMiddleware = <TResult>(handler: (
 		}
 		await handlePlexAPIRequest(req, res, async (req: IncomingPlexAPIRequest, res): Promise<TResult> => {
 			return await handler(req, res, metadataIdParts);
-		});
+		}, options);
 		return true;
 	});
 };
 
-export const pseuplexMetadataIdsRequestMiddleware = <TResult>(handler: (
-	req: IncomingPlexAPIRequest,
-	res: express.Response,
-	metadataIds: PseuplexMetadataIDParts[]) => Promise<TResult>) => {
+export const pseuplexMetadataIdsRequestMiddleware = <TResult>(
+	handler: (
+		req: IncomingPlexAPIRequest,
+		res: express.Response,
+		metadataIds: PseuplexMetadataIDParts[]) => Promise<TResult>,
+	options?: PlexAPIRequestHandlerOptions,
+) => {
 	return asyncRequestHandler(async (req: IncomingPlexAPIRequest, res: express.Response) => {
 		// parse metadata IDs
 		const metadataIdsString = req.params.metadataId;
@@ -85,7 +88,7 @@ export const pseuplexMetadataIdsRequestMiddleware = <TResult>(handler: (
 		// fetch from non-plex and plex providers
 		await handlePlexAPIRequest(req, res, async (req: IncomingPlexAPIRequest, res): Promise<TResult> => {
 			return await handler(req, res, metadataIds);
-		});
+		}, options);
 		return true;
 	});
 };

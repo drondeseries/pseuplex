@@ -3,7 +3,6 @@ import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
 import {
 	IncomingPlexAPIRequest,
-	plexAPIRequestHandler
 } from '../../plex/requesthandling';
 import { parseMetadataIDFromKey } from '../../plex/metadataidentifier';
 import {
@@ -23,7 +22,7 @@ import {
 	PseuplexSimilarItemsHubProvider,
 	sendMediaUnavailableNotifications,
 	stringifyMetadataID,
-	parsePartialMetadataID
+	parsePartialMetadataID,
 } from '../../pseuplex';
 import {
 	LetterboxdMetadataProvider
@@ -145,7 +144,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// get metadata item(s)
 		router.get(`${this.metadata.basePath}/:id`, [
 			this.app.middlewares.plexAuthentication,
-			plexAPIRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexMetadataPage> => {
+			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexMetadataPage> => {
 				console.log(`\ngot request for letterboxd item ${req.params.id}`);
 				const reqAuthContext = req.plex.authContext;
 				const reqUserInfo = req.plex.userInfo;
@@ -203,7 +202,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// get hubs related to metadata item
 		router.get(`${this.metadata.basePath}/:id/related`, [
 			this.app.middlewares.plexAuthentication,
-			plexAPIRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
+			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
 				const id = req.params.id;
 				const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:true});
 				const hubs: plexTypes.PlexHubWithItems[] = [];
@@ -234,7 +233,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// get similar items hub for metadata item
 		router.get(`${this.metadata.basePath}/:id/${this.hubs.similar.relativePath}`, [
 			this.app.middlewares.plexAuthentication,
-			plexAPIRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
+			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
 				const id = req.params.id;
 				const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:false});
 				const hub = await this.hubs.similar.get(id);
@@ -248,7 +247,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// get letterboxd friend activity hub
 		router.get(`${this.hubs.userFollowingActivity.basePath}/:letterboxdUsername`, [
 			this.app.middlewares.plexAuthentication,
-			plexAPIRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexMetadataPage> => {
+			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexMetadataPage> => {
 				const letterboxdUsername = req.params['letterboxdUsername'];
 				if(!letterboxdUsername) {
 					throw httpError(400, "No user provided");

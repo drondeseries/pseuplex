@@ -18,7 +18,10 @@ import {
 } from '../plex/proxy';
 import {
 	createPlexAuthenticationMiddleware,
-	IncomingPlexAPIRequest
+	IncomingPlexAPIRequest,
+	PlexAPIRequestHandler,
+	plexAPIRequestHandler,
+	PlexAPIRequestHandlerOptions
 } from '../plex/requesthandling';
 import { PlexClient } from '../plex/client';
 import * as extPlexTransform from './externalplex/transform';
@@ -133,12 +136,14 @@ export class PseuplexApp {
 
 	readonly middlewares: {
 		plexAuthentication: express.RequestHandler;
+		plexRequestHandler: <TResult>(handler: PlexAPIRequestHandler<TResult>) => ((req: express.Request, res: express.Response) => Promise<void>)
 	};
 	readonly server: http.Server | https.Server;
 
 	constructor(options: PseuplexAppOptions) {
 		this.slug = options.slug ?? 'pseuplex';
 		this.config = options.config;
+		const loggingOpts = options.loggingOptions;
 		
 		// define properties
 		this.plexServerURL = options.plexServerURL;
@@ -157,8 +162,14 @@ export class PseuplexApp {
 		});
 
 		// define middlewares
+		const plexReqHandlerOpts: PlexAPIRequestHandlerOptions = {
+			logResponses: loggingOpts.logUserResponses,
+			logResponseBody: loggingOpts.logUserResponseBody,
+			logFullURLs: loggingOpts.logFullURLs
+		};
 		this.middlewares = {
-			plexAuthentication: createPlexAuthenticationMiddleware(this.plexServerAccounts)
+			plexAuthentication: createPlexAuthenticationMiddleware(this.plexServerAccounts),
+			plexRequestHandler: <TResult>(handler: PlexAPIRequestHandler<TResult>) => plexAPIRequestHandler(handler, plexReqHandlerOpts)
 		};
 
 		// loop through and instantiate plugins
@@ -228,7 +239,6 @@ export class PseuplexApp {
 
 		// create router and define routes
 		const protocol = options.protocol ?? PseuplexServerProtocol.httpolyglot;
-		const loggingOpts = options.loggingOptions;
 		const plexProxyArgs: PlexProxyOptions = {
 			...loggingOpts
 		};
@@ -308,7 +318,7 @@ export class PseuplexApp {
 				// filter metadata page
 				await this.filterResponse('metadata', resData, { userReq:req, userRes:res });
 				return resData;
-			}),
+			}, plexReqHandlerOpts),
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexMetadataPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					// process metadata items
@@ -357,7 +367,7 @@ export class PseuplexApp {
 					plexAuthContext: req.plex.authContext,
 					plexParams: plexParams
 				});
-			})
+			}, plexReqHandlerOpts)
 		]);
 
 		router.get(`/library/metadata/:metadataId/related`, [
@@ -372,7 +382,7 @@ export class PseuplexApp {
 				// filter hub list page
 				await this.filterResponse('metadataRelatedHubs', resData, { userReq:req, userRes:res, metadataId });
 				return resData;
-			}),
+			}, plexReqHandlerOpts),
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexHubsPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					// get request info

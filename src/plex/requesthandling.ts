@@ -11,26 +11,40 @@ import {
 	PlexServerAccountInfo,
 	PlexServerAccountsStore
 } from './accounts';
+import { urlLogString } from '../logging';
 
-export const handlePlexAPIRequest = async <TResult>(req: express.Request, res: express.Response, handler: (req: express.Request, res: express.Response) => Promise<TResult>): Promise<void> => {
+export const handlePlexAPIRequest = async <TResult>(req: express.Request, res: express.Response, handler: (req: express.Request, res: express.Response) => Promise<TResult>, options?: PlexAPIRequestHandlerOptions): Promise<void> => {
 	let serializedRes: {contentType:string, data:string};
 	try {
 		const result = await handler(req,res);
 		serializedRes = serializeResponseContent(req, res, result);
 	} catch(error) {
 		console.error(error);
-		if((error as HttpError).statusCode) {
-			res.status(error.statusCode);
-		} else {
-			res.status(500);
+		let statusCode = (error as HttpError).statusCode;
+		if(!statusCode) {
+			statusCode = 500;
 		}
+		// log response
+		if(options.logResponses) {
+			console.log(`\nUser response ${statusCode} for ${req.method} ${urlLogString(options, req.originalUrl)}`);
+			// no response body
+		}
+		// send response
+		res.status(statusCode);
 		if(req.headers.origin) {
 			res.header('access-control-allow-origin', req.headers.origin);
 		}
 		res.send(); // TODO use error message format
 		return;
 	}
-	// send result
+	// log response
+	if(options.logResponses) {
+		console.log(`\nUser response 200 for ${req.method} ${urlLogString(options, req.originalUrl)}`);
+		if(options.logResponseBody) {
+			console.log(serializedRes.data);
+		}
+	}
+	// send response
 	res.status(200);
 	if(req.headers.origin) {
 		res.header('access-control-allow-origin', req.headers.origin);
@@ -39,9 +53,16 @@ export const handlePlexAPIRequest = async <TResult>(req: express.Request, res: e
 	res.send(serializedRes.data);
 };
 
-export const plexAPIRequestHandler = <TResult>(handler: (req: express.Request, res: express.Response) => Promise<TResult>): ((req: express.Request, res: express.Response) => Promise<void>) => {
+export type PlexAPIRequestHandlerOptions = {
+	logResponses?: boolean;
+	logResponseBody?: boolean;
+	logFullURLs?: boolean;
+};
+export type PlexAPIRequestHandler<TResult> = (req: express.Request, res: express.Response) => Promise<TResult>;
+export type PlexAPIRequestHandlerMiddleware<TResult> = (handler: PlexAPIRequestHandler<TResult>, options?: PlexAPIRequestHandlerOptions) => ((req: express.Request, res: express.Response) => Promise<void>);
+export const plexAPIRequestHandler = <TResult>(handler: PlexAPIRequestHandler<TResult>, options?: PlexAPIRequestHandlerOptions) => {
 	return async (req, res) => {
-		await handlePlexAPIRequest(req, res, handler);
+		await handlePlexAPIRequest(req, res, handler, options);
 	};
 };
 
