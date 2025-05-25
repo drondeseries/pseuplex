@@ -23,6 +23,7 @@ import {
 	sendMediaUnavailableNotifications,
 	stringifyMetadataID,
 	parsePartialMetadataID,
+	stringifyPartialMetadataID,
 } from '../../pseuplex';
 import { PseuplexSection } from '../../pseuplex/section';
 import {
@@ -396,27 +397,34 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// add similar letterboxd movies hub
 		if(userPrefs?.letterboxdSimilarItemsEnabled ?? config.letterboxdSimilarItemsEnabled ?? true) {
 			const metadataId = context.metadataId;
+			let letterboxdId: string | undefined = undefined;
 			// get plex guid from metadata id
-			let plexGuid: string;
-			if(metadataId.source == PseuplexMetadataSource.Plex) {
-				plexGuid = stringifyMetadataID({
-					...metadataId,
-					isURL:true
-				});
-			} else if(metadataId.source == null) {
-				plexGuid = await this.app.plexServerIdToGuidCache.getOrFetch(metadataId.id);
+			if(metadataId.source == this.metadata.sourceSlug) {
+				letterboxdId = stringifyPartialMetadataID(metadataId);
 			} else {
-				// doesn't have a plex metadata ID, so don't bother adding similar items hub
-				return;
+				let plexGuid: string | undefined = undefined;
+				if(metadataId.source == PseuplexMetadataSource.Plex) {
+					plexGuid = stringifyMetadataID({
+						...metadataId,
+						isURL:true
+					});
+				} else if(metadataId.source == null) {
+					plexGuid = await this.app.plexServerIdToGuidCache.getOrFetch(metadataId.id);
+				}
+				else {
+					// doesn't have a plex metadata ID, so don't bother adding similar items hub
+					// TODO try resolving the plex GUID from the metadata provider
+					return;
+				}
+				if(!plexGuid) {
+					// no plex GUID to map to a letterboxd id
+					return;
+				}
+				// get letterboxd id for plex guid
+				letterboxdId = await this.metadata.getIDForPlexGUID(plexGuid, {
+					plexAuthContext
+				});
 			}
-			if(!plexGuid) {
-				// no plex GUID to map to a letterboxd id
-				return;
-			}
-			// get letterboxd id for plex guid
-			const letterboxdId = await this.metadata.getIDForPlexGUID(plexGuid, {
-				plexAuthContext
-			});
 			if(!letterboxdId) {
 				return;
 			}

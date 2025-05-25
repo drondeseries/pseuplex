@@ -536,7 +536,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		const hubEntries: plexTypes.PlexHubWithItems[] = [];
 		if(this.similarItemsHubProvider) {
 			const hub = await this.similarItemsHubProvider.get(id);
-			const hubListEntry = await hub.getHubListEntry(options.plexParams, {
+			const hubListEntry = await hub.getHubListEntry(options.plexParams ?? {}, {
 				plexServerURL: options.plexServerURL,
 				plexAuthContext: options.plexAuthContext
 			});

@@ -138,7 +138,7 @@ export class PseuplexApp {
 	readonly plexServerAccounts: PlexServerAccountsStore;
 	readonly clientWebSockets: {[plexToken: string]: stream.Duplex[]} = {};
 	readonly plexServerIdToGuidCache: CachedFetcher<string>;
-	readonly plexGuidToInfoCache: PlexGuidToInfoCache;
+	readonly plexGuidToInfoCache?: PlexGuidToInfoCache;
 	readonly plexMetadataClient: PlexClient;
 
 	readonly middlewares: {
@@ -346,7 +346,7 @@ export class PseuplexApp {
 							// filter related hubs
 							const metadataId = parseMetadataID(metadataIdString);
 							const relatedHubsResponse: plexTypes.PlexHubsPage = {
-								MediaContainer: metadataItem.Related
+								MediaContainer: metadataItem.Related ?? {}
 							};
 							await this.filterResponse('metadataRelatedHubs', relatedHubsResponse, { userReq:req, userRes:res, metadataId });
 							metadataItem.Related = relatedHubsResponse.MediaContainer;
