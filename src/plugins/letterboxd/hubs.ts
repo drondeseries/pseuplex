@@ -19,7 +19,8 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 	promoted: boolean,
 	uniqueItemsOnly: boolean,
 	metadataTransformOptions?: PseuplexMetadataTransformOptions,
-	letterboxdMetadataProvider: LetterboxdMetadataProvider
+	letterboxdMetadataProvider: LetterboxdMetadataProvider,
+	matchToPlexServerMetadata?: boolean,
 }): LetterboxdActivityFeedHub => {
 	return new LetterboxdActivityFeedHub({
 		hubPath: options.hubPath,
@@ -35,7 +36,8 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 			metadataBasePath: options.letterboxdMetadataProvider.basePath,
 			qualifiedMetadataId: false
 		},
-		letterboxdMetadataProvider: options.letterboxdMetadataProvider
+		letterboxdMetadataProvider: options.letterboxdMetadataProvider,
+		matchToPlexServerMetadata: options.matchToPlexServerMetadata,
 	}, async (pageToken) => {
 		console.log(`Fetching user following feed for ${letterboxdUsername}`);
 		return await letterboxd.getUserFollowingFeed(letterboxdUsername, {

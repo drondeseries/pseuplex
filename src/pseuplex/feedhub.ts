@@ -8,8 +8,10 @@ import {
 	LoadableListChunk
 } from '../fetching/LoadableListFragment';
 import * as plexTypes from '../plex/types';
+import * as plexServerAPI from '../plex/api';
 import {
-	addQueryArgumentToURLPath
+	addQueryArgumentToURLPath,
+	forArrayOrSingle
 } from '../utils';
 import {
 	PseuplexHub,
@@ -29,7 +31,8 @@ export type PseuplexFeedHubOptions = {
 	defaultItemCount: number;
 	uniqueItemsOnly: boolean;
 	loadAheadCount?: number;
-	listStartFetchInterval?: ListFetchInterval
+	listStartFetchInterval?: ListFetchInterval;
+	matchToPlexServerMetadata?: boolean;
 };
 
 const DEFAULT_LOAD_AHEAD_COUNT = 1;
@@ -94,6 +97,40 @@ export abstract class PseuplexFeedHub<
 		if(listStartItemToken != null) {
 			key = addQueryArgumentToURLPath(opts.hubPath, `listStartToken=${listStartItemToken}`);
 		}
+		// transform items
+		let items = await Promise.all(chunk.items.map(async (itemNode) => {
+			return await this.transformItem(itemNode.item, context);
+		}));
+		// match to plex server items if needed
+		if(opts.matchToPlexServerMetadata) {
+			const guids = items.flatMap((item) => (item.guid ? [item.guid] : []));
+			if(guids.length > 0) {
+				try {
+					const plexServerItems = (await plexServerAPI.getLibraryMetadata(guids, {
+						serverURL: context.plexServerURL,
+						authContext: context.plexAuthContext
+					}))?.MediaContainer.Metadata;
+					const plexServerItemsMap: {[guid: string]: plexTypes.PlexMetadataItem} = {};
+					forArrayOrSingle(plexServerItems, (item) => {
+						if(item.guid) {
+							plexServerItemsMap[item.guid] = item;
+						}
+					});
+					items = items.map((item) => {
+						if(item.guid) {
+							const plexServerItem = plexServerItemsMap[item.guid];
+							if(plexServerItem) {
+								return plexServerItem;
+							}
+						}
+						return item;
+					});
+				} catch(error) {
+					console.error(error);
+				}
+			}
+		}
+		// return hub
 		return {
 			hub: {
 				key: key,
@@ -104,9 +141,7 @@ export abstract class PseuplexFeedHub<
 				style: opts.style,
 				promoted: opts.promoted
 			},
-			items: await Promise.all(chunk.items.map(async (itemNode) => {
-				return await this.transformItem(itemNode.item, context);
-			})),
+			items,
 			offset: start,
 			more: chunk.hasMore,
 			totalItemCount: chunk.totalItemCount
