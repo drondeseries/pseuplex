@@ -19,6 +19,7 @@ import {
 	PseuplexHubPage,
 	PseuplexHubPageParams
 } from './hub';
+import { PseuplexSection } from './section';
 
 export type PseuplexFeedHubOptions = {
 	title: string;
@@ -32,6 +33,7 @@ export type PseuplexFeedHubOptions = {
 	uniqueItemsOnly: boolean;
 	loadAheadCount?: number;
 	listStartFetchInterval?: ListFetchInterval;
+	section?: PseuplexSection;
 	matchToPlexServerMetadata?: boolean;
 };
 
@@ -45,6 +47,10 @@ export abstract class PseuplexFeedHub<
 	> extends PseuplexHub {
 	_options: TOptions;
 	_itemList: LoadableList<TItem,TItemToken,TPageToken>;
+
+	get section() {
+		return this._options.section;
+	}
 	
 	constructor(options: TOptions) {
 		super();

@@ -1,8 +1,7 @@
-
-import qs from 'querystring';
 import * as plexTypes from '../plex/types';
 import { parseMetadataIDFromKey } from '../plex/metadataidentifier';
 import { CachedFetcher } from '../fetching/CachedFetcher';
+import { PseuplexSection } from './section';
 
 
 export type PseuplexHubPage = {
@@ -26,17 +25,24 @@ export abstract class PseuplexHub {
 	get metadataBasePath() {
 		return '/library/metadata/';
 	}
+	abstract readonly section?: PseuplexSection;
 	
 	abstract get(params: PseuplexHubPageParams, context: PseuplexHubContext): Promise<PseuplexHubPage>;
 	
 	async getHub(params: PseuplexHubPageParams, context: PseuplexHubContext): Promise<plexTypes.PlexHubPage> {
 		const page = await this.get(params, context);
+		const section = this.section;
 		return {
 			MediaContainer: {
 				size: (page.items?.length ?? 0),
 				totalSize: page.totalItemCount,
 				offset: page.offset,
 				allowSync: false, // TODO figure out what this does
+				...(section ? {
+					librarySectionID: section.id,
+					librarySectionTitle: section.title,
+					librarySectionUUID: section.uuid,
+				} : undefined),
 				identifier: plexTypes.PlexPluginIdentifier.PlexAppLibrary, // TODO figure out what this does
 				Meta: {
 					Type: [

@@ -145,6 +145,14 @@ export const filmToPlexMetadata = (film: letterboxd.Film, options: PseuplexMetad
 export const transformLetterboxdFilmHubEntry = async (film: letterboxd.Film, context: PseuplexHubContext, metadataProvider: LetterboxdMetadataProvider, metadataTransformOptions: PseuplexMetadataTransformOptions): Promise<plexTypes.PlexMetadataItem> => {
 	const metadataId = partialMetadataIdFromFilm(film);
 	const metadataItem = filmToPlexMetadata(film, metadataTransformOptions);
+	const section = metadataProvider.section;
+	if(section) {
+		Object.assign(metadataItem, {
+			librarySectionID: section.id,
+			librarySectionTitle: section.title,
+			librarySectionKey: section.path,
+		});
+	}
 	return await metadataProvider.attachPlexDataIfAble(metadataId, metadataItem, {
 		plexServerURL: context.plexServerURL,
 		plexAuthContext: context.plexAuthContext

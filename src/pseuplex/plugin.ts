@@ -7,6 +7,7 @@ import { PseuplexMetadataPage } from './types';
 import { PseuplexHubProvider } from './hub';
 import { PseuplexMetadataProvider } from './metadata';
 import { PseuplexMetadataIDParts, PseuplexPartialMetadataIDParts } from './metadataidentifier';
+import { PseuplexSection } from './section';
 
 
 export type PseuplexResponseFilterContext = {
@@ -18,6 +19,7 @@ export type PseuplexResponseFilterContext = {
 
 export type PseuplexResponseFilter<TResponseData, TContext extends PseuplexResponseFilterContext = PseuplexResponseFilterContext> = (resData: TResponseData, context: TContext) => void | Promise<void>;
 export type PseuplexResponseFilters = {
+	mediaProviders?: PseuplexResponseFilter<plexTypes.PlexServerMediaProvidersPage>;
 	hubs?: PseuplexResponseFilter<plexTypes.PlexLibraryHubsPage>;
 	promotedHubs?: PseuplexResponseFilter<plexTypes.PlexLibraryHubsPage>;
 	metadata?: PseuplexResponseFilter<PseuplexMetadataPage>;

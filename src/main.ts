@@ -101,8 +101,6 @@ const readPlexPrefsIfNeeded = async () => {
 	const pseuplex = new PseuplexApp({
 		protocol: cfg.protocol,
 		plexServerURL,
-		plexServerMoviesLibraryId: cfg.plex.moviesLibraryId,
-		plexServerTVShowsLibraryId: cfg.plex.tvShowsLibraryId,
 		plexAdminAuthContext: {
 			'X-Plex-Token': cfg.plex.token
 		},

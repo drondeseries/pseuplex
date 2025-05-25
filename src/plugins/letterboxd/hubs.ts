@@ -8,6 +8,7 @@ import {
 	PseuplexPartialMetadataIDString,
 	qualifyPartialMetadataID
 } from '../../pseuplex';
+import { PseuplexSection } from '../../pseuplex/section';
 import * as lbtransform from './transform';
 import { LetterboxdMetadataProvider } from './metadata';
 import { LetterboxdActivityFeedHub } from './activityfeedhub';
@@ -20,6 +21,7 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 	uniqueItemsOnly: boolean,
 	metadataTransformOptions?: PseuplexMetadataTransformOptions,
 	letterboxdMetadataProvider: LetterboxdMetadataProvider,
+	section?: PseuplexSection,
 	matchToPlexServerMetadata?: boolean,
 }): LetterboxdActivityFeedHub => {
 	return new LetterboxdActivityFeedHub({
@@ -37,6 +39,7 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 			qualifiedMetadataId: false
 		},
 		letterboxdMetadataProvider: options.letterboxdMetadataProvider,
+		section: options.section,
 		matchToPlexServerMetadata: options.matchToPlexServerMetadata,
 	}, async (pageToken) => {
 		console.log(`Fetching user following feed for ${letterboxdUsername}`);

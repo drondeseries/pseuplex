@@ -87,6 +87,7 @@ export type PlexContentDirectory = {
 	scanner?: PlexLibraryScanner;
 	updatedAt?: number; // timestamp in seconds from 1970
 	scannedAt?: number; // timestamp in seconds from 1970
+	hidden?: number;
 
 	// only on plex discover
 	icon?: string; // "https://provider-static.plex.tv/icons/discover-560.svg"

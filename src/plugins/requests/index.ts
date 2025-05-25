@@ -111,8 +111,8 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 				guid,
 				season,
 				requestProvider,
-				moviesLibraryId: this.config.plex.requestedMoviesLibraryId ?? this.app.plexServerMoviesLibraryId,
-				tvShowsLibraryId: this.config.plex.requestedTVShowsLibraryId ?? this.app.plexServerTVShowsLibraryId,
+				moviesLibraryId: this.config.plex.requestedMoviesLibraryId,
+				tvShowsLibraryId: this.config.plex.requestedTVShowsLibraryId,
 			});
 			if(!metadataItem) {
 				return;

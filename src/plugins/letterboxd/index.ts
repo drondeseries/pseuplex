@@ -24,6 +24,7 @@ import {
 	stringifyMetadataID,
 	parsePartialMetadataID,
 } from '../../pseuplex';
+import { PseuplexSection } from '../../pseuplex/section';
 import {
 	LetterboxdMetadataProvider
 } from './metadata';
@@ -58,11 +59,23 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		readonly userFollowingActivity: PseuplexHubProvider & {readonly basePath: string};
 		readonly similar: PseuplexSimilarItemsHubProvider;
 	};
+	readonly section?: PseuplexSection;
 
 
 	constructor(app: PseuplexApp) {
 		this.app = app;
 		const self = this;
+
+		// create section
+		/*const section = new PseuplexSection({
+			id: -1,//this.slug,
+			uuid: "583933fd-07c7-40b6-a18a-bc74304a3102",
+			path: this.basePath,
+			hubsPath: `${this.basePath}/hubs`,
+			title: `Letterboxd Films`,
+			hidden: true,
+		});
+		this.section = section;*/
 
 		// create hub providers
 		this.hubs = {
@@ -75,7 +88,13 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						style: plexTypes.PlexHubStyle.Shelf,
 						promoted: true,
 						uniqueItemsOnly: true,
-						letterboxdMetadataProvider: self.metadata
+						letterboxdMetadataProvider: self.metadata,
+						/*metadataTransformOptions: {
+							metadataBasePath: '/library/metadata',
+							qualifiedMetadataId: true,
+						},
+						section: section,
+						matchToPlexServerMetadata: true*/
 					});
 				}
 			}(),
@@ -98,8 +117,9 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// create metadata provider
 		this.metadata = new LetterboxdMetadataProvider({
 			basePath: `${this.basePath}/metadata`,
+			//section: section,
 			plexMetadataClient: this.app.plexMetadataClient,
-			similarItemsHubProvider: this.hubs.similar
+			similarItemsHubProvider: this.hubs.similar,
 		});
 	}
 
@@ -112,6 +132,15 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 	}
 	
 	responseFilters?: PseuplexReadOnlyResponseFilters = {
+		mediaProviders: async (resData, context) => {
+			if(this.section) {
+				const sectionsFeature = resData.MediaContainer.MediaProvider[0].Feature.find((f) => f.type == plexTypes.PlexFeatureType.Content) as plexTypes.PlexContentFeature;
+				if(sectionsFeature) {
+					sectionsFeature.Directory.push(await this.section.getMediaProviderDirectory());
+				}
+			}
+		},
+
 		hubs: async (resData, context) => {
 			await this._addFriendsActivityHubIfNeeded(resData, context);
 		},
@@ -165,13 +194,6 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					metadataBasePath: metadataProvider.basePath,
 					qualifiedMetadataIds: false,
 					plexParams: params
-				});
-				const sectionId = this.app.plexServerMoviesLibraryId;
-				const section = sectionId ? await this.app.plexServerProperties.getLibrarySection(sectionId) : null;
-				Object.assign(resData.MediaContainer, {
-					librarySectionTitle: `Letterboxd Movies`,
-					librarySectionID: sectionId,
-					librarySectionUUID: section?.uuid
 				});
 				// filter page
 				await this.app.filterResponse('metadataFromProvider', resData, { userReq:req, userRes:res, metadataProvider });

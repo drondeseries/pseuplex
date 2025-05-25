@@ -29,6 +29,7 @@ import {
 	HttpError,
 	transformArrayOrSingleAsyncParallel
 } from '../utils';
+import { PseuplexSection } from './section';
 
 
 export type PseuplexMetadataParams = {
@@ -75,6 +76,7 @@ export type PseuplexSimilarItemsHubProvider = PseuplexHubProvider & {
 
 export type PseuplexMetadataProviderOptions = {
 	basePath: string;
+	section?: PseuplexSection;
 	plexMetadataClient: PlexClient
 	similarItemsHubProvider?: PseuplexSimilarItemsHubProvider;
 };
@@ -93,7 +95,9 @@ export type PseuplexMetadataListPage<TMetadataItem> = {
 export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements PseuplexMetadataProvider {
 	abstract readonly sourceDisplayName: string;
 	abstract readonly sourceSlug: string;
+
 	readonly basePath: string;
+	readonly section?: PseuplexSection;
 	readonly plexMetadataClient: PlexClient;
 	readonly similarItemsHubProvider?: PseuplexSimilarItemsHubProvider | undefined;
 
@@ -102,6 +106,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 
 	constructor(options: PseuplexMetadataProviderOptions) {
 		this.basePath = options.basePath;
+		this.section = options.section;
 		this.plexMetadataClient = options.plexMetadataClient;
 		this.similarItemsHubProvider = options.similarItemsHubProvider;
 		this.idToPlexGuidCache = new CachedFetcher(async (id: string) => {
@@ -421,7 +426,11 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 				size: metadatas.length,
 				allowSync: false,
 				identifier: plexTypes.PlexPluginIdentifier.PlexAppLibrary,
-				// TODO include library section info
+				...(this.section ? {
+					librarySectionID: this.section.id,
+					librarySectionTitle: this.section.title,
+					librarySectionUUID: this.section.uuid
+				} : undefined),
 				Metadata: metadatas
 			}
 		};
