@@ -11,7 +11,7 @@ export class IDMappings {
 	}
 
 	static create() {
-		return new IDMappings(-1, -1);
+		return new IDMappings(Number.MAX_SAFE_INTEGER-1, -1);
 	}
 
 	private generateID(): number {
