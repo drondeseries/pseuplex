@@ -66,7 +66,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 	}
 
 	get basePath(): string {
-		return `/${this.app}/${this.slug}`;
+		return `/${this.app.slug}/${this.slug}`;
 	}
 
 	get config(): RequestsPluginConfig {
