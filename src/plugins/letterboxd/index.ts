@@ -89,7 +89,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						promoted: true,
 						uniqueItemsOnly: true,
 						letterboxdMetadataProvider: self.metadata,
-						...(app.idMappings ? {
+						...(app.metadataIdMappings ? {
 							metadataTransformOptions: {
 								metadataBasePath: '/library/metadata',
 								qualifiedMetadataId: true,
@@ -110,7 +110,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						style: plexTypes.PlexHubStyle.Shelf,
 						promoted: true,
 						letterboxdMetadataProvider: self.metadata,
-						...(app.idMappings ? {
+						...(app.metadataIdMappings ? {
 							metadataTransformOptions: {
 								metadataBasePath: '/library/metadata',
 								qualifiedMetadataId: true,
