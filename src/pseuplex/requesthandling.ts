@@ -13,6 +13,7 @@ import {
 	parseMetadataID,
 	PseuplexMetadataIDParts
 } from './metadataidentifier';
+import { IDMappings } from './idmappings';
 
 export const parseMetadataIdsFromPathParam = (metadataIdsString: string): PseuplexMetadataIDParts[] => {
 	if(!metadataIdsString) {
@@ -34,11 +35,12 @@ export const parseMetadataIdFromPathParam = (metadataIdString: string): Pseuplex
 };
 
 export const pseuplexMetadataIdRequestMiddleware = <TResult>(
+	options: PlexAPIRequestHandlerOptions & {idMappings?: IDMappings | null},
 	handler: (
 		req: IncomingPlexAPIRequest,
 		res: express.Response,
-		metadataId: PseuplexMetadataIDParts) => Promise<TResult>,
-	options?: PlexAPIRequestHandlerOptions,
+		metadataId: PseuplexMetadataIDParts,
+		keysToIdsMap: {[key: string]: (number | string)}) => Promise<TResult>,
 ) => {
 	return asyncRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<boolean> => {
 		let metadataId = req.params.metadataId;
@@ -46,24 +48,33 @@ export const pseuplexMetadataIdRequestMiddleware = <TResult>(
 			// let plex handle the empty api request
 			return false;
 		}
-		const metadataIdParts = parseMetadataIdFromPathParam(metadataId);
+		const keysToIdsMap: {[key: string]: (number | string)} = {};
+		let metadataIdParts = parseMetadataIdFromPathParam(metadataId);
 		if(!metadataIdParts.source) {
-			// id is a plex ID, so no need to handle this request
-			return false;
+			const privateId = options.idMappings?.getKeyForID(metadataIdParts.id);
+			if(privateId != null) {
+				// id is a mapped ID, so we need to handle the request
+				keysToIdsMap[privateId] = metadataIdParts.id;
+				metadataIdParts = parseMetadataID(privateId);
+			} else {
+				// id is a plex ID, so no need to handle this request
+				return false;
+			}
 		}
 		await handlePlexAPIRequest(req, res, async (req: IncomingPlexAPIRequest, res): Promise<TResult> => {
-			return await handler(req, res, metadataIdParts);
+			return await handler(req, res, metadataIdParts, keysToIdsMap);
 		}, options);
 		return true;
 	});
 };
 
 export const pseuplexMetadataIdsRequestMiddleware = <TResult>(
+	options: PlexAPIRequestHandlerOptions & {idMappings?: IDMappings | null},
 	handler: (
 		req: IncomingPlexAPIRequest,
 		res: express.Response,
-		metadataIds: PseuplexMetadataIDParts[]) => Promise<TResult>,
-	options?: PlexAPIRequestHandlerOptions,
+		metadataIds: PseuplexMetadataIDParts[],
+		keysToIdsMap: {[key: string]: (number | string)}) => Promise<TResult>,
 ) => {
 	return asyncRequestHandler(async (req: IncomingPlexAPIRequest, res: express.Response) => {
 		// parse metadata IDs
@@ -74,10 +85,21 @@ export const pseuplexMetadataIdsRequestMiddleware = <TResult>(
 		const metadataIds = parseMetadataIdsFromPathParam(metadataIdsString);
 		// check if any non-plex metadata IDs exist
 		let anyNonPlexIds: boolean = false;
-		for(const metadataId of metadataIds) {
+		const keysToIdsMap: {[key: string]: (number | string)} = {};
+		for(let i=0; i<metadataIds.length; i++) {
+			let metadataId = metadataIds[i];
 			if(metadataId.source) {
+				// id is not a plain plex ID, so we should handle it
 				anyNonPlexIds = true;
-				break;
+			} else {
+				const privateId = options.idMappings?.getKeyForID(metadataId.id);
+				if(privateId != null) {
+					// id is a mapped ID, so we need to handle the request
+					keysToIdsMap[privateId] = metadataId.id;
+					metadataId = parseMetadataID(privateId);
+					metadataIds[i] = metadataId;
+					anyNonPlexIds = true;
+				}
 			}
 		}
 		// if there are no non-plex providers, just continue on with proxying the request
@@ -87,7 +109,7 @@ export const pseuplexMetadataIdsRequestMiddleware = <TResult>(
 		}
 		// fetch from non-plex and plex providers
 		await handlePlexAPIRequest(req, res, async (req: IncomingPlexAPIRequest, res): Promise<TResult> => {
-			return await handler(req, res, metadataIds);
+			return await handler(req, res, metadataIds, keysToIdsMap);
 		}, options);
 		return true;
 	});

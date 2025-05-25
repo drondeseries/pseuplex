@@ -7,7 +7,6 @@ import { PseuplexMetadataPage } from './types';
 import { PseuplexHubProvider } from './hub';
 import { PseuplexMetadataProvider } from './metadata';
 import { PseuplexMetadataIDParts, PseuplexPartialMetadataIDParts } from './metadataidentifier';
-import { PseuplexSection } from './section';
 
 
 export type PseuplexResponseFilterContext = {

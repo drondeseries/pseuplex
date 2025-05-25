@@ -388,9 +388,11 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			} else if(metadataId.source == null) {
 				plexGuid = await this.app.plexServerIdToGuidCache.getOrFetch(metadataId.id);
 			} else {
+				// doesn't have a plex metadata ID, so don't bother adding similar items hub
 				return;
 			}
 			if(!plexGuid) {
+				// no plex GUID to map to a letterboxd id
 				return;
 			}
 			// get letterboxd id for plex guid
