@@ -125,6 +125,7 @@ export const createRequestButtonMetadataItem = (options: {
 			itemGuid: options.guid,
 			season: options.season
 		}),
+		type: plexTypes.PlexMediaItemNumericToType[options.mediaType],
 		librarySectionTitle: requestActionTitle,
 		librarySectionID,
 		librarySectionKey: `/library/sections/${librarySectionID}`,
