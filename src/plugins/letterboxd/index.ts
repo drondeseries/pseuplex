@@ -95,8 +95,8 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 								qualifiedMetadataId: true,
 							},
 						} : undefined),
-						/*section: section,
-						matchToPlexServerMetadata: true*/
+						//section: section,
+						//matchToPlexServerMetadata: true
 					});
 				}
 			}(),
@@ -128,6 +128,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			//section: section,
 			plexMetadataClient: this.app.plexMetadataClient,
 			similarItemsHubProvider: this.hubs.similar,
+			plexGuidToInfoCache: this.app.plexGuidToInfoCache,
 		});
 	}
 

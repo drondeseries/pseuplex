@@ -257,16 +257,10 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 					}
 					// fetch item (and maybe children) from plex discover
 					const resDataPromise = children ?
-						this.app.plexMetadataClient.getMetadataChildren(itemId, plexParams, {
-							authContext: plexAuthContext
-						})
-						: this.app.plexMetadataClient.getMetadata(itemId, plexParams, {
-							authContext: plexAuthContext
-						});
+						this.app.plexMetadataClient.getMetadataChildren(itemId, plexParams)
+						: this.app.plexMetadataClient.getMetadata(itemId, plexParams);
 					const requestedPlexItemPage = (children || itemId != plexGuidParts.id) ?
-						await this.app.plexMetadataClient.getMetadata(plexGuidParts.id, undefined, {
-							authContext: plexAuthContext
-						})
+						await this.app.plexMetadataClient.getMetadata(plexGuidParts.id)
 						: await resDataPromise;
 					const resData = await resDataPromise;
 					// send request if needed

@@ -8,7 +8,10 @@ import * as plexTypes from '../plex/types';
 import * as plexServerAPI from '../plex/api';
 import { PlexServerPropertiesStore } from '../plex/serverproperties';
 import { PlexServerAccountsStore } from '../plex/accounts';
-import { createPlexServerIdToGuidCache } from '../plex/metadata';
+import {
+	PlexGuidToInfoCache,
+	createPlexServerIdToGuidCache,
+} from '../plex/metadata';
 import { parseMetadataIDFromKey } from '../plex/metadataidentifier';
 import {
 	plexApiProxy,
@@ -43,7 +46,7 @@ import {
 	PseuplexMetadataChildrenProviderParams,
 	PseuplexMetadataProvider,
 	PseuplexMetadataProviderParams,
-	PseuplexMetadataTransformOptions
+	PseuplexMetadataTransformOptions,
 } from './metadata';
 import {
 	PseuplexPlugin,
@@ -56,6 +59,7 @@ import {
 	pseuplexMetadataIdRequestMiddleware,
 	pseuplexMetadataIdsRequestMiddleware
 } from './requesthandling';
+import { IDMappings } from './idmappings';
 import { CachedFetcher } from '../fetching/CachedFetcher';
 import {
 	httpError,
@@ -69,7 +73,6 @@ import {
 	intParam,
 } from '../utils';
 import { urlLogString } from '../logging';
-import { IDMappings } from './idmappings';
 
 
 
@@ -135,7 +138,7 @@ export class PseuplexApp {
 	readonly plexServerAccounts: PlexServerAccountsStore;
 	readonly clientWebSockets: {[plexToken: string]: stream.Duplex[]} = {};
 	readonly plexServerIdToGuidCache: CachedFetcher<string>;
-
+	readonly plexGuidToInfoCache: PlexGuidToInfoCache;
 	readonly plexMetadataClient: PlexClient;
 
 	readonly middlewares: {
@@ -166,6 +169,9 @@ export class PseuplexApp {
 		this.plexServerIdToGuidCache = createPlexServerIdToGuidCache({
 			plexServerURL: this.plexServerURL,
 			plexAuthContext: this.plexAdminAuthContext
+		});
+		this.plexGuidToInfoCache = new PlexGuidToInfoCache({
+			plexMetadataClient: this.plexMetadataClient
 		});
 
 		// define middlewares

@@ -154,9 +154,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				}
 				const grandparentGuidParts = parsePlexMetadataGuid(plexItem.grandparentGuid);
 				options.seasons = [plexItem.parentIndex];
-				plexItem = firstOrSingle((await this.app.plexMetadataClient.getMetadata(grandparentGuidParts.id, undefined, {
-					authContext: options.plexAuthContext
-				})).MediaContainer.Metadata);
+				plexItem = firstOrSingle((await this.app.plexMetadataClient.getMetadata(grandparentGuidParts.id)).MediaContainer.Metadata);
 				if(!plexItem) {
 					throw httpError(500, `Unable to fetch show for episode`);
 				}
@@ -173,9 +171,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				}
 				const parentGuidParts = parsePlexMetadataGuid(plexItem.parentGuid);
 				options.seasons = [plexItem.index];
-				plexItem = firstOrSingle((await this.app.plexMetadataClient.getMetadata(parentGuidParts.id, undefined, {
-					authContext: options.plexAuthContext
-				})).MediaContainer.Metadata);
+				plexItem = firstOrSingle((await this.app.plexMetadataClient.getMetadata(parentGuidParts.id)).MediaContainer.Metadata);
 				if(!plexItem) {
 					throw httpError(500, `Unable to fetch show for season`);
 				}

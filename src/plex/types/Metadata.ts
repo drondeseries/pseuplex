@@ -74,6 +74,7 @@ export type PlexMetadataItem = {
 	originallyAvailableAt?: string; // "2012-03-19"
 	addedAt?: number; // 17003248740
 	updatedAt?: number; // 23476345400
+	chapterSource?: string; // "media"
 
 	studio?: string; // "United Artists"
 	viewOffset?: number;
@@ -95,6 +96,11 @@ export type PlexMetadataItem = {
 	Role?: PlexPerson[];
 	Collection?: PlexMetadataCollection[];
 	Related?: {Hub?: PlexHubWithItems[]};
+	UltraBlurColors?: PlexUltraBlurColors;
+	Country?: PlexCountry[];
+	Rating?: PlexRating[];
+	Field?: PlexMetadataField[];
+	Image?: PlexMetadataImage[];
 
 	librarySectionTitle?: string; // "My TV Shows"
 	librarySectionID?: string | number; // 2
@@ -102,6 +108,7 @@ export type PlexMetadataItem = {
 	
 	parentGuid?: string; // "plex://season/5464cnhtcb071t52015c02"
 	parentKey?: string; // "/library/metadata/20201"
+	parentSlug?: string; // "beastars"
 	parentRatingKey?: string; // "20205"
 	parentTitle?: string; // "Season 1"
 	parentIndex?: number; // 1
@@ -160,4 +167,34 @@ export type PlexGenre = {
 	slug?: string; // "thriller"
 	type?: string; // "hub"
 	context?: string; // "tag.genre"
+};
+
+export type PlexUltraBlurColors = {
+	topLeft: string;
+	topRight: string;
+	bottomRight: string;
+	bottomLeft: string;
+};
+
+export type PlexCountry = {
+	id: number; // 53
+	filter: string; // "country=53"
+	tag: string; // "United States of America"
+};
+
+export type PlexRating = {
+	image: string; // "imdb://image.rating"
+	value: number; // 7.6
+	type: string; // "audience"
+};
+
+export type PlexMetadataField = {
+	locked: boolean; // true
+	name: string; // "thumb"
+};
+
+export type PlexMetadataImage = {
+	alt: string; // "Mission: Impossible - The Final Reckoning"
+	type: string; // "coverPoster",
+	url: string; // "/library/metadata/24/thumb/1748132115"
 };

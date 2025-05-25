@@ -7,6 +7,7 @@ import { parsePlexMetadataGuid } from '../plex/metadataidentifier';
 import {
 	PlexClient
 } from '../plex/client';
+import { PlexGuidToInfoCache } from '../plex/metadata';
 import * as extPlexTransform from './externalplex/transform';
 import {
 	PseuplexMetadataItem,
@@ -24,12 +25,13 @@ import {
 import {
 	PseuplexHubProvider
 } from './hub';
+import type { PseuplexSection } from './section';
 import {
 	firstOrSingle,
+	forArrayOrSingle,
 	HttpError,
 	transformArrayOrSingleAsyncParallel
 } from '../utils';
-import type { PseuplexSection } from './section';
 
 
 export type PseuplexMetadataParams = {
@@ -77,8 +79,9 @@ export type PseuplexSimilarItemsHubProvider = PseuplexHubProvider & {
 export type PseuplexMetadataProviderOptions = {
 	basePath: string;
 	section?: PseuplexSection;
-	plexMetadataClient: PlexClient
+	plexMetadataClient: PlexClient;
 	similarItemsHubProvider?: PseuplexSimilarItemsHubProvider;
+	plexGuidToInfoCache?: PlexGuidToInfoCache;
 };
 
 export type PseuplexMetadataTransformOptions = {
@@ -103,6 +106,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 
 	readonly idToPlexGuidCache: CachedFetcher<string>;
 	readonly plexGuidToIDCache: CachedFetcher<string>;
+	readonly plexGuidToInfoCache?: PlexGuidToInfoCache;
 
 	constructor(options: PseuplexMetadataProviderOptions) {
 		this.basePath = options.basePath;
@@ -115,6 +119,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		this.plexGuidToIDCache = new CachedFetcher(async (id: string) => {
 			throw new Error("Cannot fetch id from cache");
 		});
+		this.plexGuidToInfoCache = options.plexGuidToInfoCache;
 	}
 	
 	abstract fetchMetadataItem(id: PseuplexPartialMetadataIDString, options: {
@@ -158,6 +163,9 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 				return null;
 			}
 			this.plexGuidToIDCache.setSync(plexGuid, id);
+			if(this.plexGuidToInfoCache) {
+				this.plexGuidToInfoCache.cacheMetadataItem(matchingMetadata);
+			}
 			return plexGuid;
 		})());
 	}
@@ -166,6 +174,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		plexAuthContext: plexTypes.PlexAuthContext
 	}): Promise<plexTypes.PlexMetadataItem> {
 		try {
+			// get plex guid
 			const plexGuid = (options.plexAuthContext?.['X-Plex-Token']) ?
 				await this.getPlexGUIDForID(metadataId, {
 					plexServerURL: options.plexServerURL,
@@ -179,6 +188,11 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 				if(guidParts.type) {
 					metadataItem.type = guidParts.type as plexTypes.PlexMediaItemType;
 				}
+			}
+			// attach additional metadata if able
+			const plexInfo = await this.plexGuidToInfoCache?.getOrFetch(plexGuid);
+			if(plexInfo) {
+				metadataItem.slug = plexInfo.slug;
 			}
 		} catch(error) {
 			console.error(error);
@@ -220,10 +234,14 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		let metadataItem = options.metadataItem;
 		if(!metadataItem) {
 			const guidParts = parsePlexMetadataGuid(plexGuid);
-			const metadatas = (await this.plexMetadataClient.getMetadata(guidParts.id, {}, {
+			const metadataTask = this.plexMetadataClient.getMetadata(guidParts.id, {}, {
 				authContext: options.plexAuthContext
-			}))?.MediaContainer?.Metadata;
-			metadataItem = (metadatas instanceof Array) ? metadatas[0] : metadatas;
+			}).then((result) => {
+				const metadatas = result?.MediaContainer?.Metadata;
+				return (metadatas instanceof Array) ? metadatas[0] : metadatas;
+			});
+			this.plexGuidToInfoCache.cacheMetadataItemForGuid(plexGuid, metadataTask);
+			metadataItem = await metadataTask;
 		}
 		if(!metadataItem) {
 			throw new Error("Metadata not found");
@@ -286,9 +304,15 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 					if(!metadataItem?.ratingKey) {
 						return metadataItem;
 					}
-					return firstOrSingle((await this.plexMetadataClient.getMetadata(metadataItem.ratingKey, plextvMetadataParams, {
+					// TODO check if we even need to fetch this again?
+					const detailedMetadataItem = firstOrSingle((await this.plexMetadataClient.getMetadata(metadataItem.ratingKey, plextvMetadataParams, {
 						authContext: options.plexAuthContext
 					})).MediaContainer?.Metadata);
+					// cache metadata info
+					if(this.plexGuidToInfoCache) {
+						this.plexGuidToInfoCache.cacheMetadataItem(detailedMetadataItem);
+					}
+					return detailedMetadataItem;
 				})();
 				const guidTask = metadataTask.then((m) => (m?.guid ?? null));
 				plexMatches[id] = metadataTask;
@@ -353,9 +377,26 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 			// get any remaining guids from plex discover
 			const remainingGuids = guidsToFetch.filter((guid) => !plexMetadataMap[guid]);
 			if(remainingGuids.length > 0) {
-				const discoverResult = await this.plexMetadataClient.getMetadata(remainingGuids.map((guid) => parsePlexMetadataGuid(guid).id), plextvMetadataParams, {
+				const discoverTask = this.plexMetadataClient.getMetadata(remainingGuids.map((guid) => parsePlexMetadataGuid(guid).id), plextvMetadataParams, {
 					authContext: options.plexAuthContext,
 				});
+				// cache result if needed
+				if(this.plexGuidToInfoCache) {
+					const guidMapTask = discoverTask.then((result) => {
+						const guidMap: {[key: string]: plexTypes.PlexMetadataItem} = {};
+						forArrayOrSingle(result.MediaContainer.Metadata, (metadataItem) => {
+							if(metadataItem.guid) {
+								guidMap[metadataItem.guid] = metadataItem;
+							}
+						});
+						return guidMap;
+					});
+					for(const guid of remainingGuids) {
+						this.plexGuidToInfoCache.cacheMetadataItemForGuid(guid, guidMapTask.then((guidMap) => guidMap[guid]));
+					}
+				}
+				// get discover result and store in metadata map
+				const discoverResult = await discoverTask;
 				let metadatas = discoverResult?.MediaContainer.Metadata;
 				if(metadatas) {
 					if(!(metadatas instanceof Array)) {
@@ -393,6 +434,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 						metadataId = id;
 					}
 					metadataItem.key = `${transformOpts.metadataBasePath}/${metadataId}`;
+					//metadataItem.slug = fullMetadataId;
 					if(!metadataItem.Pseuplex.isOnServer) {
 						metadataItem.ratingKey = fullMetadataId;
 					}

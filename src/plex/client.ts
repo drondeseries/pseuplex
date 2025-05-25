@@ -4,7 +4,7 @@ import * as plexTypes from "./types";
 import { firstOrSingle } from '../utils';
 
 
-type PlexMethodOptions = {
+export type PlexClientMethodOptions = {
 	authContext?: plexTypes.PlexAuthContext
 };
 
@@ -21,7 +21,7 @@ export class PlexClient {
 	}
 	
 	private _mediaProviderClient: PlexMediaProviderClient | Promise<PlexMediaProviderClient>;
-	async getMediaProvider(options?: PlexMethodOptions): Promise<PlexMediaProviderClient> {
+	async getMediaProvider(options?: PlexClientMethodOptions): Promise<PlexMediaProviderClient> {
 		if(!this._mediaProviderClient || options?.authContext) {
 			const mediaProviderTask = getPlexMediaProviderClient(this.serverURL, this.authContext);
 			if(options?.authContext) {
@@ -47,15 +47,15 @@ export class PlexClient {
 		return method;
 	}
 
-	async getMetadata(ids: string | string[], params: plexTypes.PlexMetadataPageParams, options?: PlexMethodOptions) {
+	async getMetadata(ids: string | string[], params?: plexTypes.PlexMetadataPageParams, options?: PlexClientMethodOptions) {
 		return (await this._getMediaProviderMethod('getMetadata'))(ids, params, options);
 	}
 
-	async getMetadataChildren(id: string, params: plexTypes.PlexMetadataChildrenPageParams, options?: PlexMethodOptions) {
+	async getMetadataChildren(id: string, params?: plexTypes.PlexMetadataChildrenPageParams, options?: PlexClientMethodOptions) {
 		return (await this._getMediaProviderMethod('getMetadataChildren'))(id, params, options);
 	}
 
-	async getMatches(params: plexTypes.PlexGetLibraryMatchesParams, options?: PlexMethodOptions) {
+	async getMatches(params?: plexTypes.PlexGetLibraryMatchesParams, options?: PlexClientMethodOptions) {
 		return (await this._getMediaProviderMethod('getMatches'))(params, options);
 	}
 }
@@ -162,7 +162,7 @@ export class PlexMediaProviderClient extends PlexSubclientBase<
 	protected override get _subclientFeatures() { return this.data?.Feature; };
 	
 	get getMatches() { return this._featureMethod(plexTypes.PlexFeatureType.Match, this._getMatches); }
-	private async _getMatches(feature: plexTypes.PlexFeature, params: plexTypes.PlexGetLibraryMatchesParams, options?: PlexMethodOptions): Promise<plexTypes.PlexMetadataPage> {
+	private async _getMatches(feature: plexTypes.PlexFeature, params: plexTypes.PlexGetLibraryMatchesParams, options?: PlexClientMethodOptions): Promise<plexTypes.PlexMetadataPage> {
 		return await this.fetch({
 			endpoint: feature.key,
 			method: 'GET',
@@ -172,7 +172,7 @@ export class PlexMediaProviderClient extends PlexSubclientBase<
 	}
 
 	get search() { return this._featureMethod(plexTypes.PlexFeatureType.UniversalSearch, this._search); }
-	private async _search(feature: plexTypes.PlexFeature, params: UniversalSearchParams, options?: PlexMethodOptions): Promise<plexTypes.PlexSearchResultsPage> {
+	private async _search(feature: plexTypes.PlexFeature, params: UniversalSearchParams, options?: PlexClientMethodOptions): Promise<plexTypes.PlexSearchResultsPage> {
 		return await this.fetch({
 			endpoint: feature.key,
 			method: 'GET',
@@ -182,7 +182,7 @@ export class PlexMediaProviderClient extends PlexSubclientBase<
 	}
 
 	get getMetadata() { return this._featureMethod(plexTypes.PlexFeatureType.Metadata, this._getMetadata); }
-	private async _getMetadata(feature: plexTypes.PlexFeature, ids: string | string[], params?: plexTypes.PlexMetadataPageParams, options?: PlexMethodOptions): Promise<plexTypes.PlexMetadataPage> {
+	private async _getMetadata(feature: plexTypes.PlexFeature, ids: string | string[], params?: plexTypes.PlexMetadataPageParams, options?: PlexClientMethodOptions): Promise<plexTypes.PlexMetadataPage> {
 		const idString = (ids instanceof Array) ? ids.map((idVal) => qs.escape(idVal)).join(',') : qs.escape(ids);
 		return await this.fetch({
 			endpoint: `${feature.key}/${idString}`,
@@ -193,7 +193,7 @@ export class PlexMediaProviderClient extends PlexSubclientBase<
 	}
 
 	get getMetadataChildren() { return this._featureMethod(plexTypes.PlexFeatureType.Metadata, this._getMetadataChildren); }
-	private async _getMetadataChildren(feature: plexTypes.PlexFeature, id: string, params?: plexTypes.PlexMetadataChildrenPageParams, options?: PlexMethodOptions): Promise<plexTypes.PlexMetadataPage> {
+	private async _getMetadataChildren(feature: plexTypes.PlexFeature, id: string, params?: plexTypes.PlexMetadataChildrenPageParams, options?: PlexClientMethodOptions): Promise<plexTypes.PlexMetadataPage> {
 		return await this.fetch({
 			endpoint: `${feature.key}/${qs.escape(id)}/children`,
 			method: 'GET',
@@ -204,7 +204,7 @@ export class PlexMediaProviderClient extends PlexSubclientBase<
 	
 	get getSettings() { return this._featureMethod(plexTypes.PlexFeatureType.Settings, this._getSettings); }
 	private _settingsClient: PlexMediaProviderSettingsClient | Promise<PlexMediaProviderSettingsClient> | undefined;
-	private async _getSettings(feature: plexTypes.PlexFeature, options?: PlexMethodOptions) {
+	private async _getSettings(feature: plexTypes.PlexFeature, options?: PlexClientMethodOptions) {
 		if(!this._settingsClient || options?.authContext) {
 			const settingsClientTask = this.fetch({
 				endpoint: feature.key,
@@ -241,7 +241,7 @@ export class PlexMediaProviderSettingsClient extends PlexSubclientBase<
 	protected override get _subclientFeatures() { return this.data?.MediaContainer?.Setting; };
 
 	get getSearchProviders() { return this._featureMethod(plexTypes.PlexMediaProviderSettingType.SearchProviders, this._getSearchProviders); }
-	private async _getSearchProviders(setting: plexTypes.PlexMediaProviderSetting, options?: PlexMethodOptions): Promise<plexTypes.PlexTVSearchProvidersPage> {
+	private async _getSearchProviders(setting: plexTypes.PlexMediaProviderSetting, options?: PlexClientMethodOptions): Promise<plexTypes.PlexTVSearchProvidersPage> {
 		return await this.fetch({
 			endpoint: setting.key,
 			method: 'GET',

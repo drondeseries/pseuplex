@@ -58,6 +58,7 @@ export const filmInfoToPlexMetadata = (filmInfo: letterboxd.FilmInfo, options: P
 		key: combinePathSegments(options.metadataBasePath, options.qualifiedMetadataId ? fullMetadataId : partialMetadataId),
 		ratingKey: fullMetadataId,
 		type: plexTypes.PlexMediaItemType.Movie,
+		//slug: fullMetadataId,
 		title: filmInfo.ldJson.name,
 		art: filmInfo.pageData.backdrop.default,
 		thumb: filmInfo.ldJson.image,
@@ -137,6 +138,7 @@ export const filmToPlexMetadata = (film: letterboxd.Film, options: PseuplexMetad
 		ratingKey: fullMetadataId,
 		type: plexTypes.PlexMediaItemType.Movie,
 		title: film.name,
+		//slug: fullMetadataId,
 		thumb: film.imageURL,
 		year: intParam(film.year)
 	};
