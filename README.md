@@ -32,7 +32,7 @@ This project is still very much a WIP and it is not recommended to enable remote
 
 	Reviews from your letterboxd friends can be included alongside the RottenTomatoes reviews
 
-	**NOTE: In the newer mobile apps, Plex for some reason now fetches critics reviews from plex.tv instead of from your server, so this feature sadly no longer works for those apps. It's unclear if this is intentional or a mistake, but hopefully they will decide to fix this.**
+	**NOTE: In the newer mobile apps, Plex now fetches critics reviews from plex.tv instead of from your server, so this feature sadly no longer works for those apps. It's unclear if this is intentional or a mistake, but hopefully they will decide to fix this.**
 
 	![Letterboxd Friends Reviews](docs/images/letterboxd_friends_reviews.png)
 
