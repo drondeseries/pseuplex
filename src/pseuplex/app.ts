@@ -147,7 +147,7 @@ export class PseuplexApp {
 	constructor(options: PseuplexAppOptions) {
 		this.slug = options.slug ?? 'pseuplex';
 		this.config = options.config;
-		if(options.mapPseuplexMetadataIds ?? true) {
+		if(options.mapPseuplexMetadataIds) {
 			this.metadataIdMappings = IDMappings.create();
 		}
 		const loggingOpts = options.loggingOptions;
