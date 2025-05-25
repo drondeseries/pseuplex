@@ -87,3 +87,15 @@ export const searchLibrary = async (options: {
 		authContext: options.authContext
 	});
 };
+
+export const getLibrarySections = async (options: {
+	serverURL: string,
+	authContext?: plexTypes.PlexAuthContext | null
+}): Promise<plexTypes.PlexLibrarySectionsPage> => {
+	return await plexServerFetch({
+		serverURL: options.serverURL,
+		method: 'GET',
+		endpoint: `/library/sections`,
+		authContext: options.authContext
+	});
+}

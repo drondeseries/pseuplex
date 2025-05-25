@@ -38,6 +38,15 @@ export type PlexMetadataChildrenPageParams = {
 	'X-Plex-Container-Size'?: number;
 };
 
+export type PlexMetadataCollection = {
+	art: string,
+	guid: string,
+	key: string,
+	summary: string,
+	thumb: string,
+	tag: string,
+};
+
 export type PlexMetadataItem = {
 	guid?: string; // "plex://episode/6rv4x76r8x9bqb98xqt9qbt29r"
 	key: string; // "/library/metadata/20205"
@@ -80,8 +89,10 @@ export type PlexMetadataItem = {
 	Media?: PlexMedia[];
 	Review?: PlexReview[];
 	Director?: PlexPerson[];
+	Producer?: PlexPerson[];
 	Writer?: PlexPerson[];
 	Role?: PlexPerson[];
+	Collection?: PlexMetadataCollection[];
 	Related?: {Hub?: PlexHubWithItems[]};
 
 	librarySectionTitle?: string; // "My TV Shows"
@@ -133,7 +144,7 @@ export type PlexPerson = {
 	slug: string; // "chris-pratt"
 	filter?: string; // "director=195049" or "director=012365071260xt01rt23n0" < use this if you want to point to pms server instead of discover
 	tag: string; // "Chris Pratt"
-	tagKey: string; // "o827tvx98bxtfi2r8297e342".
+	tagKey?: string; // "o827tvx98bxtfi2r8297e342".
 	thumb?: string;
 	role?: string; // "Director", "Mario"
 	type?: 'person'

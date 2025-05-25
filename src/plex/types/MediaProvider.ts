@@ -69,13 +69,15 @@ export type PlexAction = {
 
 export type PlexContentFeature = {
 	type: PlexFeatureType.Content;
-	Directory: PlexContentDirectory[];
+	Directory: (PlexContentDirectory & {
+		Pivot?: PlexPivot[];
+	})[];
 };
 
 export type PlexContentDirectory = {
 	title: string; // "My Movies"
 	hubKey: string; // "/hubs/sections/1"
-	key?: string; // "/library/sections/1"
+	key?: string; // "/library/sections/1" on /media/providers, "1" on /library/sections
 	id?: string; // "1"
 	uuid?: string;
 	type?: PlexMediaItemType;
@@ -85,7 +87,6 @@ export type PlexContentDirectory = {
 	scanner?: PlexLibraryScanner;
 	updatedAt?: number; // timestamp in seconds from 1970
 	scannedAt?: number; // timestamp in seconds from 1970
-	Pivot?: PlexPivot[];
 
 	// only on plex discover
 	icon?: string; // "https://provider-static.plex.tv/icons/discover-560.svg"

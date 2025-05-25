@@ -36,11 +36,24 @@ export const transformExternalPlexMetadata = (metadataItem: plexTypes.PlexMetada
 	const pseuMetadataItem = metadataItem as PseuplexMetadataItem;
 	delete pseuMetadataItem.Media;
 	delete pseuMetadataItem.userState;
+	delete pseuMetadataItem.Collection;
 	let metadataId = pseuMetadataItem.ratingKey;
 	if(!metadataId) {
 		metadataId = parseMetadataIDFromKey(pseuMetadataItem.key, '/library/metadata/')?.id;
 		if(metadataId) {
 			metadataId = qs.unescape(metadataId);
+		}
+	}
+	for(const person of [
+		...(pseuMetadataItem.Writer ?? []),
+		...(pseuMetadataItem.Role ?? []),
+		...(pseuMetadataItem.Director ?? []),
+		...(pseuMetadataItem.Producer ?? []),
+	]) {
+		if(!person.tagKey) {
+			if(person.id) {
+				person.tagKey = `${person.id}`;
+			}
 		}
 	}
 	const partialMetadataId = createPartialExternalPlexMetadataId({

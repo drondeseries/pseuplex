@@ -10,6 +10,7 @@ export type PlexServerPropertiesStoreOptions = {
 export class PlexServerPropertiesStore {
 	_options: PlexServerPropertiesStoreOptions;
 	_serverMachineIdentifier: string | Promise<string> | undefined;
+	_librarySections: plexTypes.PlexLibrarySectionsPage | Promise<plexTypes.PlexLibrarySectionsPage> | undefined;
 
 	constructor(options: PlexServerPropertiesStoreOptions) {
 		this._options = options;
@@ -45,5 +46,34 @@ export class PlexServerPropertiesStore {
 			this._serverMachineIdentifier = serverId;
 		}
 		return serverId;
+	}
+
+	async getLibrarySections(): Promise<plexTypes.PlexLibrarySectionsPage> {
+		if(this._librarySections) {
+			return await this._librarySections;
+		}
+		const task = plexServerAPI.getLibrarySections({
+			serverURL: this._options.plexServerURL,
+			authContext: this._options.plexAuthContext
+		});
+		let sections: plexTypes.PlexLibrarySectionsPage | undefined = undefined;
+		try {
+			this._librarySections = task;
+			sections = await task;
+		} finally {
+			this._librarySections = sections;
+		}
+		return sections;
+	}
+
+	async getLibrarySection(id: string | number): Promise<plexTypes.PlexContentDirectory | null> {
+		const key = `/library/sections/${id}`;
+		const sections = (await this.getLibrarySections()).MediaContainer.Directory;
+		for(const section of sections) {
+			if(section.key == key || section.key == id || section.id == id) {
+				return section;
+			}
+		}
+		return null;
 	}
 }

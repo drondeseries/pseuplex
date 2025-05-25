@@ -3,6 +3,8 @@ import {
 	PlexLibraryAgent,
 	PlexMediaItemTypeNumeric
 } from './common';
+import { PlexMediaContainer } from './MediaContainer';
+import { PlexContentDirectory } from './MediaProvider';
 
 export type PlexGetLibraryMatchesParams = {
 	guid?: string,
@@ -11,4 +13,11 @@ export type PlexGetLibraryMatchesParams = {
 	year?: number,
 	agent?: PlexLibraryAgent,
 	language?: PlexLanguage
+};
+
+export type PlexLibrarySectionsPage = PlexMediaContainer & {
+	MediaContainer: {
+		title1: string;
+		Directory: PlexContentDirectory[];
+	}
 };

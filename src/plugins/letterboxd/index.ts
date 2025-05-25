@@ -166,10 +166,12 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					qualifiedMetadataIds: false,
 					plexParams: params
 				});
+				const sectionId = this.app.plexServerMoviesLibraryId;
+				const section = sectionId ? await this.app.plexServerProperties.getLibrarySection(sectionId) : null;
 				Object.assign(resData.MediaContainer, {
-					librarySectionTitle: "Letterboxd Movies",
-					librarySectionID: this.app.plexServerMoviesLibraryId,
-					//"librarySectionUUID": "98ae32db-bb18-440a-80f8-fb33369fb5a1",
+					librarySectionTitle: `Letterboxd Movies`,
+					librarySectionID: sectionId,
+					librarySectionUUID: section?.uuid
 				});
 				// filter page
 				await this.app.filterResponse('metadataFromProvider', resData, { userReq:req, userRes:res, metadataProvider });
