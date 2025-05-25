@@ -17,6 +17,8 @@ export type Config = {
 		processedMachineIdentifier?: string;
 		appDataPath?: string;
 		metadataHost?: string;
+		moviesLibraryId?: string | number;
+		tvShowsLibraryId?: string | number;
 	},
 	ssl?: SSLConfig & {
 		autoP12Path?: boolean;

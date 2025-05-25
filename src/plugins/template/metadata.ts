@@ -19,6 +19,7 @@ export type TemplateMetadataItem = {
 };
 
 export class TemplateMetadataProvider extends PseuplexMetadataProviderBase<TemplateMetadataItem> {
+	readonly sourceDisplayName = "Template";
 	readonly sourceSlug = '<metadata_source_name>';
 
 	override async fetchMetadataItem(id: PseuplexPartialMetadataIDString): Promise<TemplateMetadataItem> {

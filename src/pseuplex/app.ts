@@ -110,6 +110,8 @@ export type PseuplexAppOptions = {
 	protocol?: PseuplexServerProtocol
 	serverOptions: https.ServerOptions;
 	plexServerURL: string;
+	plexServerMoviesLibraryId?: string | number;
+	plexServerTVShowsLibraryId?: string | number;
 	plexAdminAuthContext: plexTypes.PlexAuthContext;
 	plexMetadataClient: PlexClient;
 	loggingOptions: PseuplexLoggingOptions,
@@ -126,6 +128,8 @@ export class PseuplexApp {
 	readonly responseFilters: PseuplexResponseFilterLists = {};
 
 	readonly plexServerURL: string;
+	readonly plexServerMoviesLibraryId?: string | number;
+	readonly plexServerTVShowsLibraryId?: string | number;
 	readonly plexAdminAuthContext: plexTypes.PlexAuthContext;
 	readonly plexServerProperties: PlexServerPropertiesStore;
 	readonly plexServerAccounts: PlexServerAccountsStore;
@@ -147,6 +151,8 @@ export class PseuplexApp {
 		
 		// define properties
 		this.plexServerURL = options.plexServerURL;
+		this.plexServerMoviesLibraryId = options.plexServerMoviesLibraryId;
+		this.plexServerTVShowsLibraryId = options.plexServerTVShowsLibraryId;
 		this.plexAdminAuthContext = options.plexAdminAuthContext;
 		this.plexServerProperties = new PlexServerPropertiesStore({
 			plexServerURL: this.plexServerURL,

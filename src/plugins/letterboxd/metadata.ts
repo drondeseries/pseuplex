@@ -15,6 +15,7 @@ import * as lbTransform from './transform';
 export type LetterboxdMetadataItem = letterboxd.FilmInfo;
 
 export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<LetterboxdMetadataItem> {
+	readonly sourceDisplayName = "Letterboxd";
 	readonly sourceSlug = PseuplexMetadataSource.Letterboxd;
 
 	override async fetchMetadataItem(id: PseuplexPartialMetadataIDString): Promise<LetterboxdMetadataItem> {

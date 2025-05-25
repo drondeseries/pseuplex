@@ -3,9 +3,6 @@ import * as plexTypes from '../types';
 import {
 	plexServerFetch
 } from './core';
-import {
-	booleanQueryParam
-} from './serialization';
 
 export const getLibraryMetadata = async (id: string | string[], options: {
 	params?: plexTypes.PlexMetadataPageParams,

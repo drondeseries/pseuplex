@@ -91,6 +91,7 @@ export type PseuplexMetadataListPage<TMetadataItem> = {
 };
 
 export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements PseuplexMetadataProvider {
+	abstract readonly sourceDisplayName: string;
 	abstract readonly sourceSlug: string;
 	readonly basePath: string;
 	readonly plexMetadataClient: PlexClient;
