@@ -204,6 +204,25 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					qualifiedMetadataIds: false,
 					plexParams: params
 				});
+				// add related hubs if included
+				if(params['includeRelated'] == 1) {
+					// filter related hubs
+					await forArrayOrSingleAsyncParallel(resData.MediaContainer.Metadata, async (metadataItem) => {
+						const metadataId = metadataItem.Pseuplex.metadataIds[this.metadata.sourceSlug];
+						if(!metadataId) {
+							return;
+						}
+						const metadataIdParts = parsePartialMetadataID(metadataId);
+						// add similar items hub
+						const metadataProvider = this.metadata;
+						const resData = await metadataProvider.getRelatedHubs(metadataId, {
+							plexServerURL: this.app.plexServerURL,
+							plexAuthContext: req.plex.authContext,
+						});
+						// filter response
+						await this.app.filterResponse('metadataRelatedHubsFromProvider', resData, { userReq:req, userRes:res, metadataId:metadataIdParts, metadataProvider });
+					});
+				}
 				// filter page
 				await this.app.filterResponse('metadataFromProvider', resData, { userReq:req, userRes:res, metadataProvider });
 				// send unavailable notification(s) if needed
@@ -243,25 +262,15 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
 				const id = req.params.id;
 				const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:true});
-				const hubs: plexTypes.PlexHubWithItems[] = [];
 				// add similar items hub
-				const hub = await this.hubs.similar.get(id);
-				const hubEntry = await hub.getHubListEntry(params, {
+				const metadataProvider = this.metadata;
+				const resData = await metadataProvider.getRelatedHubs(id, {
 					plexServerURL: this.app.plexServerURL,
-					plexAuthContext: req.plex.authContext
-				});
-				hubs.push(hubEntry);
-				// create response
-				const resData: plexTypes.PlexHubsPage = {
-					MediaContainer: {
-						size: hubs.length,
-						identifier: plexTypes.PlexPluginIdentifier.PlexAppLibrary,
-						Hub: hubs
-					}
-				};
+					plexAuthContext: req.plex.authContext,
+					plexParams: params,
+				})
 				// filter response
 				const metadataId = parsePartialMetadataID(id);
-				const metadataProvider = this.metadata;
 				await this.app.filterResponse('metadataRelatedHubsFromProvider', resData, { userReq:req, userRes:res, metadataId, metadataProvider });
 				// return response
 				return resData;
