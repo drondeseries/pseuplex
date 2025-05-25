@@ -50,6 +50,7 @@ export type PlexMetadataCollection = {
 export type PlexMetadataItem = {
 	guid?: string; // "plex://episode/6rv4x76r8x9bqb98xqt9qbt29r"
 	key: string; // "/library/metadata/20205"
+	primaryExtraKey?: string; // "/library/metadata/5d9f3556d5fd3f001ee16790/extras/6204278b78fdd60048294e93"
 	slug?: string; // "spartacus"
 	type: PlexMediaItemType; // 'episode'
 	title: string; // "Some Episode Name"

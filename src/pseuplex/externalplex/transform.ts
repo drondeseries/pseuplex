@@ -37,6 +37,9 @@ export const transformExternalPlexMetadata = (metadataItem: plexTypes.PlexMetada
 	delete pseuMetadataItem.Media;
 	delete pseuMetadataItem.userState;
 	delete pseuMetadataItem.Collection;
+	delete pseuMetadataItem.primaryExtraKey;
+	delete pseuMetadataItem.availabilityId;
+	delete pseuMetadataItem.streamingMediaId;
 	let metadataId = pseuMetadataItem.ratingKey;
 	if(!metadataId) {
 		metadataId = parseMetadataIDFromKey(pseuMetadataItem.key, '/library/metadata/')?.id;
