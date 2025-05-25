@@ -283,11 +283,7 @@ export class PseuplexApp {
 					// remap IDs if needed (since filters may add hubs)
 					if(this.idMappings && resData.MediaContainer.Hub) {
 						for(const hub of resData.MediaContainer.Hub) {
-							if(hub.Metadata) {
-								for(const metadataItem of hub.Metadata) {
-									this.remapMetadataIdIfNeeded(metadataItem);
-								}
-							}
+							this.remapHubMetadataIdsIfNeeded(hub);
 						}
 					}
 					return resData;
@@ -304,11 +300,7 @@ export class PseuplexApp {
 					// remap IDs if needed (since filters may add hubs)
 					if(this.idMappings && resData.MediaContainer.Hub) {
 						for(const hub of resData.MediaContainer.Hub) {
-							if(hub.Metadata) {
-								for(const metadataItem of hub.Metadata) {
-									this.remapMetadataIdIfNeeded(metadataItem);
-								}
-							}
+							this.remapHubMetadataIdsIfNeeded(hub);
 						}
 					}
 					return resData;
@@ -447,11 +439,7 @@ export class PseuplexApp {
 				// remap IDs if needed
 				if(this.idMappings && resData.MediaContainer.Hub) {
 					for(const hub of resData.MediaContainer.Hub) {
-						if(hub.Metadata) {
-							for(const metadataItem of hub.Metadata) {
-								this.remapMetadataIdIfNeeded(metadataItem, keysToIdsMap);
-							}
-						}
+						this.remapHubMetadataIdsIfNeeded(hub, keysToIdsMap);
 					}
 				}
 				return resData;
@@ -465,11 +453,7 @@ export class PseuplexApp {
 					// remap IDs if needed (since filters may add hubs)
 					if(this.idMappings && resData.MediaContainer.Hub) {
 						for(const hub of resData.MediaContainer.Hub) {
-							if(hub.Metadata) {
-								for(const metadataItem of hub.Metadata) {
-									this.remapMetadataIdIfNeeded(metadataItem);
-								}
-							}
+							this.remapHubMetadataIdsIfNeeded(hub);
 						}
 					}
 					return resData;
@@ -834,7 +818,37 @@ export class PseuplexApp {
 	}
 
 	// remaps private IDs (such as "letterboxd:film:mission-impossible") to plex-acceptable IDs (such as "-2")
-	async remapMetadataIdIfNeeded(metadataItem: plexTypes.PlexMetadataItem, keysToIdsMap?: {[key: string]: (number | string)}) {
+	remapHubMetadataIdsIfNeeded(hub: plexTypes.PlexHubWithItems, keysToIdsMap?: {[key: string]: (number | string)}) {
+		if(!this.idMappings) {
+			return;
+		}
+		// check if hub key needs to be mapped
+		let metadataKeyParts = parseMetadataIDFromKey(hub.hubKey, '/library/metadata/');
+		let metadataIds: (string | number)[] = metadataKeyParts?.id.split(',');
+		if(metadataIds) {
+			for(let i=0; i<metadataIds.length; i++) {
+				const metadataIdString = `${metadataIds[i]}`;
+				const metadataId = parseMetadataID(metadataIdString);
+				if(!metadataId.source || metadataId.source == PseuplexMetadataSource.Plex) {
+					// don't map plex IDs
+					continue;
+				}
+				// map the ID
+				const publicId = keysToIdsMap?.[metadataIdString] ?? this.idMappings.getIDForKey(metadataIdString);
+				metadataIds[i] = publicId;
+			}
+			hub.hubKey = `/library/metadata/${metadataIds.join(',')}` + (metadataKeyParts?.relativePath ?? '');
+		}
+		// remap metadata items if needed
+		if(hub.Metadata) {
+			for(const metadataItem of hub.Metadata) {
+				this.remapMetadataIdIfNeeded(metadataItem, keysToIdsMap);
+			}
+		}
+	}
+
+	// remaps private IDs (such as "letterboxd:film:mission-impossible") to plex-acceptable IDs (such as "-2")
+	remapMetadataIdIfNeeded(metadataItem: plexTypes.PlexMetadataItem, keysToIdsMap?: {[key: string]: (number | string)}) {
 		if(!this.idMappings) {
 			return;
 		}
@@ -858,5 +872,11 @@ export class PseuplexApp {
 		const publicPath = `/library/metadata/${publicId}` + (metadataKeyParts?.relativePath ?? '');
 		metadataItem.ratingKey = `${publicId}`;
 		metadataItem.key = publicPath;
+		// map related items if needed
+		if(metadataItem.Related?.Hub) {
+			for(const hub of metadataItem.Related.Hub) {
+				this.remapHubMetadataIdsIfNeeded(hub, keysToIdsMap);
+			}
+		}
 	}
 }

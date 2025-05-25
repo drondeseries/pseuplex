@@ -98,7 +98,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					});
 				}
 			}(),
-	
+			
 			similar: new class extends PseuplexHubProvider {
 				readonly relativePath = 'similar';
 				override fetch(metadataId: PseuplexPartialMetadataIDString): PseuplexHub | Promise<PseuplexHub> {
