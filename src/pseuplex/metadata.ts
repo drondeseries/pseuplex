@@ -167,8 +167,13 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 					plexAuthContext: options.plexAuthContext
 				})
 				: await this.idToPlexGuidCache.get(metadataId);
+			// attach plex guid if able
 			if(plexGuid) {
 				metadataItem.guid = plexGuid;
+				const guidParts = parsePlexMetadataGuid(plexGuid);
+				if(guidParts.type) {
+					metadataItem.type = guidParts.type as plexTypes.PlexMediaItemType;
+				}
 			}
 		} catch(error) {
 			console.error(error);

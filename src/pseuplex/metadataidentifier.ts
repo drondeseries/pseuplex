@@ -100,7 +100,9 @@ export const parseMetadataID = (idString: PseuplexMetadataIDString): PseuplexMet
 		source: source,
 		directory: directory,
 		id: qs.unescape(id),
-		relativePath: isURL ? relativePath : qs.unescape(relativePath)
+		relativePath: (relativePath != null) ?
+			(isURL ? relativePath : qs.unescape(relativePath))
+			: undefined
 	};
 };
 
