@@ -29,7 +29,7 @@ import {
 	HttpError,
 	transformArrayOrSingleAsyncParallel
 } from '../utils';
-import { PseuplexSection } from './section';
+import type { PseuplexSection } from './section';
 
 
 export type PseuplexMetadataParams = {
