@@ -137,10 +137,10 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 	defineRoutes(router: express.Express) {
 		// handle different paths for a plex request
 		for(const endpoint of [
-			`/${this.requestsHandler.basePath}/:providerSlug/:mediaType/:plexId`,
-			`/${this.requestsHandler.basePath}/:providerSlug/:mediaType/:plexId/children`,
-			`/${this.requestsHandler.basePath}/:providerSlug/:mediaType/:plexId/season/:season`,
-			`/${this.requestsHandler.basePath}/:providerSlug/:mediaType/:plexId/season/:season/children`
+			`${this.requestsHandler.basePath}/:providerSlug/:mediaType/:plexId`,
+			`${this.requestsHandler.basePath}/:providerSlug/:mediaType/:plexId/children`,
+			`${this.requestsHandler.basePath}/:providerSlug/:mediaType/:plexId/season/:season`,
+			`${this.requestsHandler.basePath}/:providerSlug/:mediaType/:plexId/season/:season/children`
 		]) {
 			const children = endpoint.endsWith(reqsTransform.ChildrenRelativePath);
 
@@ -150,7 +150,6 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 				this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res) => {
 					// get request properties
 					const { providerSlug, mediaType, plexId } = req.params;
-					const guid = `plex://${mediaType}/${plexId}`;
 					const season = intParam(req.params.season);
 					const plexUserInfo = req.plex.userInfo;
 					const plexAuthContext = req.plex.authContext;
