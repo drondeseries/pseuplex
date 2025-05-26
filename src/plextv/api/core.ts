@@ -47,11 +47,11 @@ export const plexTVFetch = async <TResult>(options: {
 	if(!responseText) {
 		return undefined;
 	}
-	const contentTypeInfo = parseHttpContentType(res.headers.get('content-type'));
+	const contentType = parseHttpContentType(res.headers.get('content-type')).contentTypes[0];
 	//console.log(`Response (${contentTypeInfo.contentType}):\n${responseText}`);
-	if(contentTypeInfo.contentType == 'application/json') {
+	if(contentType == 'application/json') {
 		return JSON.parse(responseText);
-	} else if(contentTypeInfo.contentType == 'application/xml' || contentTypeInfo.contentType == 'text/xml' || responseText.startsWith('<')) {
+	} else if(contentType == 'application/xml' || contentType == 'text/xml' || responseText.startsWith('<')) {
 		return await plexXMLToJS(responseText);
 	} else {
 		return JSON.parse(responseText);

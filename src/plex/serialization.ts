@@ -2,34 +2,18 @@
 import xml2js from 'xml2js';
 import express from 'express';
 
-export const parseHttpContentType = (contentType: string): {contentType: string, contentTypeSuffix: string} => {
+export const parseHttpContentType = (contentType: string): {contentTypes: string[], contentTypeSuffix: string} => {
 	if(!contentType) {
-		return { contentType, contentTypeSuffix: '' };
+		return { contentTypes: [], contentTypeSuffix: '' };
 	}
-	// find delimeter
-	let commaIndex = contentType.indexOf(',');
-	let semicolonIndex = contentType.indexOf(';');
-	let delimeterIndex;
-	if(commaIndex != -1) {
-		if(semicolonIndex != -1) {
-			if(commaIndex < semicolonIndex) {
-				delimeterIndex = commaIndex;
-			} else {
-				delimeterIndex = semicolonIndex;
-			}
-		} else {
-			delimeterIndex = commaIndex;
-		}
-	} else {
-		delimeterIndex = semicolonIndex;
-	}
-	// slice string
+	// split content type string
+	let delimeterIndex = contentType.indexOf(';');
 	let contentTypeSuffix = '';
 	if(delimeterIndex != -1) {
 		contentTypeSuffix = contentType.substring(delimeterIndex);
 		contentType = contentType.substring(0, delimeterIndex);
 	}
-	return {contentType,contentTypeSuffix};
+	return {contentTypes:contentType.split(',').map((part) => part.trim()), contentTypeSuffix};
 };
 
 export const parseHttpContentTypeFromHeader = (req: express.Request, header: string) => {
@@ -73,10 +57,16 @@ const mergeXML2JSAttrs = (obj: object) => {
 	return obj;
 };
 
+const NameValidationRegex = /^[a-zA-Z0-9:\-_\.]+$/
+
 const convertPlexJSForXMLBuilder = (json: any, parentKey: string) => {
 	const xmlObj = {};
 	const xmlAttrs = {};
 	for(const key in json) {
+		// ignore invalid keys
+		if(!NameValidationRegex.test(key)) {
+			continue;
+		}
 		const val = json[key];
 		if(val == null) {
 			// ignore
@@ -110,7 +100,7 @@ export const plexJSToXML = (json: any): string => {
 	// convert
 	const xmlBuilder = new xml2js.Builder({
 		rootName: rootKey,
-		attrkey: attrKey as any
+		attrkey: attrKey
 	});
 	return xmlBuilder.buildObject(json);
 };
@@ -120,16 +110,17 @@ export const serializeResponseContent = (userReq: express.Request, userRes: expr
 	contentType: string;
 	data: string;
  } => {
-	const acceptType = parseHttpContentTypeFromHeader(userReq, 'accept').contentType;
-	if(acceptType == 'application/json') {
+	const acceptTypes = parseHttpContentTypeFromHeader(userReq, 'accept').contentTypes;
+	if(acceptTypes.indexOf('application/json') != -1) {
 		return {
 			contentType: 'application/json',
 			data: JSON.stringify(data)
 		}
 	} else {
+		const xmlContentType = acceptTypes.find((item) => (item.endsWith('/xml')));
 		// convert to xml
 		return {
-			contentType: acceptType || 'application/xml',
+			contentType: xmlContentType || 'application/xml',
 			data: plexJSToXML(data)
 		};
 	}
