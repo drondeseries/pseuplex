@@ -7,7 +7,7 @@ import httpolyglot from 'httpolyglot';
 import * as plexTypes from '../plex/types';
 import * as plexServerAPI from '../plex/api';
 import { PlexServerPropertiesStore } from '../plex/serverproperties';
-import { PlexServerAccountsStore } from '../plex/accounts';
+import { PlexServerAccountInfo, PlexServerAccountsStore } from '../plex/accounts';
 import {
 	PlexGuidToInfoCache,
 	createPlexServerIdToGuidCache,
@@ -95,12 +95,14 @@ export type PseuplexPluginClass = {
 type PseuplexAppMetadataParams = {
 	plexServerURL: string;
 	plexAuthContext: plexTypes.PlexAuthContext;
+	plexUserInfo: PlexServerAccountInfo;
 	plexParams?: plexTypes.PlexMetadataPageParams;
 };
 
 type PseuplexAppMetadataChildrenParams = {
 	plexServerURL: string;
 	plexAuthContext: plexTypes.PlexAuthContext;
+	plexUserInfo: PlexServerAccountInfo;
 	plexParams?: plexTypes.PlexMetadataChildrenPageParams;
 };
 
@@ -197,14 +199,16 @@ export class PseuplexApp {
 			const plugin = new pluginClass(this);
 
 			// add plugin metadata providers
-			const metadataProvider = plugin.metadata;
-			if(metadataProvider) {
-				const metadataSlug = metadataProvider.sourceSlug;
-				if(metadataSlug in this.metadataProviders) {
-					console.error(`Ignoring duplicate metadata provider '${metadataProvider.sourceSlug}' in plugin '${pluginClass.slug}'`);
-					continue;
+			const metadataProviders = plugin.metadataProviders;
+			if(metadataProviders) {
+				for(const metadataProvider of metadataProviders) {
+					const metadataSlug = metadataProvider.sourceSlug;
+					if(metadataSlug in this.metadataProviders) {
+						console.error(`Ignoring duplicate metadata provider '${metadataProvider.sourceSlug}' in plugin '${pluginClass.slug}'`);
+						continue;
+					}
+					this.metadataProviders[metadataSlug] = metadataProvider;
 				}
-				this.metadataProviders[metadataSlug] = metadataProvider;
 			}
 
 			// add plugin response filters
@@ -324,6 +328,7 @@ export class PseuplexApp {
 				const resData = await this.getMetadata(metadataIds, {
 					plexServerURL: this.plexServerURL,
 					plexAuthContext: req.plex.authContext,
+					plexUserInfo: req.plex.userInfo,
 					plexParams: req.plex.requestParams
 				});
 				// process metadata items
@@ -346,7 +351,10 @@ export class PseuplexApp {
 							// filter related hubs
 							const metadataId = parseMetadataID(metadataIdString);
 							const relatedHubsResponse: plexTypes.PlexHubsPage = {
-								MediaContainer: metadataItem.Related ?? {}
+								MediaContainer: {
+									...metadataItem.Related,
+									size: (metadataItem.Related?.Hub?.length ?? 0),
+								}
 							};
 							await this.filterResponse('metadataRelatedHubs', relatedHubsResponse, { userReq:req, userRes:res, metadataId });
 							metadataItem.Related = relatedHubsResponse.MediaContainer;
@@ -386,7 +394,10 @@ export class PseuplexApp {
 							// filter related hubs
 							const metadataIdParts = parseMetadataID(metadataId);
 							const relatedHubsResponse: plexTypes.PlexHubsPage = {
-								MediaContainer: metadataItem.Related
+								MediaContainer: {
+									...metadataItem.Related,
+									size: (metadataItem.Related?.Hub?.length ?? 0),
+								}
 							};
 							await this.filterResponse('metadataRelatedHubs', relatedHubsResponse, { proxyRes, userReq, userRes, metadataId:metadataIdParts });
 							metadataItem.Related = relatedHubsResponse.MediaContainer;
@@ -415,6 +426,7 @@ export class PseuplexApp {
 				const resData = await this.getMetadataChildren(metadataId, {
 					plexServerURL: this.plexServerURL,
 					plexAuthContext: req.plex.authContext,
+					plexUserInfo: req.plex.userInfo,
 					plexParams: plexParams
 				});
 				// remap IDs if needed
@@ -438,7 +450,8 @@ export class PseuplexApp {
 				const resData = await this.getMetadataRelatedHubs(metadataId, {
 					plexParams: req.plex.requestParams,
 					plexServerURL: this.plexServerURL,
-					plexAuthContext: req.plex.authContext
+					plexAuthContext: req.plex.authContext,
+					plexUserInfo: req.plex.userInfo,
 				});
 				// filter hub list page
 				await this.filterResponse('metadataRelatedHubs', resData, { userReq:req, userRes:res, metadataId });
@@ -510,7 +523,8 @@ export class PseuplexApp {
 					const resolveOptions: PseuplexPlayQueueURIResolverOptions = {
 						plexMachineIdentifier: await this.plexServerProperties.getMachineIdentifier(),
 						plexServerURL: this.plexServerURL,
-						plexAuthContext: req.plex.authContext
+						plexAuthContext: req.plex.authContext,
+						plexUserInfo: req.plex.userInfo,
 					};
 					uriProp = await transformArrayOrSingleAsyncParallel(uriProp, async (uri) => {
 						return await this.resolvePlayQueueURI(uri, resolveOptions);
@@ -601,7 +615,7 @@ export class PseuplexApp {
 		};
 		const providerParams: PseuplexMetadataProviderParams = {
 			...params,
-			includeDiscoverMatches: true,
+			includePlexDiscoverMatches: true,
 			includeUnmatched: true,
 			transformMatchKeys: true,
 			metadataBasePath: transformOpts.metadataBasePath,
@@ -690,7 +704,7 @@ export class PseuplexApp {
 		};
 		const providerParams: PseuplexMetadataChildrenProviderParams = {
 			...params,
-			includeDiscoverMatches: true
+			includePlexDiscoverMatches: true
 		};
 		// get metadata for each id
 		let source = metadataId.source;

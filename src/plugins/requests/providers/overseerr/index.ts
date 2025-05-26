@@ -158,6 +158,10 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				if(!plexItem) {
 					throw httpError(500, `Unable to fetch show for episode`);
 				}
+				// cache if needed
+				if(this.app.plexGuidToInfoCache) {
+					this.app.plexGuidToInfoCache.cacheMetadataItem(plexItem);
+				}
 				break;
 
 			case plexTypes.PlexMediaItemType.Season:
@@ -174,6 +178,10 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				plexItem = firstOrSingle((await this.app.plexMetadataClient.getMetadata(parentGuidParts.id)).MediaContainer.Metadata);
 				if(!plexItem) {
 					throw httpError(500, `Unable to fetch show for season`);
+				}
+				// cache if needed
+				if(this.app.plexGuidToInfoCache) {
+					this.app.plexGuidToInfoCache.cacheMetadataItem(plexItem);
 				}
 				break;
 				

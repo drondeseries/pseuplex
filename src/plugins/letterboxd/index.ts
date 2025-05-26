@@ -24,8 +24,9 @@ import {
 	stringifyMetadataID,
 	parsePartialMetadataID,
 	stringifyPartialMetadataID,
+	PseuplexMetadataProvider,
+	PseuplexSection
 } from '../../pseuplex';
-import { PseuplexSection } from '../../pseuplex/section';
 import {
 	LetterboxdMetadataProvider
 } from './metadata';
@@ -126,7 +127,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// create metadata provider
 		this.metadata = new LetterboxdMetadataProvider({
 			basePath: `${this.basePath}/metadata`,
-			//section: section,
+			section: this.section,
 			plexMetadataClient: this.app.plexMetadataClient,
 			similarItemsHubProvider: this.hubs.similar,
 			plexGuidToInfoCache: this.app.plexGuidToInfoCache,
@@ -135,6 +136,10 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 
 	get basePath(): string {
 		return `/${this.app.slug}/${this.slug}`;
+	}
+
+	get metadataProviders(): PseuplexMetadataProvider[] {
+		return [this.metadata];
 	}
 
 	get config(): LetterboxdPluginConfig {
@@ -198,7 +203,8 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				const resData = await metadataProvider.get(ids, {
 					plexServerURL: this.app.plexServerURL,
 					plexAuthContext: reqAuthContext,
-					includeDiscoverMatches: true,
+					plexUserInfo: reqUserInfo,
+					includePlexDiscoverMatches: true,
 					includeUnmatched: true,
 					transformMatchKeys: true,
 					metadataBasePath: metadataProvider.basePath,
@@ -218,7 +224,8 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						const metadataProvider = this.metadata;
 						const resData = await metadataProvider.getRelatedHubs(metadataId, {
 							plexServerURL: this.app.plexServerURL,
-							plexAuthContext: req.plex.authContext,
+							plexAuthContext: reqAuthContext,
+							plexUserInfo: reqUserInfo,
 						});
 						// filter response
 						await this.app.filterResponse('metadataRelatedHubsFromProvider', resData, { userReq:req, userRes:res, metadataId:metadataIdParts, metadataProvider });
@@ -268,6 +275,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				const resData = await metadataProvider.getRelatedHubs(id, {
 					plexServerURL: this.app.plexServerURL,
 					plexAuthContext: req.plex.authContext,
+					plexUserInfo: req.plex.userInfo,
 					plexParams: params,
 				})
 				// filter response
@@ -334,7 +342,8 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		let metadatas = (await this.metadata.get(slugs, {
 			plexServerURL: options.plexServerURL,
 			plexAuthContext: options.plexAuthContext,
-			includeDiscoverMatches: false,
+			plexUserInfo: options.plexUserInfo,
+			includePlexDiscoverMatches: false,
 			includeUnmatched: false,
 			transformMatchKeys: false // keep the resolved key
 		})).MediaContainer.Metadata;
@@ -467,9 +476,9 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 							metadataItem,
 							plexAuthContext
 						});
-					}
-					if(!letterboxdMetadataId) {
-						return;
+						if(!letterboxdMetadataId) {
+							return;
+						}
 					}
 					// attach letterboxd friends reviews
 					const getFilmOpts = lbTransform.getFilmOptsFromPartialMetadataId(letterboxdMetadataId);

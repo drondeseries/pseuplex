@@ -13,8 +13,8 @@ export type PseuplexMetadataIDString =
 	`${string}`
 	| `${string}:${string}`
 	| `${string}:${string}:${string}`
-	| `${string}:${string}:${string}:${string}`
 	| `${string}://${string}`
+	| `${string}://${string}/${string}`
 	| `${string}://${string}/${string}${string}`;
 
 export const parseMetadataID = (idString: PseuplexMetadataIDString): PseuplexMetadataIDParts => {
@@ -23,7 +23,7 @@ export const parseMetadataID = (idString: PseuplexMetadataIDString): PseuplexMet
 	if(delimiterIndex === -1) {
 		// just an ID string
 		return {
-			id: qs.unescape(idString)
+			id: idString
 		};
 	}
 	const source = idString.substring(0, delimiterIndex);
@@ -45,13 +45,13 @@ export const parseMetadataID = (idString: PseuplexMetadataIDString): PseuplexMet
 	// parse directory
 	delimiterIndex = idString.indexOf(delimiter, startIndex);
 	if(delimiterIndex == -1) {
-		// format was source:ID or source://ID
+		// no delimiter, so format was source:ID or source://ID or source://ID?relativepath
 		const remainingString = idString.substring(startIndex);
 		let id: string;
 		let relativePath: string | undefined;
 		if(isURL) {
-			// format was source://ID
-			delimiterIndex = remainingString.search(/(\/|\?|\#)/);
+			// parse relative path if it exists (ie: trailing query)
+			delimiterIndex = remainingString.search(/(\?|\#)/);
 			if(delimiterIndex != -1) {
 				// format was source://ID?relativepath
 				id = remainingString.substring(0, delimiterIndex);
@@ -73,36 +73,40 @@ export const parseMetadataID = (idString: PseuplexMetadataIDString): PseuplexMet
 			relativePath
 		};
 	}
-	// format was source:directory:ID or source://directory/ID
+	// directory component found,
+	//  so format was source:directory:ID or source://directory/ID
 	let directory = idString.substring(startIndex, delimiterIndex);
 	directory = qs.unescape(directory);
 	// parse id and relative path
 	startIndex = delimiterIndex+1;
 	const remainingStr = idString.substring(startIndex);
-	delimiterIndex = isURL ? remainingStr.search(/(\/|\?|\#)/) : remainingStr.indexOf(delimiter);
 	let id: string;
-	let relativePath: string | undefined;
-	if(delimiterIndex != -1) {
-		// format was source:directory:ID:relativepath or source://directory/ID/relativepath
-		id = remainingStr.substring(0, delimiterIndex);
-		let relPathStartIndex = delimiterIndex;
-		if(!isURL) {
-			relPathStartIndex++;
+	let relativePath: string | undefined = undefined;
+	if(isURL) {
+		delimiterIndex = remainingStr.search(/(\/|\?|\#)/);
+		if(delimiterIndex != -1) {
+			// format was source://directory/ID/relativepath
+			id = remainingStr.substring(0, delimiterIndex);
+			let relPathStartIndex = delimiterIndex;
+			if(!isURL) {
+				relPathStartIndex++;
+			}
+			relativePath = remainingStr.substring(relPathStartIndex);
+		} else {
+			// format was source://directory/ID
+			id = remainingStr;
+			relativePath = undefined;
 		}
-		relativePath = remainingStr.substring(relPathStartIndex);
 	} else {
-		// format was source:directory:ID or source://directory/ID
+		// no relativePath if not a url
 		id = remainingStr;
-		relativePath = undefined;
 	}
 	return {
 		isURL,
-		source: source,
-		directory: directory,
-		id: qs.unescape(id),
-		relativePath: (relativePath != null) ?
-			(isURL ? relativePath : qs.unescape(relativePath))
-			: undefined
+		source,
+		directory,
+		id: isURL ? qs.unescape(id) : id, // id is not escaped when non-URL (but components of ID might be parsed and unescaped separately)
+		relativePath,
 	};
 };
 
@@ -114,22 +118,24 @@ export const stringifyMetadataID = (idParts: PseuplexMetadataIDParts): PseuplexM
 		} else {
 			idString = `${idParts.source}://${qs.escape(idParts.directory ?? '')}/${qs.escape(idParts.id)}`;
 		}
+		if(idParts.relativePath != null) {
+			idString += idParts.relativePath;
+		}
 	} else {
 		if(idParts.source == null) {
+			if(idParts.directory != null) {
+				console.error(`Directory component won't be used when there is no source`);
+			}
 			return idParts.id;
 		} else {
 			if(idParts.directory == null && idParts.relativePath == null) {
 				idString = `${idParts.source}:${qs.escape(idParts.id)}`;
 			} else {
-				idString = `${idParts.source}:${qs.escape(idParts.directory ?? '')}:${qs.escape(idParts.id)}`;
+				idString = `${idParts.source}:${qs.escape(idParts.directory ?? '')}:${idParts.id}`;
 			}
 		}
-	}
-	if(idParts.relativePath != null) {
-		if(idParts.isURL) {
-			idString += idParts.relativePath;
-		} else {
-			idString += `:${qs.escape(idParts.relativePath)}`;
+		if(idParts.relativePath != null) {
+			console.error(`Non-url cannot include relativePath ${JSON.stringify(idParts.relativePath)}`);
 		}
 	}
 	return idString;
@@ -138,43 +144,29 @@ export const stringifyMetadataID = (idParts: PseuplexMetadataIDParts): PseuplexM
 export type PseuplexPartialMetadataIDParts = {
 	directory?: string;
 	id: string;
-	relativePath?: string;
 };
 
 export type PseuplexPartialMetadataIDString =
 	`${string}`
-	| `${string}:${string}`
-	| `${string}:${string}:${string}`;
+	| `${string}:${string}`;
 
 export const parsePartialMetadataID = (metadataId: PseuplexPartialMetadataIDString): PseuplexPartialMetadataIDParts => {
 	let colonIndex = metadataId.indexOf(':');
 	if(colonIndex == -1) {
-		return {id:metadataId};
-	}
-	let prefixEndIndex = colonIndex;
-	colonIndex = metadataId.indexOf(':', prefixEndIndex+1);
-	if(colonIndex == -1) {
-		return {
-			directory: qs.unescape(metadataId.substring(0, prefixEndIndex)),
-			id: qs.unescape(metadataId.substring(prefixEndIndex+1))
-		};
+		return {id:qs.unescape(metadataId)};
 	}
 	return {
-		directory: qs.unescape(metadataId.substring(0, prefixEndIndex)),
-		id: qs.unescape(metadataId.substring(prefixEndIndex+1, colonIndex)),
-		relativePath: qs.unescape(metadataId.substring(colonIndex+1))
+		directory: qs.unescape(metadataId.substring(0, colonIndex)),
+		id: metadataId.substring(colonIndex+1)
 	};
 };
 
 export const stringifyPartialMetadataID = (idParts: PseuplexPartialMetadataIDParts): PseuplexPartialMetadataIDString => {
-	if(idParts.relativePath == null) {
-		if(idParts.directory == null) {
-			return idParts.id;
-		} else {
-			return `${qs.escape(idParts.directory)}:${qs.escape(idParts.id)}`;
-		}
+	if(idParts.directory == null) {
+		return qs.escape(idParts.id);
+	} else {
+		return `${qs.escape(idParts.directory)}:${idParts.id}`;
 	}
-	return `${qs.escape(idParts.directory)}:${qs.escape(idParts.id)}:${qs.escape(idParts.relativePath)}`;
 };
 
 export const qualifyPartialMetadataID = (metadataId: PseuplexPartialMetadataIDString, source: string) => {

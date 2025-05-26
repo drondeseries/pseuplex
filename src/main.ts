@@ -43,6 +43,7 @@ const readPlexPrefsIfNeeded = async () => {
 	}
 	if(args.verbose) {
 		console.log(`parsed arguments:\n${JSON.stringify(args, null, '\t')}\n`);
+		process.env.DEBUG = '*';
 	}
 
 	// load config

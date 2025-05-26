@@ -37,7 +37,7 @@ export class TemplateMetadataProvider extends PseuplexMetadataProviderBase<Templ
 		// TODO map raw metadata item to pseuplex metadata item
 		const idString = this.idFromMetadataItem(metadataItem);
 		return {
-			key: `${this.basePath}/${idString}`,
+			key: `/pseuplex/templateprovider/${idString}`,
 			ratingKey: idString,
 			title: metadataItem.title,
 		} as any;

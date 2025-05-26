@@ -3,6 +3,7 @@ import http from 'http';
 import express from 'express';
 import * as plexTypes from '../plex/types';
 import { IncomingPlexAPIRequest } from '../plex/requesthandling';
+import { PlexServerAccountInfo } from '../plex/accounts';
 import { PseuplexMetadataPage } from './types';
 import { PseuplexHubProvider } from './hub';
 import { PseuplexMetadataProvider } from './metadata';
@@ -44,11 +45,12 @@ export type PseuplexPlayQueueURIResolverOptions = {
 	plexMachineIdentifier: string;
 	plexServerURL: string;
 	plexAuthContext: plexTypes.PlexAuthContext;
+	plexUserInfo: PlexServerAccountInfo;
 };
 
 
 export interface PseuplexPlugin {
-	readonly metadata?: PseuplexMetadataProvider;
+	readonly metadataProviders?: PseuplexMetadataProvider[];
 	readonly hubs?: { readonly [hubName: string]: PseuplexHubProvider };
 	readonly responseFilters?: PseuplexReadOnlyResponseFilters;
 

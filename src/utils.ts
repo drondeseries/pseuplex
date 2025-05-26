@@ -312,10 +312,10 @@ export const asyncRequestHandler = <TRequest extends express.Request = express.R
 	};
 };
 
-export const expressErrorHandler = (error, req: express.Request, res: express.Response, next) => {
+export const expressErrorHandler = (error: Error, req: express.Request, res: express.Response, next) => {
 	if(error) {
 		console.error(error);
-		res.status(error.statusCode ?? 500).send(error.message);
+		res.status((error as HttpError).statusCode ?? 500).send(error.message);
 		console.log(`Sent error ${error.message}`);
 	} else {
 		next();

@@ -1,6 +1,4 @@
-import qs from 'querystring';
 import * as plexTypes from '../../plex/types';
-import { PlexClient } from '../../plex/client';
 import { parsePlexMetadataGuid } from '../../plex/metadataidentifier';
 import {
 	PseuplexMetadataSource,
@@ -9,187 +7,129 @@ import {
 	stringifyPartialMetadataID,
 	parsePartialMetadataID
 } from "../../pseuplex";
-import { findInArrayOrSingle, firstOrSingle, WithOptionalPropsRecursive } from '../../utils';
-import { RequestsProvider } from './provider';
 
 export const ChildrenRelativePath = '/children';
 export const SeasonRelativePath = '/season/';
+export const SeasonIDComponentPortion = 'season';
 
-export type RequestMetadataIDParts = {
+export type RequestMetadataItemIDComponentParts = {
+	mediaType: plexTypes.PlexMediaItemType,
+	plexId: string,
+	season?: number,
+}
+
+export type RequestPartialMetadataIDParts = {
 	requestProviderSlug: string,
-	itemGuid: string,
-	season?: number
+} & RequestMetadataItemIDComponentParts;
+
+const createRequestMetadataItemIdComponent = (idParts: RequestMetadataItemIDComponentParts) => {
+	return `${idParts.mediaType}:${idParts.plexId}`
+		+ (idParts.season != null ? `:${SeasonIDComponentPortion}${idParts.season}` : '');
 };
 
-export const createRequestFullMetadataId = (options: RequestMetadataIDParts) => {
+const parseRequestMetadataItemIdComponent = (idString: string): RequestMetadataItemIDComponentParts => {
+	const idParts = idString.split(':');
+	if(idParts.length < 2) {
+		throw new Error(`Invalid request id component ${idString}`);
+	}
+	const mediaType = idParts[0] as plexTypes.PlexMediaItemType; // TODO validate media type?
+	const plexId = idParts[1];
+	let season: number | undefined = undefined;
+	if(idParts.length > 2) {
+		if(idParts.length > 3) {
+			console.error(`Unknown request id component format ${JSON.stringify(idString)}`);
+		}
+		const childString = idParts[2];
+		// parse season
+		if(childString.startsWith(SeasonIDComponentPortion)) {
+			const seasonString = childString.substring(SeasonIDComponentPortion.length);
+			season = Number.parseInt(seasonString);
+			if(Number.isNaN(season)) {
+				season = undefined;
+			}
+		} else {
+			console.error(`Unrecognized child portion ${JSON.stringify(childString)}`);
+		}
+	}
+	return {
+		mediaType,
+		plexId,
+		season,
+	};
+};
+
+export const createRequestFullMetadataId = (idParts: RequestPartialMetadataIDParts) => {
 	return stringifyMetadataID({
-		source: PseuplexMetadataSource.Requests,
-		directory: options.requestProviderSlug,
-		id: options.itemGuid,
-		relativePath: (options.season != null ? `${SeasonRelativePath}${options.season}` : undefined),
+		source: PseuplexMetadataSource.Request,
+		directory: idParts.requestProviderSlug,
+		id: createRequestMetadataItemIdComponent(idParts),
 	});
 };
 
-export const createRequestPartialMetadataId = (options: RequestMetadataIDParts) => {
+export const createRequestPartialMetadataId = (idParts: RequestPartialMetadataIDParts) => {
 	return stringifyPartialMetadataID({
-		directory: options.requestProviderSlug,
-		id: options.itemGuid,
-		relativePath: (options.season != null ? `${SeasonRelativePath}${options.season}` : undefined),
+		directory: idParts.requestProviderSlug,
+		id: createRequestMetadataItemIdComponent(idParts)
 	});
 };
 
 export const createRequestItemMetadataKey = (options: {
-	pluginBasePath: string,
+	basePath: string,
 	requestProviderSlug: string,
-	itemGuid: string,
+	mediaType: plexTypes.PlexMediaItemType,
+	plexId: string,
 	season?: number,
 	children?: boolean
 }) => {
-	return `${options.pluginBasePath}/${options.requestProviderSlug}/request/${qs.escape(options.itemGuid)}`
-		+ (options.season != null ? `/season/${options.season}` : '')
+	return `${options.basePath}/${options.requestProviderSlug}/${options.mediaType}/${options.plexId}`
+		+ (options.season != null ? `${SeasonRelativePath}${options.season}` : '')
 		+ (options.children ? ChildrenRelativePath : '');
 }
 
-export const parsePartialRequestsMetadataId = (metadataId: PseuplexPartialMetadataIDString): RequestMetadataIDParts => {
-	const idParts = parsePartialMetadataID(metadataId);
-	// parse season
-	let season: number | undefined = undefined;
-	if(idParts.relativePath.endsWith(SeasonRelativePath)) {
-		let slashIndex = SeasonRelativePath.indexOf('/', SeasonRelativePath.length);
-		if(slashIndex == -1) {
-			slashIndex = SeasonRelativePath.length;
-		}
-		const seasonString = SeasonRelativePath.substring(SeasonRelativePath.length, slashIndex);
-		season = Number.parseInt(seasonString);
-		if(Number.isNaN(season)) {
-			season = undefined;
-		}
+export const parsePartialRequestMetadataId = (metadataId: PseuplexPartialMetadataIDString): RequestPartialMetadataIDParts => {
+	const metadataIdParts = parsePartialMetadataID(metadataId);
+	if(!metadataIdParts.directory) {
+		throw new Error(`Missing request provider slug on metadata id ${metadataId}`);
 	}
+	const idParts = parseRequestMetadataItemIdComponent(metadataIdParts.id);
 	return {
-		requestProviderSlug: idParts.directory,
-		itemGuid: idParts.id,
-		season
+		requestProviderSlug: metadataIdParts.directory,
+		...idParts,
 	};
 };
 
-export const createRequestButtonMetadataItem = async (options: {
-	pluginBasePath: string,
-	mediaType: plexTypes.PlexMediaItemTypeNumeric,
-	guid: string,
-	season?: number,
-	requestProvider: RequestsProvider,
-	plexMetadataClient: PlexClient,
-	authContext?: plexTypes.PlexAuthContext,
-	moviesLibraryId?: string | number,
-	tvShowsLibraryId?: string | number,
-}): Promise<plexTypes.PlexMetadataItem | null> => {
-	// determine properties and get metadata
-	let requestActionTitle: string;
-	let librarySectionID: string | number;
-	switch(options.mediaType) {
-		case plexTypes.PlexMediaItemTypeNumeric.Movie:
-			requestActionTitle = "Request Movie";
-			librarySectionID = options.moviesLibraryId;
-			break;
-		case plexTypes.PlexMediaItemTypeNumeric.Show:
-			requestActionTitle = "Request Show";
-			librarySectionID = options.tvShowsLibraryId;
-			break;
-		case plexTypes.PlexMediaItemTypeNumeric.Season:
-			requestActionTitle = "Request Season";
-			librarySectionID = options.tvShowsLibraryId;
-			break;
-		case plexTypes.PlexMediaItemTypeNumeric.Episode:
-			if(options.requestProvider.canRequestEpisodes) {
-				requestActionTitle = "Request Episode";
-			} else {
-				requestActionTitle = "Request Season";
-			}
-			librarySectionID = options.tvShowsLibraryId;
-			break;
-		default:
-			// can't request type
-			return;
-	}
-	if(librarySectionID == null) {
-		return null;
-	}
-	// fetch metadata
-	/*let metadataItem: plexTypes.PlexMetadataItem;
-	const guidParts = parsePlexMetadataGuid(options.guid);
-	if(options.season != null) {
-		const metadataItems = (await options.plexMetadataClient.getMetadataChildren(guidParts.id, {}, {
-			authContext: options.authContext
-		})).MediaContainer.Metadata;
-		metadataItem = findInArrayOrSingle(metadataItems, (item) => (item.index == options.season));
-	} else {
-		metadataItem = firstOrSingle((await options.plexMetadataClient.getMetadata(guidParts.id, {}, {
-			authContext: options.authContext
-		})).MediaContainer.Metadata);
-	}
-	if(!metadataItem) {
-		return null;
-	}*/
-	// create hook metadata
-	const requestMetadataItem: WithOptionalPropsRecursive<plexTypes.PlexMetadataItem> = {
-		guid: options.guid,
-		key: createRequestItemMetadataKey({
-			pluginBasePath: options.pluginBasePath,
-			requestProviderSlug: options.requestProvider.slug,
-			itemGuid: options.guid,
-			season: options.season,
-			children: false
-		}),
-		ratingKey: createRequestFullMetadataId({
-			requestProviderSlug: options.requestProvider.slug,
-			itemGuid: options.guid,
-			season: options.season
-		}),
-		type: plexTypes.PlexMediaItemNumericToType[options.mediaType],
-		title: requestActionTitle,
-		/*slug: metadataItem.slug,
-		parentSlug: metadataItem.parentSlug,
-		grandparentSlug: metadataItem.grandparentSlug,*/
-		librarySectionTitle: requestActionTitle,
-		librarySectionID,
-		librarySectionKey: `/library/sections/${librarySectionID}`,
-		Media: [{
-			id: 1,
-			videoResolution: requestActionTitle,
-			Part: [
-				{
-					id: 1
-				}
-			]
-		}]
-	};
-	return requestMetadataItem as plexTypes.PlexMetadataItem;
-};
-
-export type TransformMetadataOptions = {
-	pluginBasePath: string,
+export type TransformRequestMetadataOptions = {
+	basePath: string,
 	requestProviderSlug: string,
 	children?: boolean
 };
 
-export const setMetadataItemKeyToRequestKey = (metadataItem: plexTypes.PlexMetadataItem, opts: TransformMetadataOptions) => {
+export const setMetadataItemKeyToRequestKey = (metadataItem: plexTypes.PlexMetadataItem, opts: TransformRequestMetadataOptions) => {
 	let itemGuid = metadataItem.guid;
 	let season: number = undefined;
 	if(metadataItem.type == plexTypes.PlexMediaItemType.Season) {
 		itemGuid = metadataItem.parentGuid;
 		season = metadataItem.index;
 	}
+	const guidParts = parsePlexMetadataGuid(itemGuid);
 	const children = opts?.children ?? metadataItem.key.endsWith(ChildrenRelativePath);
 	metadataItem.key = createRequestItemMetadataKey({
-		pluginBasePath: opts.pluginBasePath,
+		basePath: opts.basePath,
 		requestProviderSlug: opts.requestProviderSlug,
-		itemGuid,
+		mediaType: guidParts.type as plexTypes.PlexMediaItemType,
+		plexId: guidParts.id,
 		season,
 		children
 	});
+	metadataItem.ratingKey = createRequestFullMetadataId({
+		requestProviderSlug: opts.requestProviderSlug,
+		mediaType: guidParts.type as plexTypes.PlexMediaItemType,
+		plexId: guidParts.id,
+		season,
+	});
 };
 
-export const transformRequestableSeasonMetadata = (metadataItem: plexTypes.PlexMetadataItem, opts: TransformMetadataOptions) => {
+export const transformRequestableSeasonMetadata = (metadataItem: plexTypes.PlexMetadataItem, opts: TransformRequestMetadataOptions) => {
 	setMetadataItemKeyToRequestKey(metadataItem, opts);
 	metadataItem.title = `Request ${metadataItem.title}`;
 };

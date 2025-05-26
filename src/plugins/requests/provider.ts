@@ -20,3 +20,7 @@ export interface RequestsProvider {
 	canPlexUserMakeRequests: (token: string, userInfo: PlexServerAccountInfo) => Promise<boolean>;
 	requestPlexItem?: (plexItem: plexTypes.PlexMetadataItem, options: PlexMediaRequestOptions) => Promise<RequestInfo>;
 }
+
+export type RequestsProviders = {
+	[providerSlug: string]: RequestsProvider
+};

@@ -9,3 +9,4 @@ export * from './hub';
 export * from './feedhub';
 export * from './matching';
 export * from './notifications';
+export * from './section';
