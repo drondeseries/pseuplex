@@ -105,12 +105,14 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 				season = intParam(context.userReq.query['season.index']);
 			}
 			// create hook metadata
-			const metadataItem = reqsTransform.createRequestButtonMetadataItem({
+			const metadataItem = await reqsTransform.createRequestButtonMetadataItem({
 				pluginBasePath: this.basePath,
 				mediaType,
 				guid,
 				season,
 				requestProvider,
+				plexMetadataClient: this.app.plexMetadataClient,
+				authContext: plexAuthContext,
 				moviesLibraryId: this.config.plex.requestedMoviesLibraryId,
 				tvShowsLibraryId: this.config.plex.requestedTVShowsLibraryId,
 			});

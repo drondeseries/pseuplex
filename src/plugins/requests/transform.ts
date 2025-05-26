@@ -1,5 +1,7 @@
 import qs from 'querystring';
 import * as plexTypes from '../../plex/types';
+import { PlexClient } from '../../plex/client';
+import { parsePlexMetadataGuid } from '../../plex/metadataidentifier';
 import {
 	PseuplexMetadataSource,
 	PseuplexPartialMetadataIDString,
@@ -7,7 +9,7 @@ import {
 	stringifyPartialMetadataID,
 	parsePartialMetadataID
 } from "../../pseuplex";
-import { WithOptionalPropsRecursive } from '../../utils';
+import { findInArrayOrSingle, firstOrSingle, WithOptionalPropsRecursive } from '../../utils';
 import { RequestsProvider } from './provider';
 
 export const ChildrenRelativePath = '/children';
@@ -70,16 +72,18 @@ export const parsePartialRequestsMetadataId = (metadataId: PseuplexPartialMetada
 	};
 };
 
-export const createRequestButtonMetadataItem = (options: {
+export const createRequestButtonMetadataItem = async (options: {
 	pluginBasePath: string,
 	mediaType: plexTypes.PlexMediaItemTypeNumeric,
 	guid: string,
 	season?: number,
 	requestProvider: RequestsProvider,
+	plexMetadataClient: PlexClient,
+	authContext?: plexTypes.PlexAuthContext,
 	moviesLibraryId?: string | number,
-	tvShowsLibraryId?: string | number
-}): plexTypes.PlexMetadataItem | null => {
-	// determine properties
+	tvShowsLibraryId?: string | number,
+}): Promise<plexTypes.PlexMetadataItem | null> => {
+	// determine properties and get metadata
 	let requestActionTitle: string;
 	let librarySectionID: string | number;
 	switch(options.mediaType) {
@@ -110,8 +114,24 @@ export const createRequestButtonMetadataItem = (options: {
 	if(librarySectionID == null) {
 		return null;
 	}
+	// fetch metadata
+	/*let metadataItem: plexTypes.PlexMetadataItem;
+	const guidParts = parsePlexMetadataGuid(options.guid);
+	if(options.season != null) {
+		const metadataItems = (await options.plexMetadataClient.getMetadataChildren(guidParts.id, {}, {
+			authContext: options.authContext
+		})).MediaContainer.Metadata;
+		metadataItem = findInArrayOrSingle(metadataItems, (item) => (item.index == options.season));
+	} else {
+		metadataItem = firstOrSingle((await options.plexMetadataClient.getMetadata(guidParts.id, {}, {
+			authContext: options.authContext
+		})).MediaContainer.Metadata);
+	}
+	if(!metadataItem) {
+		return null;
+	}*/
 	// create hook metadata
-	const metadataItem: WithOptionalPropsRecursive<plexTypes.PlexMetadataItem> = {
+	const requestMetadataItem: WithOptionalPropsRecursive<plexTypes.PlexMetadataItem> = {
 		guid: options.guid,
 		key: createRequestItemMetadataKey({
 			pluginBasePath: options.pluginBasePath,
@@ -126,14 +146,24 @@ export const createRequestButtonMetadataItem = (options: {
 			season: options.season
 		}),
 		type: plexTypes.PlexMediaItemNumericToType[options.mediaType],
+		title: requestActionTitle,
+		/*slug: metadataItem.slug,
+		parentSlug: metadataItem.parentSlug,
+		grandparentSlug: metadataItem.grandparentSlug,*/
 		librarySectionTitle: requestActionTitle,
 		librarySectionID,
 		librarySectionKey: `/library/sections/${librarySectionID}`,
 		Media: [{
-			videoResolution: requestActionTitle
+			id: 1,
+			videoResolution: requestActionTitle,
+			Part: [
+				{
+					id: 1
+				}
+			]
 		}]
 	};
-	return metadataItem as plexTypes.PlexMetadataItem;
+	return requestMetadataItem as plexTypes.PlexMetadataItem;
 };
 
 export type TransformMetadataOptions = {
