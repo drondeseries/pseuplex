@@ -199,11 +199,11 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 				if(guidParts.type) {
 					metadataItem.type = guidParts.type as plexTypes.PlexMediaItemType;
 				}
-			}
-			// attach additional metadata if able
-			const plexInfo = await this.plexGuidToInfoCache?.getOrFetch(plexGuid);
-			if(plexInfo) {
-				metadataItem.slug = plexInfo.slug;
+				// attach additional metadata if able
+				const plexInfo = await this.plexGuidToInfoCache?.getOrFetch(plexGuid);
+				if(plexInfo) {
+					metadataItem.slug = plexInfo.slug;
+				}
 			}
 		} catch(error) {
 			console.error(error);
