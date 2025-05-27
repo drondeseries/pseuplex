@@ -17,7 +17,8 @@ import {
 	plexApiProxy,
 	plexHttpProxy,
 	PlexProxyLoggingOptions,
-	PlexProxyOptions
+	PlexProxyOptions,
+	plexThinProxy
 } from '../plex/proxy';
 import {
 	createPlexAuthenticationMiddleware,
@@ -114,7 +115,8 @@ type PseuplexLoggingOptions = {
 
 export type PseuplexAppOptions = {
 	slug?: string;
-	protocol?: PseuplexServerProtocol
+	protocol?: PseuplexServerProtocol;
+	port: number;
 	serverOptions: https.ServerOptions;
 	plexServerURL: string;
 	plexAdminAuthContext: plexTypes.PlexAuthContext;
@@ -129,6 +131,7 @@ export type PseuplexAppOptions = {
 export class PseuplexApp {
 	readonly slug: string;
 	readonly config: PseuplexAppConfig;
+	readonly port: number;
 	readonly plugins: { [slug: string]: PseuplexPlugin } = {};
 	readonly metadataProviders: { [sourceSlug: string]: PseuplexMetadataProvider } = {};
 	readonly responseFilters: PseuplexResponseFilterLists = {};
@@ -152,6 +155,7 @@ export class PseuplexApp {
 	constructor(options: PseuplexAppOptions) {
 		this.slug = options.slug ?? 'pseuplex';
 		this.config = options.config;
+		this.port = options.port;
 		if(options.mapPseuplexMetadataIds) {
 			this.metadataIdMappings = IDMappings.create();
 		}
@@ -509,15 +513,15 @@ export class PseuplexApp {
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				requestPathModifier: async (req: IncomingPlexAPIRequest): Promise<string> => {
 					// parse url path
-					const urlPathParts = parseURLPath(req.originalUrl);
+					const urlPathParts = parseURLPath(req.url);
 					const queryItems = urlPathParts.queryItems;
 					if(!queryItems) {
-						return req.originalUrl;
+						return req.url;
 					}
 					// check for play queue uri
 					let uriProp = queryItems['uri'];
 					if(!uriProp) {
-						return req.originalUrl;
+						return req.url;
 					}
 					// resolve play queue uri
 					const resolveOptions: PseuplexPlayQueueURIResolverOptions = {
@@ -534,6 +538,51 @@ export class PseuplexApp {
 				}
 			})
 		]);
+
+		router.use('/photo', ((req, res, next) => {
+			const urlPathParts = parseURLPath(req.url);
+			const queryItems = urlPathParts.queryItems;
+			if(queryItems) {
+				let urlQueryArg = queryItems['url'];
+				const urlsToRewrite = [
+					`http://127.0.0.1:${this.config.port}`,
+					`https://127.0.0.1:${this.config.port}`
+				];
+				if(urlQueryArg) {
+					if(urlQueryArg instanceof Array) {
+						for(let i=0; i<urlQueryArg.length; i++) {
+							const cmpUrl = urlQueryArg[i];
+							for(const urlToRewrite of urlsToRewrite) {
+								if(cmpUrl.startsWith(urlToRewrite) && cmpUrl[urlToRewrite.length] == '/') {
+									urlQueryArg[i] = cmpUrl.substring(urlToRewrite.length);
+									break;
+								}
+							}
+						}
+					} else {
+						for(const urlToRewrite of urlsToRewrite) {
+							if(urlQueryArg.startsWith(urlToRewrite) && urlQueryArg[urlToRewrite.length] == '/') {
+								urlQueryArg = urlQueryArg.substring(urlToRewrite.length);
+								break;
+							}
+						}
+					}
+					queryItems['url'] = urlQueryArg;
+				}
+			}
+			req.url = stringifyURLPath(urlPathParts);
+			next();
+		}));
+
+		/*router.use('/video', [
+			plexThinProxy(this.plexServerURL, plexProxyArgs)
+		]);
+		router.use('/photo', [
+			plexThinProxy(this.plexServerURL, plexProxyArgs)
+		]);
+		router.use('/library/parts', [
+			plexThinProxy(this.plexServerURL, plexProxyArgs)
+		]);*/
 
 		// proxy requests to plex
 		const plexGeneralProxy = plexHttpProxy(this.plexServerURL);
@@ -598,6 +647,10 @@ export class PseuplexApp {
 		});
 
 		this.server = server;
+	}
+
+	listen(callback?: () => void) {
+		this.server.listen(this.port, callback);
 	}
 
 

@@ -101,6 +101,7 @@ const readPlexPrefsIfNeeded = async () => {
 	// create server
 	const pseuplex = new PseuplexApp({
 		protocol: cfg.protocol,
+		port: cfg.port,
 		plexServerURL,
 		plexAdminAuthContext: {
 			'X-Plex-Token': cfg.plex.token
@@ -131,8 +132,8 @@ const readPlexPrefsIfNeeded = async () => {
 	});
 
 	// start server
-	pseuplex.server.listen(cfg.port, () => {
-		console.log(`${constants.APP_NAME} is listening at localhost:${cfg.port}\n`);
+	pseuplex.listen(() => {
+		console.log(`${constants.APP_NAME} is listening at localhost:${pseuplex.port}\n`);
 	});
 
 	// watch for certificate changes if this is an SSL server

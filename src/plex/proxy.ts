@@ -32,7 +32,7 @@ export const plexThinProxy = (serverURL: string, args: PlexProxyOptions, proxyOp
 		if(innerProxyReqPathResolver) {
 			url = await innerProxyReqPathResolver(req);
 		} else {
-			url = req.originalUrl;
+			url = req.url;
 		}
 		// log proxy request
 		if(args.logProxyRequests) {
@@ -176,6 +176,9 @@ export const plexHttpProxy = (serverURL: string) => {
 	return httpProxy.createProxyServer({
 		target: serverURL,
 		ws: true,
-		xfwd: true
+		xfwd: true,
+		/*preserveHeaderKeyCase: true,
+		changeOrigin: true,
+		autoRewrite: true,*/
 	});
 };
