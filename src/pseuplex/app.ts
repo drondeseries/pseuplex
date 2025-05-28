@@ -586,6 +586,12 @@ export class PseuplexApp {
 
 		// proxy requests to plex
 		const plexGeneralProxy = plexHttpProxy(this.plexServerURL);
+		plexGeneralProxy.on('proxyRes', (proxyRes, userReq, userRes) => {
+			// log response if needed
+			if(loggingOpts.logUserResponses) {
+				console.log(`\nResponse ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(loggingOpts, userReq.url)}`);
+			}
+		});
 		plexGeneralProxy.on('error', (error) => {
 			console.error();
 			console.error(error);
