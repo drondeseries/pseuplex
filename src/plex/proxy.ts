@@ -17,10 +17,13 @@ import {
 
 export type PlexProxyLoggingOptions = {
 	logProxyRequests?: boolean;
+	logProxyRequestHeaders?: boolean;
 	logProxyResponses?: boolean;
+	logProxyResponseHeaders?: boolean;
 	logProxyResponseBody?: boolean;
 	logProxyErrorResponseBody?: boolean;
 	logUserResponses?: boolean;
+	logUserResponseHeaders?: boolean;
 	logUserResponseBody?: boolean;
 } & URLLogStringArgs;
 export type PlexProxyOptions = PlexProxyLoggingOptions;
@@ -39,6 +42,15 @@ export const plexThinProxy = (serverURL: string, args: PlexProxyOptions, proxyOp
 		if(args.logProxyRequests) {
 			// TODO use remapped method
 			console.log(`\nProxy ${req.method} ${urlLogString(args, url)}`);
+			if(args.logProxyRequestHeaders) {
+				const reqHeaderList = req.rawHeaders;
+				for(let i=0; i<reqHeaderList.length; i++) {
+					const headerKey = reqHeaderList[i];
+					i++;
+					const headerVal = reqHeaderList[i];
+					console.log(`\t${headerKey}: ${headerVal}`);
+				}
+			}
 		}
 		return url;
 	};
@@ -108,6 +120,21 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 		proxyReqPathResolver: opts.requestPathModifier,
 		proxyReqBodyDecorator: opts.requestBodyModifier,
 		userResHeaderDecorator: (headers, userReq, userRes, proxyReq, proxyRes) => {
+			const logHeaders = (args.logProxyResponseHeaders || args.logUserResponseHeaders);
+			if(logHeaders) { // don't make separate logs unless we're logging response headers
+				if(args.logProxyResponses) {
+					console.log(`\nProxy Response ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
+					if(args.logProxyResponseHeaders) {
+						const proxyResHeaderList = proxyRes.rawHeaders;
+						for(let i=0; i<proxyResHeaderList.length; i++) {
+							const headerKey = proxyResHeaderList[i];
+							i++;
+							const headerVal = proxyResHeaderList[i];
+							console.log(`\t${headerKey}: ${headerVal}`);
+						}
+					}
+				}
+			}
 			if(opts.responseModifier) {
 				// set the accepted content type if we're going to change back from json to xml
 				const acceptTypes = parseHttpContentTypeFromHeader(userReq, 'accept').contentTypes;
@@ -116,21 +143,41 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 					const xmlAcceptType = acceptTypes.find((item) => item.endsWith('/xml'));
 					headers['content-type'] = xmlAcceptType || 'application/xml';
 				}
-			} else {
-				if(args.logProxyResponses || args.logUserResponses) {
-					console.log(`\nResponse ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
+			} else if(logHeaders ? args.logUserResponses : (args.logUserResponses || args.logProxyResponses)) {
+				console.log(`\n${logHeaders ? "User " : ""}Response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
+				if(args.logUserResponseHeaders) {
+					const userResHeaders = userRes.getHeaders();
+					for(const headerKey in userResHeaders) {
+						console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
+					}
+					for(const headerKey in headers) {
+						console.log(`\t${headerKey}: ${headers[headerKey]}`);
+					}
 				}
 			}
 			return headers;
 		},
 		userResDecorator: opts.responseModifier ? async (proxyRes, proxyResData, userReq, userRes) => {
+			const logHeaders = (args.logProxyResponseHeaders || args.logUserResponseHeaders);
+			// log proxy response body if needed (under the previous log)
 			const isProxyResError = (!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300);
+			if(logHeaders) {
+				if(args.logProxyErrorResponseBody && isProxyResError) {
+					console.log(proxyResData?.toString('utf8'));
+				}
+			}
 			// get response content type
 			const contentType = parseHttpContentType(proxyRes.headers['content-type']).contentTypes[0];
 			if(contentType != 'application/json') {
-				if(args.logProxyResponses || args.logUserResponses) {
-					console.log(`\nResponse ${proxyRes.statusCode} (${contentType}) for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
-					if(args.logProxyErrorResponseBody && isProxyResError) {
+				if(args.logUserResponses) {
+					console.log(`\n${logHeaders ? "User " : ""}Response ${proxyRes.statusCode} (${contentType}) for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
+					if(args.logUserResponseHeaders) {
+						const userResHeaders = userRes.getHeaders();
+						for(const headerKey in userResHeaders) {
+							console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
+						}
+					}
+					if(!logHeaders && args.logProxyErrorResponseBody && isProxyResError) {
 						console.log(proxyResData?.toString('utf8'));
 					}
 				}
@@ -152,6 +199,12 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 				// log user response
 				if(args.logUserResponses) {
 					console.log(`\nUser response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
+					if(args.logUserResponseHeaders) {
+						const userResHeaders = userRes.getHeaders();
+						for(const headerKey in userResHeaders) {
+							console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
+						}
+					}
 					if(args.logUserResponseBody) {
 						console.log(resData);
 					}
@@ -167,6 +220,12 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 			// log user response
 			if(args.logUserResponses) {
 				console.log(`\nUser response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
+				if(args.logUserResponseHeaders) {
+					const userResHeaders = userRes.getHeaders();
+					for(const headerKey in userResHeaders) {
+						console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
+					}
+				}
 				if(args.logUserResponseBody) {
 					console.log(resData);
 				}

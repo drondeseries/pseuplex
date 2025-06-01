@@ -117,13 +117,18 @@ const readPlexPrefsIfNeeded = async () => {
 			...sslCertData
 		},
 		loggingOptions: {
+			logOutgoingRequests: args.logOutgoingRequests,
+			logFullURLs: args.logFullURLs,
 			logUserRequests: args.logUserRequests,
-			logProxyRequests: args.logProxyRequests,
-			logProxyResponses: args.logProxyResponses,
-			logProxyResponseBody: args.logProxyResponseBody,
+			logUserRequestHeaders: args.logUserRequestHeaders,
 			logUserResponses: args.logUserResponses,
+			logUserResponseHeaders: args.logUserResponseHeaders,
 			logUserResponseBody: args.logUserResponseBody,
-			logFullURLs: args.logFullURLs
+			logProxyRequests: args.logProxyRequests,
+			logProxyRequestHeaders: args.logProxyRequestHeaders,
+			logProxyResponses: args.logProxyResponses,
+			logProxyResponseHeaders: args.logProxyResponseHeaders,
+			logProxyResponseBody: args.logProxyResponseBody,
 		},
 		plugins: [
 			LetterboxdPlugin,

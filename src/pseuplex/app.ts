@@ -112,6 +112,7 @@ type PseuplexAppConfig = PseuplexConfigBase<{[key: string]: any}> & {[key: strin
 type PseuplexLoggingOptions = {
 	logOutgoingRequests?: boolean,
 	logUserRequests?: boolean;
+	logUserRequestHeaders?: boolean;
 } & PlexProxyLoggingOptions;
 
 export type PseuplexAppOptions = {
@@ -273,6 +274,15 @@ export class PseuplexApp {
 			// log request if needed
 			if(this.loggingOptions.logUserRequests) {
 				console.log(`\nUser ${req.method} ${urlLogString(this.loggingOptions, req.originalUrl)}`);
+				if(this.loggingOptions.logUserRequestHeaders) {
+					const reqHeaderList = req.rawHeaders;
+					for(let i=0; i<reqHeaderList.length; i++) {
+						const headerKey = reqHeaderList[i];
+						i++;
+						const headerVal = reqHeaderList[i];
+						console.log(`\t${headerKey}: ${headerVal}`);
+					}
+				}
 			}
 			next();
 		});
@@ -601,11 +611,58 @@ export class PseuplexApp {
 		// proxy requests to plex
 		const plexGeneralProxy = plexHttpProxy(this.plexServerURL);
 		plexGeneralProxy.on('proxyRes', (proxyRes, userReq, userRes) => {
-			// log response if needed
-			if(this.loggingOptions.logUserResponses) {
-				console.log(`\nResponse ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(this.loggingOptions, userReq.url)}`);
-				if(this.loggingOptions.logProxyErrorResponseBody && (!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300)) {
-					// TODO log proxy response somehow
+			const logHeaders = this.loggingOptions.logProxyResponseHeaders || this.loggingOptions.logUserResponseHeaders;
+			if(logHeaders) {
+				// log proxy response if needed
+				if(this.loggingOptions.logProxyResponses) {
+					console.log(`\nProxy Response ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(this.loggingOptions, userReq.url)}`);
+					if(this.loggingOptions.logProxyErrorResponseBody && (!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300)) {
+						// log proxy response body
+						const datas: Buffer[] = [];
+						proxyRes.on('data', (chunk) => {
+							datas.push(chunk);
+						});
+						proxyRes.on('end', () => {
+							console.log("end");
+							const fullData = Buffer.concat(datas);
+							const fullDataString = fullData?.toString('utf8');
+							if(fullDataString) {
+								console.log(fullDataString);
+							}
+						});
+					}
+				}
+				// log user response when finished
+				if(this.loggingOptions.logUserResponses) {
+					userRes.on('close', () => {
+						console.log(`\nUser Response ${userRes.statusCode} for ${userReq.method} ${urlLogString(this.loggingOptions, userReq.url)}`);
+						if(this.loggingOptions.logUserResponseHeaders) {
+							const userResHeaders = userRes.getHeaders();
+							for(const headerKey in userResHeaders) {
+								console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
+							}
+						}
+					});
+				}
+			} else {
+				// log response if needed
+				if(this.loggingOptions.logProxyResponses || this.loggingOptions.logUserResponses) {
+					console.log(`\nResponse ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(this.loggingOptions, userReq.url)}`);
+					if(this.loggingOptions.logProxyErrorResponseBody && (!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300)) {
+						// log proxy response body
+						const datas: Buffer[] = [];
+						proxyRes.on('data', (chunk) => {
+							datas.push(chunk);
+						});
+						proxyRes.on('end', () => {
+							console.log("end");
+							const fullData = Buffer.concat(datas);
+							const fullDataString = fullData?.toString('utf8');
+							if(fullDataString) {
+								console.log(fullDataString);
+							}
+						});
+					}
 				}
 			}
 		});

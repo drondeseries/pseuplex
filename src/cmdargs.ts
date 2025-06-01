@@ -1,14 +1,18 @@
 
-export interface CommandArguments {
+export type CommandArguments = {
 	configPath?: string,
 	logRequestPathMappings?: boolean,
 	logFullURLs?: boolean,
 	logOutgoingRequests?: boolean,
 	logUserRequests?: boolean,
+	logUserRequestHeaders?: boolean,
 	logUserResponses?: boolean,
+	logUserResponseHeaders?: boolean,
 	logUserResponseBody?: boolean,
 	logProxyRequests?: boolean,
+	logProxyRequestHeaders?: boolean,
 	logProxyResponses?: boolean,
+	logProxyResponseHeaders?: boolean,
 	logProxyResponseBody?: boolean,
 	logProxyErrorResponseBody?: boolean,
 	verbose?: boolean,
@@ -18,10 +22,14 @@ enum CmdFlag {
 	configPath = '--config',
 	logOutgoingRequests = '--log-outgoing-requests',
 	logUserRequests = '--log-user-requests',
+	logUserRequestHeaders = '--log-user-request-headers',
 	logUserResponses = '--log-user-responses',
+	logUserResponseHeaders = '--log-user-response-headers',
 	logUserResponseBody = '--log-user-response-body',
 	logProxyRequests = '--log-proxy-requests',
+	logProxyRequestHeaders = '--log-proxy-request-headers',
 	logProxyResponses = '--log-proxy-responses',
+	logProxyResponseHeaders = '--log-proxy-response-headers',
 	logProxyResponseBody = '--log-proxy-response-body',
 	logProxyErrorResponseBody = '--log-proxy-response-body',
 	verbose = '--verbose'
@@ -73,9 +81,17 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 				case CmdFlag.logUserRequests:
 					parsedArgs.logUserRequests = true;
 					break;
+
+				case CmdFlag.logUserRequestHeaders:
+					parsedArgs.logUserRequestHeaders = true;
+					break;
 				
 				case CmdFlag.logUserResponses:
 					parsedArgs.logUserResponses = true;
+					break;
+
+				case CmdFlag.logUserResponseHeaders:
+					parsedArgs.logUserResponseHeaders = true;
 					break;
 				
 				case CmdFlag.logUserResponseBody:
@@ -85,31 +101,43 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 				case CmdFlag.logProxyRequests:
 					parsedArgs.logProxyRequests = true;
 					break;
+
+				case CmdFlag.logProxyRequestHeaders:
+					parsedArgs.logProxyRequestHeaders = true;
+					break;
 				
 				case CmdFlag.logProxyResponses:
 					parsedArgs.logProxyResponses = true;
+					break;
+
+				case CmdFlag.logProxyResponseHeaders:
+					parsedArgs.logProxyResponseHeaders = true;
 					break;
 				
 				case CmdFlag.logProxyResponseBody:
 					parsedArgs.logProxyResponseBody = true;
 					break;
-
+				
 				case CmdFlag.logProxyErrorResponseBody:
 					parsedArgs.logProxyErrorResponseBody = true;
 					break;
 				
 				case CmdFlag.verbose:
 					parsedArgs.verbose = true;
-					//parsedArgs.logFullURLs = true;
+					parsedArgs.logFullURLs = true;
 					parsedArgs.logOutgoingRequests = true;
+					parsedArgs.logUserRequests = true;
+					//parsedArgs.logUserRequestHeaders = true;
+					parsedArgs.logUserResponses = true;
+					//parsedArgs.logUserResponseHeaders = true;
+					//parsedArgs.logUserResponseBody = true;
 					//parsedArgs.logRequestPathMappings = true;
 					parsedArgs.logProxyRequests = true;
+					//parsedArgs.logProxyRequestHeaders = true;
 					parsedArgs.logProxyResponses = true;
+					//parsedArgs.logProxyResponseHeaders = true;
 					//parsedArgs.logProxyResponseBody = true;
 					//parsedArgs.logProxyErrorResponseBody = true;
-					parsedArgs.logUserRequests = true;
-					parsedArgs.logUserResponses = true;
-					//parsedArgs.logUserResponseBody = true;
 					break;
 				
 				default:
