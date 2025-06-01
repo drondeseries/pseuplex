@@ -3,23 +3,27 @@ export interface CommandArguments {
 	configPath?: string,
 	logRequestPathMappings?: boolean,
 	logFullURLs?: boolean,
+	logOutgoingRequests?: boolean,
 	logUserRequests?: boolean,
+	logUserResponses?: boolean,
+	logUserResponseBody?: boolean,
 	logProxyRequests?: boolean,
 	logProxyResponses?: boolean,
 	logProxyResponseBody?: boolean,
-	logUserResponses?: boolean,
-	logUserResponseBody?: boolean,
+	logProxyErrorResponseBody?: boolean,
 	verbose?: boolean,
 }
 
 enum CmdFlag {
 	configPath = '--config',
+	logOutgoingRequests = '--log-outgoing-requests',
 	logUserRequests = '--log-user-requests',
 	logUserResponses = '--log-user-responses',
 	logUserResponseBody = '--log-user-response-body',
 	logProxyRequests = '--log-proxy-requests',
 	logProxyResponses = '--log-proxy-responses',
 	logProxyResponseBody = '--log-proxy-response-body',
+	logProxyErrorResponseBody = '--log-proxy-response-body',
 	verbose = '--verbose'
 }
 
@@ -62,18 +66,10 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 					parsedArgs.configPath = flagVal;
 					break;
 				
-				case CmdFlag.logProxyRequests:
-					parsedArgs.logProxyRequests = true;
+				case CmdFlag.logOutgoingRequests:
+					parsedArgs.logOutgoingRequests = true;
 					break;
-				
-				case CmdFlag.logProxyResponses:
-					parsedArgs.logProxyResponses = true;
-					break;
-				
-				case CmdFlag.logProxyResponseBody:
-					parsedArgs.logProxyResponseBody = true;
-					break;
-				
+
 				case CmdFlag.logUserRequests:
 					parsedArgs.logUserRequests = true;
 					break;
@@ -86,13 +82,31 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 					parsedArgs.logUserResponseBody = true;
 					break;
 				
+				case CmdFlag.logProxyRequests:
+					parsedArgs.logProxyRequests = true;
+					break;
+				
+				case CmdFlag.logProxyResponses:
+					parsedArgs.logProxyResponses = true;
+					break;
+				
+				case CmdFlag.logProxyResponseBody:
+					parsedArgs.logProxyResponseBody = true;
+					break;
+
+				case CmdFlag.logProxyErrorResponseBody:
+					parsedArgs.logProxyErrorResponseBody = true;
+					break;
+				
 				case CmdFlag.verbose:
 					parsedArgs.verbose = true;
 					//parsedArgs.logFullURLs = true;
+					parsedArgs.logOutgoingRequests = true;
 					//parsedArgs.logRequestPathMappings = true;
 					parsedArgs.logProxyRequests = true;
 					parsedArgs.logProxyResponses = true;
 					//parsedArgs.logProxyResponseBody = true;
+					//parsedArgs.logProxyErrorResponseBody = true;
 					parsedArgs.logUserRequests = true;
 					parsedArgs.logUserResponses = true;
 					//parsedArgs.logUserResponseBody = true;

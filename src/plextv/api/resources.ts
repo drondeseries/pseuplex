@@ -1,13 +1,11 @@
 import { PlexAuthContext } from '../../plex/types';
-import { plexTVFetch } from './core';
+import { PlexTVAPIRequestOptions, plexTVFetch } from './core';
 import { PlexTVResourcesPage } from '../types/Resources';
 
-export const getResources = async (options: {
-	authContext: PlexAuthContext
-}): Promise<PlexTVResourcesPage> => {
+export const getResources = async (options: PlexTVAPIRequestOptions): Promise<PlexTVResourcesPage> => {
 	return await plexTVFetch<PlexTVResourcesPage>({
+		...options,
 		method: 'GET',
 		endpoint: 'api/resources',
-		authContext: options.authContext
 	});
 };

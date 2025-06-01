@@ -4,14 +4,19 @@ import { PlexAuthContext } from '../types';
 import { parseHttpContentType, plexXMLToJS } from '../serialization';
 import { httpError } from '../../utils';
 
-export const plexServerFetch = async <TResult>(options: {
+export type PlexAPIRequestOptions = {
 	serverURL: string,
+	authContext?: PlexAuthContext | null,
+	verbose?: boolean,
+};
+
+export const plexServerFetch = async <TResult>(options: (PlexAPIRequestOptions & {
 	method?: 'GET' | 'POST' | 'PUT' | 'DELETE',
 	endpoint: string,
 	params?: {[key: string]: string | number | boolean | string[] | number[]} | null,
 	headers?: {[key: string]: string},
-	authContext?: PlexAuthContext | null
-}): Promise<TResult> => {
+})): Promise<TResult> => {
+	const method = options.method || 'GET';
 	// build URL
 	let serverURL = options.serverURL;
 	if(serverURL.indexOf('://') == -1) {
@@ -61,15 +66,20 @@ export const plexServerFetch = async <TResult>(options: {
 		}
 	}
 	// send request
-	console.log(`Sending request ${options.method ?? 'GET'} ${url}`);
+	if(options.verbose) {
+		console.log(`Sending request ${method} ${url}`);
+	}
 	const res = await fetch(url, {
-		method: options.method ?? 'GET',
+		method,
 		headers: {
 			'Accept': 'application/json',
 			...options.headers
 		}
 	});
 	if(!res.ok) {
+		if(options.verbose) {
+			console.log(`Got response ${res.status} for ${method} ${url}: ${res.statusText}`);
+		}
 		res.body?.cancel();
 		throw httpError(res.status, res.statusText, {
 			url

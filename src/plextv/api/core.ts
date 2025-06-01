@@ -4,13 +4,18 @@ import { PlexAuthContext } from '../../plex/types';
 import { parseHttpContentType, plexXMLToJS } from '../../plex/serialization';
 import { httpError } from '../../utils';
 
-export const plexTVFetch = async <TResult>(options: {
+export type PlexTVAPIRequestOptions = {
+	authContext?: PlexAuthContext | null,
+	verbose?: boolean,
+}
+
+export const plexTVFetch = async <TResult>(options: (PlexTVAPIRequestOptions & {
 	method?: 'GET' | 'POST' | 'PUT' | 'DELETE',
 	endpoint: string,
 	params?: {[key: string]: any} | null,
 	headers?: {[key: string]: string},
-	authContext?: PlexAuthContext | null
-}): Promise<TResult> => {
+})): Promise<TResult> => {
+	const method = options.method || 'GET';
 	// build URL
 	let url = `https://plex.tv/${options.endpoint}`;
 	if(options.params != null || options.authContext != null) {
@@ -34,11 +39,17 @@ export const plexTVFetch = async <TResult>(options: {
 		}
 	}
 	// send request
+	if(options.verbose) {
+		console.log(`Sending request ${method} ${url}`);
+	}
 	const res = await fetch(url, {
-		method: options.method ?? 'GET',
+		method,
 		headers: options.headers
 	});
 	if(!res.ok) {
+		if(options.verbose) {
+			console.log(`Got response ${res.status} for ${method} ${url}: ${res.statusText}`);
+		}
 		res.body?.cancel();
 		throw httpError(res.status, res.statusText);
 	}

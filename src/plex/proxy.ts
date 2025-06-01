@@ -19,6 +19,7 @@ export type PlexProxyLoggingOptions = {
 	logProxyRequests?: boolean;
 	logProxyResponses?: boolean;
 	logProxyResponseBody?: boolean;
+	logProxyErrorResponseBody?: boolean;
 	logUserResponses?: boolean;
 	logUserResponseBody?: boolean;
 } & URLLogStringArgs;
@@ -123,11 +124,15 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 			return headers;
 		},
 		userResDecorator: opts.responseModifier ? async (proxyRes, proxyResData, userReq, userRes) => {
+			const isProxyResError = (!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300);
 			// get response content type
 			const contentType = parseHttpContentType(proxyRes.headers['content-type']).contentTypes[0];
 			if(contentType != 'application/json') {
 				if(args.logProxyResponses || args.logUserResponses) {
 					console.log(`\nResponse ${proxyRes.statusCode} (${contentType}) for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
+					if(args.logProxyErrorResponseBody && isProxyResError) {
+						console.log(proxyResData?.toString('utf8'));
+					}
 				}
 				return proxyResData;
 			}
@@ -135,7 +140,7 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 			// log proxy response
 			if(args.logProxyResponses) {
 				console.log(`\nProxy response ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
-				if(args.logProxyResponseBody) {
+				if(args.logProxyResponseBody || (args.logProxyErrorResponseBody && isProxyResError)) {
 					console.log(proxyResString);
 				}
 			}
@@ -177,8 +182,8 @@ export const plexHttpProxy = (serverURL: string) => {
 		target: serverURL,
 		ws: true,
 		xfwd: true,
-		/*preserveHeaderKeyCase: true,
-		changeOrigin: true,
+		preserveHeaderKeyCase: true,
+		/*changeOrigin: true,
 		autoRewrite: true,*/
 	});
 };

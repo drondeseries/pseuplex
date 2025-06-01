@@ -1,14 +1,13 @@
 import { PlexAuthContext } from '../../plex/types';
-import { plexTVFetch } from './core';
+import { PlexTVAPIRequestOptions, plexTVFetch } from './core';
 import { PlexTVSharedServersPage } from '../types/Servers';
 
-export const getSharedServers = async (options: {
+export const getSharedServers = async (args: {
 	clientIdentifier: string,
-	authContext: PlexAuthContext
-}): Promise<PlexTVSharedServersPage> => {
+}, options: PlexTVAPIRequestOptions): Promise<PlexTVSharedServersPage> => {
 	return await plexTVFetch<PlexTVSharedServersPage>({
+		...options,
 		method: 'GET',
-		endpoint: `api/servers/${options.clientIdentifier}/shared_servers`,
-		authContext: options.authContext
+		endpoint: `api/servers/${args.clientIdentifier}/shared_servers`,
 	});
 };

@@ -1,16 +1,13 @@
-import { PlexAuthContext } from '../../plex/types';
-import { plexTVFetch } from './core';
+import { PlexTVAPIRequestOptions, plexTVFetch } from './core';
 import { PlexTVCurrentUserInfo } from '../types/User';
 
-export const getCurrentUser = async (options: {
-	authContext: PlexAuthContext
-}): Promise<PlexTVCurrentUserInfo> => {
+export const getCurrentUser = async (options: PlexTVAPIRequestOptions): Promise<PlexTVCurrentUserInfo> => {
 	return await plexTVFetch<PlexTVCurrentUserInfo>({
+		...options,
 		method: 'GET',
 		endpoint: `api/v2/user`,
 		headers: {
 			'Accept': 'application/json'
 		},
-		authContext: options.authContext
 	});
 };

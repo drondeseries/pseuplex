@@ -2,36 +2,24 @@
 import * as plexTypes from './types';
 import * as plexServerAPI from './api';
 
-export type PlexServerPropertiesStoreOptions = {
-	plexServerURL: string,
-	plexAuthContext: plexTypes.PlexAuthContext
+export type PlexServerPropertiesStoreOptions = plexServerAPI.PlexAPIRequestOptions & {
+	authContext: plexTypes.PlexAuthContext
 };
 
 export class PlexServerPropertiesStore {
-	_options: PlexServerPropertiesStoreOptions;
+	readonly requestOptions: PlexServerPropertiesStoreOptions;
 	_serverMachineIdentifier: string | Promise<string> | undefined;
 	_librarySections: plexTypes.PlexLibrarySectionsPage | Promise<plexTypes.PlexLibrarySectionsPage> | undefined;
 
 	constructor(options: PlexServerPropertiesStoreOptions) {
-		this._options = options;
-	}
-
-	get plexServerURL(): string {
-		return this._options.plexServerURL;
-	}
-
-	get plexAuthContext(): plexTypes.PlexAuthContext {
-		return this._options.plexAuthContext;
+		this.requestOptions = options;
 	}
 
 	async getMachineIdentifier(): Promise<string> {
 		if(this._serverMachineIdentifier) {
 			return await this._serverMachineIdentifier;
 		}
-		const task = plexServerAPI.getServerIdentity({
-			serverURL: this._options.plexServerURL,
-			authContext: this._options.plexAuthContext
-		}).then((identityPage) => {
+		const task = plexServerAPI.getServerIdentity(this.requestOptions).then((identityPage) => {
 			const machineId = identityPage?.MediaContainer?.machineIdentifier;
 			if(!machineId) {
 				throw new Error("Missing machineIdentifier in response");
@@ -52,10 +40,7 @@ export class PlexServerPropertiesStore {
 		if(this._librarySections) {
 			return await this._librarySections;
 		}
-		const task = plexServerAPI.getLibrarySections({
-			serverURL: this._options.plexServerURL,
-			authContext: this._options.plexAuthContext
-		});
+		const task = plexServerAPI.getLibrarySections(this.requestOptions);
 		let sections: plexTypes.PlexLibrarySectionsPage | undefined = undefined;
 		try {
 			this._librarySections = task;

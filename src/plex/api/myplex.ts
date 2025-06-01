@@ -1,15 +1,11 @@
 import { PlexAuthContext } from '../types';
 import { PlexMyPlexAccountPage } from '../types/MyPlex';
-import { plexServerFetch } from './core';
+import { PlexAPIRequestOptions, plexServerFetch } from './core';
 
-export const getMyPlexAccount = async (options: {
-	serverURL: string,
-	authContext: PlexAuthContext
-}): Promise<PlexMyPlexAccountPage> => {
+export const getMyPlexAccount = async (options: PlexAPIRequestOptions): Promise<PlexMyPlexAccountPage> => {
 	return await plexServerFetch<PlexMyPlexAccountPage>({
-		serverURL: options.serverURL,
+		...options,
 		method: 'GET',
 		endpoint: 'myplex/account',
-		authContext: options.authContext
 	});
 };

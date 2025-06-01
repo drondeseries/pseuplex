@@ -110,7 +110,8 @@ const readPlexPrefsIfNeeded = async () => {
 			serverURL: cfg.plex.metadataHost || 'https://metadata.provider.plex.tv',
 			authContext: {
 				'X-Plex-Token': cfg.plex.token
-			}
+			},
+			verbose: args.logOutgoingRequests,
 		}),
 		serverOptions: {
 			...sslCertData

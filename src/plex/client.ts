@@ -1,29 +1,33 @@
 import qs from 'querystring';
 import * as plexServerAPI from './api';
 import * as plexTypes from "./types";
-import { firstOrSingle } from '../utils';
+import { firstOrSingle, mergeObjects } from '../utils';
 
 
 export type PlexClientMethodOptions = {
-	authContext?: plexTypes.PlexAuthContext
+	authContext?: plexTypes.PlexAuthContext;
+	verbose?: boolean;
 };
 
 export class PlexClient {
-	readonly serverURL: string;
-	readonly authContext: plexTypes.PlexAuthContext;
+	readonly requestOptions: plexServerAPI.PlexAPIRequestOptions;
 
-	constructor(options: {
-		serverURL: string,
-		authContext: plexTypes.PlexAuthContext
-	}) {
-		this.serverURL = options.serverURL;
-		this.authContext = options.authContext;
+	constructor(options: plexServerAPI.PlexAPIRequestOptions) {
+		this.requestOptions = options;
+	}
+
+	get serverURL(): string {
+		return this.requestOptions.serverURL;
+	}
+
+	get authContext(): plexTypes.PlexAuthContext | undefined {
+		return this.requestOptions.authContext;
 	}
 	
 	private _mediaProviderClient: PlexMediaProviderClient | Promise<PlexMediaProviderClient>;
 	async getMediaProvider(options?: PlexClientMethodOptions): Promise<PlexMediaProviderClient> {
 		if(!this._mediaProviderClient || options?.authContext) {
-			const mediaProviderTask = getPlexMediaProviderClient(this.serverURL, this.authContext);
+			const mediaProviderTask = getPlexMediaProviderClient(mergeObjects(this.requestOptions, options));
 			if(options?.authContext) {
 				return await mediaProviderTask;
 			}
@@ -42,7 +46,7 @@ export class PlexClient {
 		const mediaProvider = await this.getMediaProvider();
 		const method = mediaProvider[name];
 		if(!method) {
-			throw new Error(`Cannot resolve method ${name} from ${this.serverURL}`);
+			throw new Error(`Cannot resolve method ${name} from ${this.requestOptions.serverURL}`);
 		}
 		return method;
 	}
@@ -61,43 +65,28 @@ export class PlexClient {
 }
 
 
-export const getPlexMediaProviderClient = async (serverURL: string, authContext: plexTypes.PlexAuthContext): Promise<PlexMediaProviderClient> => {
+export const getPlexMediaProviderClient = async (requestOptions: plexServerAPI.PlexAPIRequestOptions): Promise<PlexMediaProviderClient> => {
 	const rootPage: plexTypes.PlexServerRootPage | plexTypes.PlexProviderRootPage = await plexServerAPI.fetch({
-		serverURL,
-		authContext,
+		...requestOptions,
 		method: 'GET',
 		endpoint: '/'
 	});
 	if('MediaProvider' in rootPage) {
-		return new PlexMediaProviderClient(rootPage.MediaProvider, {
-			baseURL: serverURL,
-			authContext
-		});
+		return new PlexMediaProviderClient(rootPage.MediaProvider, requestOptions);
 	} else if(rootPage.MediaContainer) {
-		const providersPage = await plexServerAPI.getMediaProviders({
-			serverURL,
-			authContext
-		});
+		const providersPage = await plexServerAPI.getMediaProviders(requestOptions);
 		if(providersPage.MediaContainer.MediaProvider) {
 			const mediaProvider = firstOrSingle(providersPage.MediaContainer.MediaProvider);
 			if(mediaProvider) {
-				return new PlexMediaProviderClient(mediaProvider, {
-					baseURL: serverURL,
-					authContext
-				});
+				return new PlexMediaProviderClient(mediaProvider, requestOptions);
 			}
 		}
-		throw new Error(`No media providers found for ${serverURL}`);
+		throw new Error(`No media providers found for ${requestOptions.serverURL}`);
 	}
-	throw new Error(`Failed to get media providers from ${serverURL}`);
+	throw new Error(`Failed to get media providers from ${requestOptions.serverURL}`);
 };
 
 
-
-type PlexSubclientOptions = {
-	baseURL: string;
-	authContext: plexTypes.PlexAuthContext;
-};
 
 type PlexSubclientFeatureBase<TFeatureType> = {
 	type: TFeatureType;
@@ -110,13 +99,11 @@ type PublicFeatureMethod<TArg extends Array<any>,TReturn> = (...args: TArg) => T
 
 abstract class PlexSubclientBase<TData,TFeatureType,TFeature extends PlexSubclientFeatureBase<TFeatureType>> {
 	readonly data: TData;
-	readonly baseURL: string;
-	readonly authContext: plexTypes.PlexAuthContext;
+	readonly requestOptions: plexServerAPI.PlexAPIRequestOptions;
 
-	constructor(data: TData, options: PlexSubclientOptions) {
+	constructor(data: TData, options: plexServerAPI.PlexAPIRequestOptions) {
 		this.data = data;
-		this.baseURL = options.baseURL;
-		this.authContext = options.authContext;
+		this.requestOptions = options;
 	}
 
 
@@ -127,11 +114,7 @@ abstract class PlexSubclientBase<TData,TFeatureType,TFeature extends PlexSubclie
 		params?: {[key: string]: string | number | boolean | string[] | number[]} | null,
 		headers?: {[key: string]: string}
 	}): Promise<any> {
-		return await plexServerAPI.fetch({
-			...options,
-			serverURL: this.baseURL,
-			authContext: options.authContext ?? this.authContext
-		});
+		return await plexServerAPI.fetch(mergeObjects(this.requestOptions, options));
 	}
 
 
@@ -211,10 +194,7 @@ export class PlexMediaProviderClient extends PlexSubclientBase<
 				method: 'GET',
 				authContext: options.authContext
 			}).then((settingsPage: plexTypes.PlexMediaProviderSettingsPage) => {
-				return new PlexMediaProviderSettingsClient(settingsPage, {
-					baseURL: this.baseURL,
-					authContext: this.authContext
-				});
+				return new PlexMediaProviderSettingsClient(settingsPage, this.requestOptions);
 			});
 			if(options?.authContext) {
 				return await settingsClientTask;

@@ -1,28 +1,24 @@
 import qs from 'querystring';
 import * as plexTypes from '../plex/types';
-import { plexDiscoverFetch } from './core';
+import { PlexDiscoverAPIRequestOptions, plexDiscoverFetch } from './core';
 
-export const getLibraryMetadata = async (id: string | string[], options: {
+export const getLibraryMetadata = async (id: string | string[], options: (PlexDiscoverAPIRequestOptions & {
 	params?: plexTypes.PlexMetadataPageParams,
-	authContext?: plexTypes.PlexAuthContext | null
-}): Promise<plexTypes.PlexMetadataPage> => {
+})): Promise<plexTypes.PlexMetadataPage> => {
 	const idString = (id instanceof Array) ? id.map((idVal) => qs.escape(idVal)).join(',') : qs.escape(id);
 	return await plexDiscoverFetch<plexTypes.PlexMetadataPage>({
+		...options,
 		method: 'GET',
 		endpoint: `library/metadata/${idString}`,
-		params: options.params,
-		authContext: options.authContext
 	});
 };
 
-export const getLibraryMetadataChildren = async (id: string, options: {
+export const getLibraryMetadataChildren = async (id: string, options: (PlexDiscoverAPIRequestOptions & {
 	params?: plexTypes.PlexMetadataChildrenPageParams,
-	authContext?: plexTypes.PlexAuthContext | null
-}): Promise<plexTypes.PlexMetadataPage> => {
+})): Promise<plexTypes.PlexMetadataPage> => {
 	return await plexDiscoverFetch<plexTypes.PlexMetadataPage>({
+		...options,
 		method: 'GET',
 		endpoint: `library/metadata/${qs.escape(id)}/children`,
-		params: options.params,
-		authContext: options.authContext
 	});
 };

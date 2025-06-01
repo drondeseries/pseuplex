@@ -68,7 +68,10 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 		this.requestsHandler = new PlexRequestsHandler({
 			basePath: `/${this.app.slug}/${PseuplexMetadataSource.Request}`,
 			requestProviders: this.requestProviders,
-			plexMetadataClient: this.app.plexMetadataClient
+			plexMetadataClient: this.app.plexMetadataClient,
+			loggingOptions: {
+				logOutgoingRequests: app.loggingOptions.logOutgoingRequests,
+			}
 		});
 	}
 

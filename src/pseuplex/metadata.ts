@@ -93,6 +93,11 @@ export type PseuplexMetadataProviderOptions = {
 	plexMetadataClient: PlexClient;
 	similarItemsHubProvider?: PseuplexSimilarItemsHubProvider;
 	plexGuidToInfoCache?: PlexGuidToInfoCache;
+	loggingOptions?: PseuplexMetadataProviderLoggingOptions;
+};
+
+export type PseuplexMetadataProviderLoggingOptions = {
+	logOutgoingRequests?: boolean;
 };
 
 export type PseuplexMetadataTransformOptions = {
@@ -113,6 +118,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 	readonly basePath: string;
 	readonly section?: PseuplexSection;
 	readonly plexMetadataClient: PlexClient;
+	readonly loggingOptions: PseuplexMetadataProviderLoggingOptions;
 	readonly similarItemsHubProvider?: PseuplexSimilarItemsHubProvider | undefined;
 
 	readonly idToPlexGuidCache: CachedFetcher<string>;
@@ -123,6 +129,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		this.basePath = options.basePath;
 		this.section = options.section;
 		this.plexMetadataClient = options.plexMetadataClient;
+		this.loggingOptions = options.loggingOptions || {};
 		this.similarItemsHubProvider = options.similarItemsHubProvider;
 		this.idToPlexGuidCache = new CachedFetcher(async (id: string) => {
 			throw new Error("Cannot fetch guid from cache");
@@ -346,7 +353,8 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 				serverResult = await plexServerAPI.getLibraryMetadata(guidsToFetch, {
 					serverURL: options.plexServerURL,
 					authContext: options.plexAuthContext,
-					params: options.plexParams
+					params: options.plexParams,
+					verbose: this.loggingOptions.logOutgoingRequests
 				});
 			} catch(error) {
 				if((error as HttpError).statusCode != 404) {

@@ -47,7 +47,7 @@ export class PlexServerAccountsStore {
 		try {
 			// send request for myplex account
 			task = plexServerAPI.getMyPlexAccount({
-				serverURL: this.plexServerProperties.plexServerURL,
+				...this.plexServerProperties.requestOptions,
 				authContext: {
 					'X-Plex-Token': token
 				}
@@ -63,10 +63,13 @@ export class PlexServerAccountsStore {
 					return null;
 				}
 				// fetch the rest of the user data from plex
+				const plexTvOptions = {...this.plexServerProperties.requestOptions};
+				delete plexTvOptions.serverURL;
 				const plexUserInfo = await plexTVAPI.getCurrentUser({
+					...plexTvOptions,
 					authContext: {
 						'X-Plex-Token': token
-					}
+					},
 				});
 				// add user info for owner
 				const userInfo: PlexServerAccountInfo = {
@@ -102,10 +105,11 @@ export class PlexServerAccountsStore {
 		}
 		try {
 			// fetch users that the plex server is shared with
+			const plexTvOptions = {...this.plexServerProperties.requestOptions};
+			delete plexTvOptions.serverURL;
 			const task = plexTVAPI.getSharedServers({
 				clientIdentifier: machineId,
-				authContext: this.plexServerProperties.plexAuthContext
-			}).then((sharedServersPage) => {
+			}, plexTvOptions).then((sharedServersPage) => {
 				// apply new shared server tokens
 				const newServerTokens = new Set<string>();
 				if(sharedServersPage?.MediaContainer?.SharedServer) {

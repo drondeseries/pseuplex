@@ -334,3 +334,14 @@ export const createDebouncer = (delay: number): ((callback: () => void) => void)
 		}, delay);
 	};
 };
+
+export const mergeObjects = <T1 extends {[key: (string | number)]: any}, T2 extends {[key: (string | number)]: any}>(obj1: T1, obj2: T2): (T1 & T2) => {
+	const newObj: any = {...obj1};
+	for(const key in obj2) {
+		const val = obj2[key];
+		if(val !== undefined || newObj[key] === undefined) {
+			newObj[key] = val;
+		}
+	}
+	return newObj;
+}

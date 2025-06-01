@@ -36,6 +36,11 @@ export type PseuplexFeedHubOptions = {
 	listStartFetchInterval?: ListFetchInterval;
 	section?: PseuplexSection;
 	matchToPlexServerMetadata?: boolean;
+	loggingOptions?: PseuplexFeedHubLoggingOptions;
+};
+
+export type PseuplexFeedHubLoggingOptions = {
+	logOutgoingRequests?: boolean;
 };
 
 const DEFAULT_LOAD_AHEAD_COUNT = 1;
@@ -115,7 +120,8 @@ export abstract class PseuplexFeedHub<
 				try {
 					const plexServerItems = (await plexServerAPI.getLibraryMetadata(guids, {
 						serverURL: context.plexServerURL,
-						authContext: context.plexAuthContext
+						authContext: context.plexAuthContext,
+						verbose: this._options.loggingOptions?.logOutgoingRequests,
 					}))?.MediaContainer.Metadata;
 					const plexServerItemsMap: {[guid: string]: plexTypes.PlexMetadataItem} = {};
 					forArrayOrSingle(plexServerItems, (item) => {

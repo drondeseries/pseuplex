@@ -37,7 +37,12 @@ export type PlexRequestsHandlerOptions = {
 	basePath: string;
 	requestProviders: RequestsProviders;
 	plexMetadataClient: PlexClient;
+	loggingOptions: PlexRequestsHandlerLoggingOptions;
 };
+
+export type PlexRequestsHandlerLoggingOptions = {
+	logOutgoingRequests?: boolean;
+}
 
 export class PlexRequestsHandler implements PseuplexMetadataProvider {
 	readonly sourceDisplayName = "Plex Requests";
@@ -46,11 +51,13 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 	readonly basePath: string;
 	readonly requestProviders: RequestsProviders;
 	readonly plexMetadataClient: PlexClient;
+	readonly loggingOptions: PlexRequestsHandlerLoggingOptions;
 
 	constructor(options: PlexRequestsHandlerOptions) {
 		this.basePath = options.basePath;
 		this.requestProviders = options.requestProviders;
 		this.plexMetadataClient = options.plexMetadataClient;
+		this.loggingOptions = options.loggingOptions;
 	}
 
 	async createRequestButtonMetadata(options: {
@@ -194,7 +201,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			}
 		), {
 			serverURL: options.plexServerURL,
-			authContext: options.plexAuthContext
+			authContext: options.plexAuthContext,
+			verbose: this.loggingOptions.logOutgoingRequests,
 		});
 		const libraryMetadataItem = firstOrSingle(libraryMetadataPage.MediaContainer.Metadata);
 		if(libraryMetadataItem) {
@@ -214,7 +222,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				authContext: options.plexAuthContext,
 				method: 'GET',
 				endpoint: itemKey,
-				params: options.plexParams
+				params: options.plexParams,
+				verbose: this.loggingOptions.logOutgoingRequests,
 			});
 			// transform response
 			if(options.children) {
