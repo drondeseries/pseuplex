@@ -254,6 +254,20 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 		changeOrigin: false,
 		//autoRewrite: true,
 	});
+	if(args.logProxyRequests) {
+		plexGeneralProxy.on('proxyReq', (proxyReq, userReq, userRes) => {
+			// log proxy request if needed
+			if(args.logProxyRequests) {
+				console.log(`\nProxy ${proxyReq.method} ${urlLogString(args, proxyReq.path)}`);
+				if(args.logProxyRequestHeaders) {
+					const proxyReqHeaders = proxyReq.getHeaders();
+					for(const headerKey in proxyReqHeaders) {
+						console.log(`\t${headerKey}: ${proxyReqHeaders[headerKey]}`);
+					}
+				}
+			}
+		});
+	}
 	if(args.logProxyResponses || args.logUserResponses) {
 		plexGeneralProxy.on('proxyRes', (proxyRes, userReq, userRes) => {
 			const logHeaders = args.logProxyResponseHeaders || args.logUserResponseHeaders;
