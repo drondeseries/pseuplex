@@ -1,6 +1,7 @@
 
 import url from 'url';
 import http from 'http';
+import zlib from 'zlib';
 import express from 'express';
 import expressHttpProxy from 'express-http-proxy';
 import httpProxy from 'http-proxy';
@@ -146,11 +147,6 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 					const xmlAcceptType = acceptTypes.find((item) => item.endsWith('/xml'));
 					headers['content-type'] = xmlAcceptType || 'application/xml';
 				}
-				// remove any compression headers, since we're modifying it
-				delete headers['x-plex-content-original-length'];
-				delete headers['x-plex-content-compressed-length'];
-				delete headers['content-length'];
-				delete headers['Content-Length'];
 			} else if(logHeaders ? args.logUserResponses : (args.logUserResponses || args.logProxyResponses)) {
 				console.log(`\n${logHeaders ? "User " : ""}Response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
 				if(args.logUserResponseHeaders) {
@@ -202,6 +198,14 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 					}
 				}
 			}
+			// remove any compression headers, since we're modifying it
+			if(userRes.headersSent) {
+				console.error("Too late to remove headers");
+			} else {
+				userRes.removeHeader('x-plex-content-original-length');
+				userRes.removeHeader('x-plex-content-compressed-length');
+				userRes.removeHeader('content-length');
+			}
 			// parse response
 			let resData = await JSON.parse(proxyResString);
 			if(proxyRes.statusCode < 200 || proxyRes.statusCode >= 300) {
@@ -228,6 +232,30 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 			}
 			// serialize response
 			resData = (await serializeResponseContent(userReq, userRes, resData)).data;
+			let encodedResData: (Buffer | string) = resData;
+			// encode user response
+			if(proxyRes.headers['content-encoding']) {
+				const encoding = proxyRes.headers['content-encoding'];
+				// need to do this so this proxy library doesn't encode the content later
+				delete proxyRes.headers['content-encoding'];
+				userRes.removeHeader('content-encoding');
+				// encode
+				if(encoding == 'gzip') {
+					encodedResData = await new Promise((resolve, reject) => {
+						zlib.gzip(resData, (error, result) => {
+							if(error) {
+								reject(error);
+							} else {
+								resolve(result);
+							}
+						});
+					});
+					userRes.setHeader('Content-Encoding', encoding);
+					userRes.setHeader('X-Plex-Content-Original-Length', resData.length);
+					userRes.setHeader('X-Plex-Content-Compressed-Length', encodedResData.length);
+					userRes.setHeader('Content-Length', encodedResData.length);
+				}
+			}
 			// log user response if needed
 			if(args.logUserResponses) {
 				console.log(`\nUser response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
@@ -242,7 +270,7 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 				}
 				console.log();
 			}
-			return resData;
+			return encodedResData;
 		} : undefined
 	});
 };
@@ -324,6 +352,7 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 								console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
 							}
 						}
+						console.log();
 					});
 				}
 			} else {
@@ -333,6 +362,7 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 					if(args.logProxyErrorResponseBody && (!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300)) {
 						logProxyResponseBody();
 					}
+					console.log();
 				}
 			}
 		});
