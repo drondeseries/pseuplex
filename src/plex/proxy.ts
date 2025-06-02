@@ -146,6 +146,11 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 					const xmlAcceptType = acceptTypes.find((item) => item.endsWith('/xml'));
 					headers['content-type'] = xmlAcceptType || 'application/xml';
 				}
+				// remove any compression headers, since we're modifying it
+				delete headers['x-plex-content-original-length'];
+				delete headers['x-plex-content-compressed-length'];
+				delete headers['content-length'];
+				delete headers['Content-Length'];
 			} else if(logHeaders ? args.logUserResponses : (args.logUserResponses || args.logProxyResponses)) {
 				console.log(`\n${logHeaders ? "User " : ""}Response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
 				if(args.logUserResponseHeaders) {
