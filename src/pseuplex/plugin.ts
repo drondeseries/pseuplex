@@ -8,6 +8,7 @@ import { PseuplexMetadataPage } from './types';
 import { PseuplexHubProvider } from './hub';
 import { PseuplexMetadataProvider } from './metadata';
 import { PseuplexMetadataIDParts, PseuplexPartialMetadataIDParts } from './metadataidentifier';
+import { PseuplexSection } from './section';
 
 
 export type PseuplexResponseFilterContext = {
@@ -50,6 +51,7 @@ export type PseuplexPlayQueueURIResolverOptions = {
 
 
 export interface PseuplexPlugin {
+	readonly sections?: PseuplexSection[];
 	readonly metadataProviders?: PseuplexMetadataProvider[];
 	readonly hubs?: { readonly [hubName: string]: PseuplexHubProvider };
 	readonly responseFilters?: PseuplexReadOnlyResponseFilters;

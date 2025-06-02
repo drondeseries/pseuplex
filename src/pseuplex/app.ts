@@ -74,6 +74,7 @@ import {
 	intParam,
 } from '../utils';
 import { urlLogString } from '../logging';
+import { PseuplexSection } from './section';
 
 
 
@@ -195,7 +196,7 @@ export class PseuplexApp {
 			plexAuthentication: createPlexAuthenticationMiddleware(this.plexServerAccounts),
 			plexRequestHandler: <TResult>(handler: PlexAPIRequestHandler<TResult>) => plexAPIRequestHandler(handler, plexReqHandlerOpts)
 		};
-
+		
 		// loop through and instantiate plugins
 		const responseFilterOrders = options.responseFilterOrders ?? {};
 		const tmpPluginSlugsSet = new Set<string>();
@@ -292,15 +293,25 @@ export class PseuplexApp {
 			plugin.defineRoutes(router);
 		}
 
-		/*router.get('/media/providers', [
+		router.get('/media/providers', [
 			this.middlewares.plexAuthentication,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
+				filter: (req, res) => {
+					return (this.hasAnySections || (this.responseFilters?.mediaProviders?.length ?? 0) > 0);
+				},
 				responseModifier: async (proxyRes, resData: plexTypes.PlexServerMediaProvidersPage, userReq: IncomingPlexAPIRequest, userRes) => {
+					// add sections
+					const allSections = this.sections;
+					const sectionsFeature = resData.MediaContainer.MediaProvider[0].Feature.find((f) => f.type == plexTypes.PlexFeatureType.Content) as plexTypes.PlexContentFeature;
+					if(sectionsFeature) {
+						sectionsFeature.Directory.push(...await Promise.all(Array.from(allSections).map(async (section) => await section.getMediaProviderDirectory())));
+					}
+					// filter response
 					await this.filterResponse('mediaProviders', resData, { proxyRes, userReq, userRes });
 					return resData;
 				}
 			})
-		]);*/
+		]);
 
 		router.get('/hubs', [
 			this.middlewares.plexAuthentication,
@@ -970,5 +981,30 @@ export class PseuplexApp {
 				this.remapHubMetadataIdsIfNeeded(hub, keysToIdsMap);
 			}
 		}
+	}
+
+	get sections(): Set<PseuplexSection> {
+		const uniqueSections = new Set<PseuplexSection>();
+		for(const pluginSlug in this.plugins) {
+			const plugin = this.plugins[pluginSlug];
+			const pluginSections = plugin.sections;
+			if(pluginSections && pluginSections.length > 0) {
+				for(const section of pluginSections) {
+					uniqueSections.add(section);
+				}
+			}
+		}
+		return uniqueSections;
+	}
+
+	get hasAnySections(): boolean {
+		for(const pluginSlug in this.plugins) {
+			const plugin = this.plugins[pluginSlug];
+			const pluginSections = plugin.sections;
+			if(pluginSections && pluginSections.length > 0) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

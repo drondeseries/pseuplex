@@ -61,7 +61,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		readonly userFollowingActivity: PseuplexHubProvider & {readonly basePath: string};
 		readonly similar: PseuplexSimilarItemsHubProvider;
 	};
-	readonly section?: PseuplexSection;
+	//readonly section?: PseuplexSection;
 
 
 	constructor(app: PseuplexApp) {
@@ -127,7 +127,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// create metadata provider
 		this.metadata = new LetterboxdMetadataProvider({
 			basePath: `${this.basePath}/metadata`,
-			section: this.section,
+			//section: this.section,
 			plexMetadataClient: this.app.plexMetadataClient,
 			similarItemsHubProvider: this.hubs.similar,
 			plexGuidToInfoCache: this.app.plexGuidToInfoCache,
@@ -147,15 +147,6 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 	}
 	
 	responseFilters?: PseuplexReadOnlyResponseFilters = {
-		mediaProviders: async (resData, context) => {
-			if(this.section) {
-				const sectionsFeature = resData.MediaContainer.MediaProvider[0].Feature.find((f) => f.type == plexTypes.PlexFeatureType.Content) as plexTypes.PlexContentFeature;
-				if(sectionsFeature) {
-					sectionsFeature.Directory.push(await this.section.getMediaProviderDirectory());
-				}
-			}
-		},
-
 		hubs: async (resData, context) => {
 			await this._addFriendsActivityHubIfNeeded(resData, context);
 		},
