@@ -10,7 +10,6 @@ import {
 	PseuplexMetadataProvider,
 	PseuplexMetadataProviderParams,
 	PseuplexMetadataSource,
-	PseuplexSection,
 	PseuplexMetadataItem
 } from '../../pseuplex';
 import * as extPlexTransform from '../../pseuplex/externalplex/transform';

@@ -6,6 +6,18 @@ import {
 	PseuplexHubPageParams
 } from './hub';
 
+export interface PseuplexSection {
+	readonly id: string | number;
+	readonly uuid?: string | undefined;
+	readonly title: string;
+	readonly path: string;
+	readonly hubsPath: string;
+	hidden: boolean;
+
+	getMediaProviderDirectory(): Promise<plexTypes.PlexContentDirectory>;
+	getHubsPage?(params: plexTypes.PlexHubListPageParams, context: PseuplexHubContext): Promise<plexTypes.PlexSectionHubsPage>;
+}
+
 export type PseuplexSectionOptions = {
 	id: string | number;
 	uuid?: string | undefined;
@@ -15,7 +27,7 @@ export type PseuplexSectionOptions = {
 	hidden?: boolean;
 };
 
-export class PseuplexSection {
+export class PseuplexSectionBase implements PseuplexSection {
 	readonly id: string | number;
 	readonly uuid?: string | undefined;
 	readonly title: string;
@@ -40,15 +52,15 @@ export class PseuplexSection {
 			title: this.title,
 			uuid: this.uuid,
 			type: plexTypes.PlexMediaItemType.Mixed,
-			hidden: this.hidden as any as number,
+			hidden: this.hidden ? 1 : 0,
 		};
 	}
 
 	getHubs?(options: {maxCount?: number}): Promise<PseuplexHub[]>;
 	async getHubsPage?(params: plexTypes.PlexHubListPageParams, context: PseuplexHubContext): Promise<plexTypes.PlexSectionHubsPage> {
-		const hubs = await this.getHubs({
+		const hubs = (await this.getHubs?.({
 			maxCount: params.count
-		});
+		})) ?? [];
 		const hubPageParams: PseuplexHubPageParams = {
 			count: params.count,
 			includeMeta: params.includeMeta,
