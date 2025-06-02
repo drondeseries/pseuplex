@@ -292,7 +292,7 @@ export class PseuplexApp {
 			plugin.defineRoutes(router);
 		}
 
-		router.get('/media/providers', [
+		/*router.get('/media/providers', [
 			this.middlewares.plexAuthentication,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexServerMediaProvidersPage, userReq: IncomingPlexAPIRequest, userRes) => {
@@ -300,7 +300,7 @@ export class PseuplexApp {
 					return resData;
 				}
 			})
-		]);
+		]);*/
 
 		router.get('/hubs', [
 			this.middlewares.plexAuthentication,
@@ -522,7 +522,7 @@ export class PseuplexApp {
 			})
 		]);
 
-		router.get('/myplex/account', [
+		/*router.get('/myplex/account', [
 			this.middlewares.plexAuthentication,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexMyPlexAccountPage, userReq: IncomingPlexAPIRequest, userRes) => {
@@ -530,7 +530,7 @@ export class PseuplexApp {
 					return resData;
 				}
 			})
-		]);
+		]);*/
 
 		router.post('/playQueues', [
 			this.middlewares.plexAuthentication,
@@ -597,16 +597,6 @@ export class PseuplexApp {
 			req.url = stringifyURLPath(urlPathParts);
 			next();
 		}));
-
-		/*router.use('/video', [
-			plexThinProxy(this.plexServerURL, plexProxyArgs)
-		]);
-		router.use('/photo', [
-			plexThinProxy(this.plexServerURL, plexProxyArgs)
-		]);
-		router.use('/library/parts', [
-			plexThinProxy(this.plexServerURL, plexProxyArgs)
-		]);*/
 
 		// proxy requests to plex
 		const plexGeneralProxy = plexHttpProxy(this.plexServerURL, plexProxyArgs);

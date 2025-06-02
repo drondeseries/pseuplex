@@ -251,11 +251,17 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 		ws: true,
 		xfwd: true,
 		preserveHeaderKeyCase: true,
-		changeOrigin: false,
+		//changeOrigin: false,
 		//autoRewrite: true,
 	});
 	if(args.logProxyRequests) {
 		plexGeneralProxy.on('proxyReq', (proxyReq, userReq, userRes) => {
+			/*// fix proxy headers
+			if(userReq.headers['connection']) {
+				proxyReq.setHeader('connection', userReq.headers['connection']);
+			} else {
+				proxyReq.removeHeader('connection');
+			}*/
 			// log proxy request if needed
 			if(args.logProxyRequests) {
 				console.log(`\nProxy ${proxyReq.method} ${urlLogString(args, proxyReq.path)}`);
