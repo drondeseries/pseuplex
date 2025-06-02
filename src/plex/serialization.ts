@@ -73,7 +73,9 @@ const convertPlexJSForXMLBuilder = (json: any, parentKey: string) => {
 			continue;
 		}
 		const valType = typeof val;
-		if(valType === 'string' || valType === 'number' || valType === 'boolean') {
+		if(valType === 'boolean') {
+			xmlAttrs[key] = val ? 1 : 0;
+		} else if(valType === 'string' || valType === 'number') {
 			xmlAttrs[key] = val;
 		} else if(val instanceof Array) {
 			xmlObj[key] = val.map((element) => convertPlexJSForXMLBuilder(element, key));
@@ -100,7 +102,13 @@ export const plexJSToXML = (json: any): string => {
 	// convert
 	const xmlBuilder = new xml2js.Builder({
 		rootName: rootKey,
-		attrkey: attrKey
+		attrkey: attrKey,
+		xmldec: { 'version': '1.0', 'encoding': 'UTF-8' },
+		//renderOpts: {
+		//	pretty: true,
+		//	indent: '',
+		//	newline: '\n',
+		//}
 	});
 	return xmlBuilder.buildObject(json);
 };
