@@ -51,11 +51,11 @@ export class PlexServerPropertiesStore {
 		return sections;
 	}
 
-	async getLibrarySection(id: string | number): Promise<plexTypes.PlexContentDirectory | null> {
+	async getLibrarySection(id: string | number): Promise<plexTypes.PlexLibrarySection | null> {
 		const key = `/library/sections/${id}`;
 		const sections = (await this.getLibrarySections()).MediaContainer.Directory;
 		for(const section of sections) {
-			if(section.key == key || section.key == id || section.id == id) {
+			if(section.key == key || section.key == id || (section as any as plexTypes.PlexContentDirectory).id == id) {
 				return section;
 			}
 		}
