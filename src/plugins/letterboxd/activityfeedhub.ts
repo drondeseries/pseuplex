@@ -4,7 +4,7 @@ import * as plexTypes from '../../plex/types';
 import {
 	PseuplexFeedHub,
 	PseuplexFeedHubOptions,
-	PseuplexHubContext,
+	PseuplexRequestContext,
 	PseuplexMetadataTransformOptions
 } from '../../pseuplex';
 import { LetterboxdMetadataProvider } from './metadata';
@@ -61,7 +61,7 @@ export class LetterboxdActivityFeedHub extends PseuplexFeedHub<letterboxd.Film,n
 		return itemToken2 - itemToken1;
 	}
 
-	override async transformItem(item: letterboxd.Film, context: PseuplexHubContext): Promise<plexTypes.PlexMetadataItem> {
+	override async transformItem(item: letterboxd.Film, context: PseuplexRequestContext): Promise<plexTypes.PlexMetadataItem> {
 		const opts = this._options;
 		return await lbtransform.transformLetterboxdFilmHubEntry(item, context, opts.letterboxdMetadataProvider, opts.metadataTransformOptions);
 	}

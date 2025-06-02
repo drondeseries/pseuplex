@@ -3,7 +3,7 @@ import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
 import {
 	PseuplexFeedHub,
-	PseuplexHubContext,
+	PseuplexRequestContext,
 	PseuplexMetadataTransformOptions,
 	PseuplexPartialMetadataIDString,
 	qualifyPartialMetadataID
@@ -102,7 +102,7 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 			};
 		}
 
-		override async transformItem(item: letterboxd.Film, context: PseuplexHubContext): Promise<plexTypes.PlexMetadataItem> {
+		override async transformItem(item: letterboxd.Film, context: PseuplexRequestContext): Promise<plexTypes.PlexMetadataItem> {
 			return await lbtransform.transformLetterboxdFilmHubEntry(item, context, options.letterboxdMetadataProvider, metadataTransformOpts);
 		}
 	}({

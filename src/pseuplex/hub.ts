@@ -1,8 +1,8 @@
 import * as plexTypes from '../plex/types';
 import { parseMetadataIDFromKey } from '../plex/metadataidentifier';
 import { CachedFetcher } from '../fetching/CachedFetcher';
-import { PseuplexSection } from './section';
-
+import type { PseuplexSection } from './section';
+import type { PseuplexRequestContext } from './types';
 
 export type PseuplexHubPage = {
 	hub: plexTypes.PlexHub;
@@ -16,20 +16,15 @@ export type PseuplexHubPageParams = plexTypes.PlexHubPageParams & {
 	listStartToken?: string | null | undefined;
 };
 
-export type PseuplexHubContext = {
-	plexServerURL: string;
-	plexAuthContext: plexTypes.PlexAuthContext;
-};
-
 export abstract class PseuplexHub {
 	get metadataBasePath() {
 		return '/library/metadata/';
 	}
 	abstract readonly section?: PseuplexSection;
 	
-	abstract get(params: PseuplexHubPageParams, context: PseuplexHubContext): Promise<PseuplexHubPage>;
+	abstract get(params: PseuplexHubPageParams, context: PseuplexRequestContext): Promise<PseuplexHubPage>;
 	
-	async getHub(params: PseuplexHubPageParams, context: PseuplexHubContext): Promise<plexTypes.PlexHubPage> {
+	async getHub(params: PseuplexHubPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexHubPage> {
 		const page = await this.get(params, context);
 		const section = this.section;
 		return {
@@ -59,7 +54,7 @@ export abstract class PseuplexHub {
 		};
 	}
 	
-	async getHubListEntry(params: PseuplexHubPageParams, context: PseuplexHubContext): Promise<plexTypes.PlexHubWithItems> {
+	async getHubListEntry(params: PseuplexHubPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexHubWithItems> {
 		const page = await this.get(params, context);
 		let metadataBasePath = this.metadataBasePath;
 		if(metadataBasePath && !metadataBasePath.endsWith('/')) {

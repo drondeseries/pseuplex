@@ -1,6 +1,8 @@
 import {
 	PlexLanguage,
 	PlexLibraryAgent,
+	PlexLibraryScanner,
+	PlexMediaItemType,
 	PlexMediaItemTypeNumeric
 } from './common';
 import { PlexMediaContainer } from './MediaContainer';
@@ -16,27 +18,27 @@ export type PlexGetLibraryMatchesParams = {
 
 export type PlexLibrarySection = {
 	allowSync: boolean;
-	art: string;
-	composite: string;
+	art?: string;
+	composite?: string; // "/library/sections/2/composite/1738767496"
 	filters: boolean;
-	refreshing: boolean;
-	thumb: string;
+	refreshing?: boolean;
+	thumb?: string; // "/:/resources/show.png", "/:/resources/movie.png"
 	key: string;
-	type: string;
+	type: PlexMediaItemType;
 	title: string;
-	agent: string;
-	scanner: string;
-	language: string;
+	agent?: PlexLibraryAgent;
+	scanner?: PlexLibraryScanner;
+	language?: string; // "en-US"
 	uuid: string;
-	updatedAt: number;
-	createdAt: number;
-	scannedAt: number;
+	updatedAt?: number;
+	createdAt?: number;
+	scannedAt?: number;
 	content: boolean;
 	directory: boolean;
-	contentChangedAt: number;
-	hidden: number;
-	Location: PlexSectionLocation[];
-	Preferences: PlexSectionPreferences;
+	contentChangedAt?: number;
+	hidden?: number;
+	Location?: PlexSectionLocation[];
+	Preferences?: PlexSectionPreferences;
 }
 
 export interface PlexSectionLocation {

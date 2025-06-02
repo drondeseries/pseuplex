@@ -13,10 +13,12 @@ import {
 	addQueryArgumentToURLPath,
 	forArrayOrSingle
 } from '../utils';
-import { PseuplexMetadataItem } from './types';
+import {
+	PseuplexMetadataItem,
+	PseuplexRequestContext
+} from './types';
 import {
 	PseuplexHub,
-	PseuplexHubContext,
 	PseuplexHubPage,
 	PseuplexHubPageParams
 } from './hub';
@@ -77,9 +79,9 @@ export abstract class PseuplexFeedHub<
 	abstract parseItemTokenParam(itemToken: string): TItemToken | null;
 	abstract fetchPage(pageToken: TPageToken | null): Promise<LoadableListFetchedChunk<TItem,TItemToken,TPageToken>>;
 	abstract compareItemTokens(itemToken1: TItemToken, itemToken2: TItemToken): number;
-	abstract transformItem(item: TItem, context: PseuplexHubContext): (plexTypes.PlexMetadataItem | Promise<plexTypes.PlexMetadataItem>);
+	abstract transformItem(item: TItem, context: PseuplexRequestContext): (plexTypes.PlexMetadataItem | Promise<plexTypes.PlexMetadataItem>);
 	
-	override async get(params: PseuplexHubPageParams, context: PseuplexHubContext): Promise<PseuplexHubPage> {
+	override async get(params: PseuplexHubPageParams, context: PseuplexRequestContext): Promise<PseuplexHubPage> {
 		const opts = this._options;
 		const loadAheadCount = opts.loadAheadCount ?? DEFAULT_LOAD_AHEAD_COUNT;
 		let chunk: LoadableListChunk<TItem,TItemToken>;

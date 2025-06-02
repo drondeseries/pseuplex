@@ -33,7 +33,8 @@ import {
 	PseuplexMetadataPage,
 	PseuplexMetadataItem,
 	PseuplexMetadataSource,
-	PseuplexServerProtocol
+	PseuplexServerProtocol,
+	PseuplexRequestContext,
 } from './types';
 import { PseuplexConfigBase } from './configbase';
 import {
@@ -61,6 +62,7 @@ import {
 	pseuplexMetadataIdsRequestMiddleware
 } from './requesthandling';
 import { IDMappings } from './idmappings';
+import { PseuplexSection } from './section';
 import { CachedFetcher } from '../fetching/CachedFetcher';
 import {
 	httpError,
@@ -74,7 +76,6 @@ import {
 	intParam,
 } from '../utils';
 import { urlLogString } from '../logging';
-import { PseuplexSection } from './section';
 
 
 
@@ -300,14 +301,41 @@ export class PseuplexApp {
 					return (this.hasAnySections || (this.responseFilters?.mediaProviders?.length ?? 0) > 0);
 				},
 				responseModifier: async (proxyRes, resData: plexTypes.PlexServerMediaProvidersPage, userReq: IncomingPlexAPIRequest, userRes) => {
+					const context: PseuplexRequestContext = {
+						plexServerURL: this.plexServerURL,
+						plexAuthContext: userReq.plex.authContext,
+					};
 					// add sections
 					const allSections = this.sections;
 					const sectionsFeature = resData.MediaContainer.MediaProvider[0].Feature.find((f) => f.type == plexTypes.PlexFeatureType.Content) as plexTypes.PlexContentFeature;
 					if(sectionsFeature) {
-						sectionsFeature.Directory.push(...await Promise.all(Array.from(allSections).map(async (section) => await section.getMediaProviderDirectory())));
+						sectionsFeature.Directory.push(...await Promise.all(Array.from(allSections).map(async (section) => await section.getMediaProviderDirectory(context))));
 					}
 					// filter response
 					await this.filterResponse('mediaProviders', resData, { proxyRes, userReq, userRes });
+					return resData;
+				}
+			})
+		]);
+
+		router.get(['/library/sections', '/library/sections/all'], [
+			this.middlewares.plexAuthentication,
+			plexApiProxy(this.plexServerURL, plexProxyArgs, {
+				filter: (req, res) => {
+					return this.hasAnySections;
+				},
+				responseModifier: async (proxyRes, resData: plexTypes.PlexLibrarySectionsPage, userReq: IncomingPlexAPIRequest, userRes) => {
+					const context: PseuplexRequestContext = {
+						plexServerURL: this.plexServerURL,
+						plexAuthContext: userReq.plex.authContext,
+					};
+					// add sections
+					const allSections = this.sections;
+					const existingSections = resData.MediaContainer.Directory ?? [];
+					const newSections = await Promise.all(Array.from(allSections).map(async (section) => await section.getLibrarySectionsEntry(context)));
+					existingSections.push(...newSections);
+					resData.MediaContainer.Directory = existingSections;
+					resData.MediaContainer.size = (resData.MediaContainer.size ?? 0) + newSections.length;
 					return resData;
 				}
 			})

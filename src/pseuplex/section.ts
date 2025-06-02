@@ -1,25 +1,28 @@
-
+import express from 'express';
 import * as plexTypes from '../plex/types';
-import {
+import type { PseuplexRequestContext } from './types';
+import type {
 	PseuplexHub,
-	PseuplexHubContext,
 	PseuplexHubPageParams
 } from './hub';
 
 export interface PseuplexSection {
 	readonly id: string | number;
 	readonly uuid?: string | undefined;
+	readonly type: plexTypes.PlexMediaItemType;
 	readonly title: string;
 	readonly path: string;
 	readonly hubsPath: string;
-	hidden: boolean;
 
-	getMediaProviderDirectory(): Promise<plexTypes.PlexContentDirectory>;
-	getHubsPage?(params: plexTypes.PlexHubListPageParams, context: PseuplexHubContext): Promise<plexTypes.PlexSectionHubsPage>;
+	getMediaProviderDirectory(context: PseuplexRequestContext): Promise<plexTypes.PlexContentDirectory>;
+	getLibrarySectionsEntry(context: PseuplexRequestContext): Promise<plexTypes.PlexLibrarySection>;
+	getHubsPage(params: plexTypes.PlexHubListPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexSectionHubsPage>;
 }
 
 export type PseuplexSectionOptions = {
+	allowSync?: boolean;
 	id: string | number;
+	type?: plexTypes.PlexMediaItemType;
 	uuid?: string | undefined;
 	title: string;
 	path: string;
@@ -30,34 +33,50 @@ export type PseuplexSectionOptions = {
 export class PseuplexSectionBase implements PseuplexSection {
 	readonly id: string | number;
 	readonly uuid?: string | undefined;
+	readonly type: plexTypes.PlexMediaItemType;
 	readonly title: string;
 	readonly path: string;
 	readonly hubsPath: string;
-	hidden: boolean;
+	allowSync: boolean;
 
 	constructor(options: PseuplexSectionOptions) {
 		this.id = options.id;
 		this.uuid = options.uuid;
+		this.type = options.type ?? plexTypes.PlexMediaItemType.Mixed;
 		this.title = options.title;
 		this.path = options.path;
 		this.hubsPath = options.hubsPath;
-		this.hidden = options.hidden ?? false;
+		this.allowSync = options.allowSync ?? false;
 	}
 
-	async getMediaProviderDirectory(): Promise<plexTypes.PlexContentDirectory> {
+	async getMediaProviderDirectory(context: PseuplexRequestContext): Promise<plexTypes.PlexContentDirectory> {
 		return {
 			id: `${this.id}`,
 			key: this.path,
 			hubKey: this.hubsPath,
 			title: this.title,
 			uuid: this.uuid,
-			type: plexTypes.PlexMediaItemType.Mixed,
-			hidden: this.hidden ? 1 : 0,
+			type: this.type,
+			refreshing: false,
+		};
+	}
+
+	async getLibrarySectionsEntry(context: PseuplexRequestContext): Promise<plexTypes.PlexLibrarySection> {
+		return {
+			allowSync: this.allowSync,
+			key: `${this.id}`,
+			uuid: this.uuid,
+			type: this.type,
+			title: this.title,
+			refreshing: false,
+			filters: true,
+			content: true,
+			directory: true,
 		};
 	}
 
 	getHubs?(options: {maxCount?: number}): Promise<PseuplexHub[]>;
-	async getHubsPage?(params: plexTypes.PlexHubListPageParams, context: PseuplexHubContext): Promise<plexTypes.PlexSectionHubsPage> {
+	async getHubsPage(params: plexTypes.PlexHubListPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexSectionHubsPage> {
 		const hubs = (await this.getHubs?.({
 			maxCount: params.count
 		})) ?? [];

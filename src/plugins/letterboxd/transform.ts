@@ -3,8 +3,10 @@ import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
 import {
 	PseuplexMetadataItem,
-	PseuplexMetadataSource
-} from '../../pseuplex/types';
+	PseuplexMetadataSource,
+	PseuplexMetadataTransformOptions,
+	PseuplexRequestContext,
+} from '../../pseuplex';
 import {
 	parsePartialMetadataID,
 	PseuplexMetadataIDString,
@@ -12,8 +14,6 @@ import {
 	stringifyMetadataID,
 	stringifyPartialMetadataID
 } from '../../pseuplex/metadataidentifier';
-import { PseuplexMetadataTransformOptions } from '../../pseuplex/metadata';
-import { PseuplexHubContext } from '../../pseuplex/hub';
 import {
 	intParam,
 	combinePathSegments
@@ -144,7 +144,7 @@ export const filmToPlexMetadata = (film: letterboxd.Film, options: PseuplexMetad
 	};
 };
 
-export const transformLetterboxdFilmHubEntry = async (film: letterboxd.Film, context: PseuplexHubContext, metadataProvider: LetterboxdMetadataProvider, metadataTransformOptions: PseuplexMetadataTransformOptions): Promise<plexTypes.PlexMetadataItem> => {
+export const transformLetterboxdFilmHubEntry = async (film: letterboxd.Film, context: PseuplexRequestContext, metadataProvider: LetterboxdMetadataProvider, metadataTransformOptions: PseuplexMetadataTransformOptions): Promise<plexTypes.PlexMetadataItem> => {
 	const metadataId = partialMetadataIdFromFilm(film);
 	const metadataItem = filmToPlexMetadata(film, metadataTransformOptions);
 	const section = metadataProvider.section;
