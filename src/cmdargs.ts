@@ -16,6 +16,7 @@ export type CommandArguments = {
 	logProxyResponseBody?: boolean,
 	logProxyErrorResponseBody?: boolean,
 	verbose?: boolean,
+	verboseTraffic?: boolean,
 }
 
 enum CmdFlag {
@@ -32,7 +33,8 @@ enum CmdFlag {
 	logProxyResponseHeaders = '--log-proxy-response-headers',
 	logProxyResponseBody = '--log-proxy-response-body',
 	logProxyErrorResponseBody = '--log-proxy-response-body',
-	verbose = '--verbose'
+	verbose = '--verbose',
+	verboseTraffic = '--verbose-traffic',
 }
 
 const ArgsWithValues: Set<CmdFlag> = new Set([
@@ -124,20 +126,26 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 				
 				case CmdFlag.verbose:
 					parsedArgs.verbose = true;
+					parsedArgs.logUserRequests = true;
+					parsedArgs.logUserResponses = true;
+					break;
+
+				case CmdFlag.verboseTraffic:
+					parsedArgs.verboseTraffic = true;
 					parsedArgs.logFullURLs = true;
 					parsedArgs.logOutgoingRequests = true;
 					parsedArgs.logUserRequests = true;
-					//parsedArgs.logUserRequestHeaders = true;
+					parsedArgs.logUserRequestHeaders = true;
 					parsedArgs.logUserResponses = true;
-					//parsedArgs.logUserResponseHeaders = true;
-					//parsedArgs.logUserResponseBody = true;
+					parsedArgs.logUserResponseHeaders = true;
+					parsedArgs.logUserResponseBody = true;
 					//parsedArgs.logRequestPathMappings = true;
 					parsedArgs.logProxyRequests = true;
-					//parsedArgs.logProxyRequestHeaders = true;
+					parsedArgs.logProxyRequestHeaders = true;
 					parsedArgs.logProxyResponses = true;
-					//parsedArgs.logProxyResponseHeaders = true;
+					parsedArgs.logProxyResponseHeaders = true;
 					//parsedArgs.logProxyResponseBody = true;
-					//parsedArgs.logProxyErrorResponseBody = true;
+					parsedArgs.logProxyErrorResponseBody = true;
 					break;
 				
 				default:
