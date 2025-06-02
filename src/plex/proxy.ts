@@ -307,7 +307,7 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 			}
 		});
 	}
-	if(args.logProxyResponses || args.logUserResponses) {
+	if(args.logProxyResponses || args.logUserResponses || args.logProxyErrorResponseBody) {
 		plexGeneralProxy.on('proxyRes', (proxyRes, userReq, userRes) => {
 			const logHeaders = args.logProxyResponseHeaders || args.logUserResponseHeaders;
 			const logProxyResponseBody = () => {
@@ -325,9 +325,10 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 					}
 				});
 			};
+			const isProxyResError = (!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300);
 			if(logHeaders) {
 				// log proxy response if needed
-				if(args.logProxyResponses) {
+				if(args.logProxyResponses || (args.logProxyErrorResponseBody && isProxyResError)) {
 					console.log(`\nProxy Response ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.url)}`);
 					if(args.logProxyResponseHeaders) {
 						const proxyResHeaderList = proxyRes.rawHeaders;
@@ -338,7 +339,7 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 							console.log(`\t${headerKey}: ${headerVal}`);
 						}
 					}
-					if(args.logProxyErrorResponseBody && (!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300)) {
+					if(args.logProxyErrorResponseBody && isProxyResError) {
 						logProxyResponseBody();
 					}
 				}
@@ -357,9 +358,9 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 				}
 			} else {
 				// log response if needed
-				if(args.logProxyResponses || args.logUserResponses) {
+				if(args.logProxyResponses || args.logUserResponses || (args.logProxyErrorResponseBody && isProxyResError)) {
 					console.log(`\nResponse ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.url)}`);
-					if(args.logProxyErrorResponseBody && (!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300)) {
+					if(args.logProxyErrorResponseBody && isProxyResError) {
 						logProxyResponseBody();
 					}
 					console.log();
