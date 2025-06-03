@@ -153,7 +153,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 	abstract transformMetadataItem(metadataItem: TMetadataItem, options: PseuplexMetadataTransformOptions): PseuplexMetadataItem;
 	abstract idFromMetadataItem(metadataItem: TMetadataItem): PseuplexPartialMetadataIDString;
 	
-	abstract getPlexMatchParams(metadataItem: TMetadataItem): PlexMediaItemMatchParams;
+	abstract getPlexMatchParams(metadataItem: TMetadataItem): (PlexMediaItemMatchParams | null);
 	async getPlexGUIDForID(id: PseuplexPartialMetadataIDString, options: {
 		plexServerURL: string;
 		plexAuthContext: plexTypes.PlexAuthContext

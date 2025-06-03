@@ -33,8 +33,8 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 		return lbTransform.partialMetadataIdFromFilmInfo(metadataItem);
 	}
 
-	override getPlexMatchParams(filmInfo: LetterboxdMetadataItem): PlexMediaItemMatchParams {
-		let types: plexTypes.PlexMediaItemTypeNumeric[];
+	override getPlexMatchParams(filmInfo: LetterboxdMetadataItem): (PlexMediaItemMatchParams | null) {
+		let types: (plexTypes.PlexMediaItemTypeNumeric[] | undefined) = undefined;
 		const tmdbInfo = filmInfo.pageData.tmdb;
 		const imdbInfo = filmInfo.pageData.imdb;
 		if(tmdbInfo && tmdbInfo.type) {
@@ -72,7 +72,7 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 		}
 		// match against guids
 		let getFilmOpts: letterboxd.GetFilmOptions | undefined = undefined;
-		const idMap = parsePlexExternalGuids(metadataItem.Guid);
+		const idMap = parsePlexExternalGuids(metadataItem.Guid ?? []);
 		const tmdbId = idMap['tmdb'];
 		if(tmdbId) {
 			getFilmOpts = {tmdbId};
@@ -98,6 +98,9 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 			});
 		if(plexGuid) {
 			this.plexGuidToIDCache.setSync(plexGuid, filmInfoTask.then((filmInfo) => {
+				if(!filmInfo) {
+					return null;
+				}
 				return this.idFromMetadataItem(filmInfo);
 			}));
 		}

@@ -106,12 +106,12 @@ export type TransformRequestMetadataOptions = {
 
 export const setMetadataItemKeyToRequestKey = (metadataItem: plexTypes.PlexMetadataItem, opts: TransformRequestMetadataOptions) => {
 	let itemGuid = metadataItem.guid;
-	let season: number = undefined;
+	let season: number | undefined = undefined;
 	if(metadataItem.type == plexTypes.PlexMediaItemType.Season) {
 		itemGuid = metadataItem.parentGuid;
 		season = metadataItem.index;
 	}
-	const guidParts = parsePlexMetadataGuid(itemGuid);
+	const guidParts = parsePlexMetadataGuid(itemGuid!);
 	const children = opts?.children ?? metadataItem.key.endsWith(ChildrenRelativePath);
 	metadataItem.key = createRequestItemMetadataKey({
 		basePath: opts.basePath,

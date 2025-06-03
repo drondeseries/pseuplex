@@ -25,7 +25,7 @@ export const handlePlexAPIRequest = async <TResult>(req: express.Request, res: e
 			statusCode = 500;
 		}
 		// log response
-		if(options.logResponses) {
+		if(options?.logResponses) {
 			console.log(`\nUser response ${statusCode} for ${req.method} ${urlLogString(options, req.originalUrl)}`);
 			// no response body
 		}
@@ -38,9 +38,9 @@ export const handlePlexAPIRequest = async <TResult>(req: express.Request, res: e
 		return;
 	}
 	// log response
-	if(options.logResponses) {
+	if(options?.logResponses) {
 		console.log(`\nUser response 200 for ${req.method} ${urlLogString(options, req.originalUrl)}`);
-		if(options.logResponseBody) {
+		if(options?.logResponseBody) {
 			console.log(serializedRes.data);
 		}
 	}
@@ -78,7 +78,8 @@ export const createPlexAuthenticationMiddleware = (accountsStore: PlexServerAcco
 	return async (req: express.Request, res: express.Response, next: (error?: Error) => void) => {
 		try {
 			const authContext = plexTypes.parseAuthContextFromRequest(req);
-			const userInfo = await accountsStore.getTokenUserInfoOrNull(authContext['X-Plex-Token']);
+			const userToken = authContext?.['X-Plex-Token'];
+			const userInfo = userToken ? await accountsStore.getTokenUserInfoOrNull(userToken) : null;
 			if(!userInfo) {
 				throw httpError(401, "Not Authorized");
 			}

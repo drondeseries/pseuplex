@@ -17,7 +17,7 @@ export type CertificateData = {
 	key?: string | Buffer;
 };
 
-export const extractP12Data = (p12Data: string | Buffer, password: string): CertificateData => {
+export const extractP12Data = (p12Data: string | Buffer, password: string | null | undefined): CertificateData => {
 	if(p12Data instanceof Buffer) {
 		p12Data = p12Data.toString('binary');
 	}
@@ -29,18 +29,18 @@ export const extractP12Data = (p12Data: string | Buffer, password: string): Cert
 		p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1);
 	}
 	// get certificate
-	const certBag = p12.getBags({bagType: forge.pki.oids.certBag})[forge.pki.oids.certBag][0];
-	if(!certBag) {
+	const certBag = p12.getBags({bagType: forge.pki.oids.certBag})[forge.pki.oids.certBag]?.[0];
+	if(!certBag?.cert) {
 		throw new Error('No certificates found');
 	}
 	const cert = forge.pki.certificateToPem(certBag.cert);
 	// get private key
-	let privateKey: string;
+	let privateKey: string | undefined;
 	for (const safeContents of p12.safeContents) {
 		for (const safeBag of safeContents.safeBags) {
 			if (safeBag.type === forge.pki.oids.keyBag || safeBag.type === forge.pki.oids.pkcs8ShroudedKeyBag) {
 				const key = safeBag.key;
-				privateKey = forge.pki.privateKeyToPem(key);
+				privateKey = key != null ? forge.pki.privateKeyToPem(key) : undefined;
 				break;
 			}
 		}
@@ -65,7 +65,7 @@ export const readSSLCertAndKey = async (sslConfig: SSLConfig): Promise<Certifica
 }
 
 export const watchSSLCertAndKeyChanges = (sslConfig: SSLConfig, opts: {debounceDelay?: number}, callback: (certData: CertificateData) => void): { close: () => void } | null => {
-	const debouncer = opts.debounceDelay != null ? createDebouncer(opts.debounceDelay) : null;
+	const debouncer = opts.debounceDelay != null ? createDebouncer(opts.debounceDelay) : undefined;
 	const onCallback = async () => {
 		try {
 			const certData = await readSSLCertAndKey(sslConfig);
@@ -77,8 +77,8 @@ export const watchSSLCertAndKeyChanges = (sslConfig: SSLConfig, opts: {debounceD
 	if(sslConfig.p12Path) {
 		return watchFilepathChanges(sslConfig.p12Path, {debouncer}, onCallback);
 	} else if(sslConfig.certPath && sslConfig.keyPath) {
-		let certWatcher: {close: () => void};
-		let keyWatcher: {close: () => void};
+		let certWatcher: {close: () => void} | undefined;
+		let keyWatcher: {close: () => void} | undefined;
 		try {
 			// TODO have some FSWatcher pool in case cert and key are in the same directory (so we're not watching the directory twice)
 			certWatcher = watchFilepathChanges(sslConfig.certPath, {debouncer}, onCallback);

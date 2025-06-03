@@ -59,23 +59,27 @@ export const transformExternalPlexMetadata = (metadataItem: plexTypes.PlexMetada
 			}
 		}
 	}
-	const partialMetadataId = createPartialExternalPlexMetadataId({
-		serverURL,
-		metadataId
-	});
-	const fullMetadataId = createFullExternalPlexMetadataId({
-		serverURL,
-		metadataId,
-		asUrl: false
-	});
-	pseuMetadataItem.ratingKey = fullMetadataId;
-	pseuMetadataItem.key = `${transformOpts.metadataBasePath}/${transformOpts.qualifiedMetadataId ? fullMetadataId : partialMetadataId}`;
-	pseuMetadataItem.Pseuplex = {
-		isOnServer: false,
-		metadataIds: {},
-		plexMetadataIds: {
-			[serverURL]: metadataId
-		}
-	};
+	if(metadataId) {
+		const partialMetadataId = createPartialExternalPlexMetadataId({
+			serverURL,
+			metadataId,
+		});
+		const fullMetadataId = createFullExternalPlexMetadataId({
+			serverURL,
+			metadataId,
+			asUrl: false
+		});
+		pseuMetadataItem.ratingKey = fullMetadataId;
+		pseuMetadataItem.key = `${transformOpts.metadataBasePath}/${transformOpts.qualifiedMetadataId ? fullMetadataId : partialMetadataId}`;
+		pseuMetadataItem.Pseuplex = {
+			isOnServer: false,
+			metadataIds: {},
+			plexMetadataIds: {
+				[serverURL]: metadataId
+			}
+		};
+	} else {
+		console.error("Failed to parse metadataId from external plex metadata item");
+	}
 	return pseuMetadataItem;
 };

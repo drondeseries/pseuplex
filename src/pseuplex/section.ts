@@ -65,7 +65,7 @@ export class PseuplexSectionBase implements PseuplexSection {
 		return {
 			allowSync: this.allowSync,
 			key: `${this.id}`,
-			uuid: this.uuid,
+			uuid: this.uuid!,
 			type: this.type,
 			title: this.title,
 			refreshing: false,
@@ -91,7 +91,7 @@ export class PseuplexSectionBase implements PseuplexSection {
 				allowSync: false,
 				librarySectionID: this.id,
 				librarySectionTitle: this.title,
-				librarySectionUUID: this.uuid,
+				librarySectionUUID: this.uuid!,
 				Hub: await Promise.all(hubs.map((hub) => {
 					return hub.getHubListEntry(hubPageParams, context)
 				}))

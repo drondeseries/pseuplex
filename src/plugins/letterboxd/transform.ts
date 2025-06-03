@@ -162,7 +162,7 @@ export const transformLetterboxdFilmHubEntry = async (film: letterboxd.Film, con
 }
 
 export const viewingToPlexReview = (viewing: letterboxd.Viewing): plexTypes.PlexReview => {
-	let ratingString: string;
+	let ratingString: string | undefined = undefined;
 	if(viewing.rating) {
 		const solidRating = Math.floor(viewing.rating / 2);
 		const halfRating = viewing.rating % 2;
@@ -173,6 +173,6 @@ export const viewingToPlexReview = (viewing: letterboxd.Viewing): plexTypes.Plex
 		tag: viewing.user.displayName,
 		image: (viewing.rating && viewing.rating < 5) ? "rottentomatoes://image.rating.spilled" : "rottentomatoes://image.rating.upright",
 		link: letterboxd.BASE_URL + viewing.href,
-		text: ratingString ? `${ratingString}\n${viewing.text ?? ''}` : viewing.text
+		text: (ratingString ? `${ratingString}\n${viewing.text ?? ''}` : viewing.text)!
 	};
 };

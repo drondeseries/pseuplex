@@ -29,7 +29,7 @@ const overseerrFetch = async (options: {
 	}
 	// build parameters
 	const method = options.method ?? 'GET';
-	if (method === 'GET') {
+	if (method === 'GET' && options.params) {
 		const paramsQs = qs.stringify(options.params);
 		if (paramsQs.length > 0) {
 			if (url.indexOf('?') == -1) {

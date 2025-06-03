@@ -63,10 +63,10 @@ export const parseAuthContextFromRequest = (req: express.Request): PlexAuthConte
 };
 
 export const parsePlexTokenFromRequest = (req: (http.IncomingMessage | express.Request)): string | undefined => {
-	let query = (req as express.Request).query;
+	let query: {[key: string]: any} = (req as express.Request).query;
 	if(!query) {
 		const urlParts = parseURLPath(req.url);
-		query = urlParts.queryItems;
+		query = urlParts.queryItems ?? {};
 	}
 	let plexToken = query ? stringParam(query['X-Plex-Token']) : undefined;
 	if(!plexToken) {

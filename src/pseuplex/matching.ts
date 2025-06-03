@@ -25,7 +25,7 @@ export type PlexMediaItemMatchParams = {
 };
 
 export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, options: PlexMediaItemMatchParams & {
-	authContext?: plexTypes.PlexAuthContext | null
+	authContext?: plexTypes.PlexAuthContext | undefined
 }): Promise<plexTypes.PlexMetadataItem | null> => {
 	// match against guids
 	if(options.guids) {

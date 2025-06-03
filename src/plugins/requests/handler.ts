@@ -71,7 +71,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 	}): Promise<plexTypes.PlexMetadataItem | null> {
 		// determine properties and get metadata
 		let requestActionTitle: string;
-		let librarySectionID: string | number;
+		let librarySectionID: string | number | undefined;
 		switch(options.mediaType) {
 			case plexTypes.PlexMediaItemTypeNumeric.Movie:
 				requestActionTitle = "Request Movie";
@@ -95,14 +95,14 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				break;
 			default:
 				// can't request type
-				return;
+				return null;
 		}
 		if(librarySectionID == null) {
 			// no section specified for the request
 			return null;
 		}
 		// fetch metadata
-		let metadataItem: plexTypes.PlexMetadataItem;
+		let metadataItem: plexTypes.PlexMetadataItem | undefined = undefined;
 		const guidParts = parsePlexMetadataGuid(options.guid);
 		if(options.season != null) {
 			const metadataItems = (await options.plexMetadataClient.getMetadataChildren(guidParts.id, {}, {
@@ -173,7 +173,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			throw httpError(418, `Requests provider with ID ${providerSlug} is not configured`);
 		}
 		// ensure user is allowed to make requests to this request provider
-		if(!(await reqProvider.canPlexUserMakeRequests(options.plexAuthContext['X-Plex-Token'], options.plexUserInfo))) {
+		const userToken = options.plexAuthContext['X-Plex-Token'];
+		if(!userToken || !(await reqProvider.canPlexUserMakeRequests(userToken, options.plexUserInfo))) {
 			throw httpError(401, `User is not allowed to make ${reqProvider.slug} requests`);
 		}
 		// get numeric media type
@@ -227,6 +228,9 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			// transform response
 			if(options.children) {
 				// transform to display requestable seasons if missing any
+				if(!libraryMetadataItem.guid) {
+					throw httpError(500, "No guid for metadata item");
+				}
 				const plexGuidParts = parsePlexMetadataGuid(libraryMetadataItem.guid);
 				const discoverMetadataPage = await this.plexMetadataClient.getMetadataChildren(plexGuidParts.id, options.plexParams as plexTypes.PlexMetadataChildrenPageParams, {
 					authContext: options.plexAuthContext
@@ -285,6 +289,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			});
 			if(!seasonItem) {
 				throw httpError(404, `Invalid season ${id.season}`);
+			} else if(!seasonItem.guid) {
+				throw httpError(500, "Season item has no guid");
 			}
 			const seasonGuidParts = parsePlexMetadataGuid(seasonItem.guid);
 			if(seasonGuidParts.protocol != 'plex') {

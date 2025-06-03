@@ -147,7 +147,7 @@ export class PseuplexApp {
 	readonly plexServerProperties: PlexServerPropertiesStore;
 	readonly plexServerAccounts: PlexServerAccountsStore;
 	readonly clientWebSockets: {[plexToken: string]: stream.Duplex[]} = {};
-	readonly plexServerIdToGuidCache: CachedFetcher<string>;
+	readonly plexServerIdToGuidCache: CachedFetcher<string | null>;
 	readonly plexGuidToInfoCache?: PlexGuidToInfoCache;
 	readonly plexMetadataClient: PlexClient;
 
@@ -291,7 +291,7 @@ export class PseuplexApp {
 
 		for(const pluginSlug in this.plugins) {
 			const plugin = this.plugins[pluginSlug];
-			plugin.defineRoutes(router);
+			plugin.defineRoutes?.(router);
 		}
 
 		router.get('/media/providers', [
@@ -447,7 +447,7 @@ export class PseuplexApp {
 							this.plexServerIdToGuidCache.setSync(metadataId, metadataItem.guid);
 						}
 						// filter related hubs if included
-						if(userReq.plex.requestParams['includeRelated'] == 1) {
+						if(metadataId && userReq.plex.requestParams['includeRelated'] == 1) {
 							// filter related hubs
 							const metadataIdParts = parseMetadataID(metadataId);
 							const relatedHubsResponse: plexTypes.PlexHubsPage = {
@@ -649,7 +649,7 @@ export class PseuplexApp {
 		router.use(expressErrorHandler);
 		
 		// create http/https/http+https server
-		let server: (http.Server | https.Server | undefined) = undefined;
+		let server: (http.Server | https.Server);
 		switch(protocol) {
 			case PseuplexServerProtocol.http:
 				server = http.createServer(options.serverOptions, router);
@@ -928,12 +928,12 @@ export class PseuplexApp {
 	}
 
 
-	async filterResponse<TFilterName extends PseuplexResponseFilterName>(filterName: TFilterName, resData: Parameters<PseuplexResponseFilters[TFilterName]>[0], context: Parameters<PseuplexResponseFilters[TFilterName]>[1]) {
+	async filterResponse<TFilterName extends PseuplexResponseFilterName>(filterName: TFilterName, resData: Parameters<NonNullable<PseuplexResponseFilters[TFilterName]>>[0], context: Parameters<NonNullable<PseuplexResponseFilters[TFilterName]>>[1]) {
 		const filtersList = this.responseFilters[filterName];
 		if (filtersList) {
 			const promises = context.previousFilterPromises?.slice(0) ?? [];
 			for(const filterDef of filtersList) {
-				const result = filterDef.filter(resData as any, {
+				const result = filterDef.filter?.(resData as any, {
 					...context,
 					previousFilterPromises: promises.slice(0)
 				} as any);
@@ -955,7 +955,7 @@ export class PseuplexApp {
 		}
 		// check if hub key needs to be mapped
 		let metadataKeyParts = parseMetadataIDFromKey(hub.hubKey, '/library/metadata/');
-		let metadataIds: (string | number)[] = metadataKeyParts?.id.split(',');
+		let metadataIds: (string | number)[] | undefined = metadataKeyParts?.id.split(',');
 		if(metadataIds) {
 			for(let i=0; i<metadataIds.length; i++) {
 				const metadataIdString = `${metadataIds[i]}`;

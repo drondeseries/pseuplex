@@ -236,7 +236,8 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 							|| params.refreshLocalMediaAgent == 1 || params.asyncRefreshLocalMediaAgent == 1
 							|| params.refreshAnalysis == 1 || params.asyncRefreshAnalysis)) {
 						setTimeout(() => {
-							const sockets = this.app.clientWebSockets[reqAuthContext['X-Plex-Token']];
+							const userToken = reqAuthContext['X-Plex-Token'];
+							const sockets = userToken ? this.app.clientWebSockets[userToken] : null;
 							if(sockets && sockets.length > 0) {
 								for(const metadataItem of metadataItemsNotOnServer) {
 									if(!metadataItem.Pseuplex.isOnServer) {
@@ -397,12 +398,12 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// add similar letterboxd movies hub
 		if(userPrefs?.letterboxdSimilarItemsEnabled ?? config.letterboxdSimilarItemsEnabled ?? true) {
 			const metadataId = context.metadataId;
-			let letterboxdId: string | undefined = undefined;
+			let letterboxdId: string | null = null;
 			// get plex guid from metadata id
 			if(metadataId.source == this.metadata.sourceSlug) {
 				letterboxdId = stringifyPartialMetadataID(metadataId);
 			} else {
-				let plexGuid: string | undefined = undefined;
+				let plexGuid: string | null = null;
 				if(metadataId.source == PseuplexMetadataSource.Plex) {
 					plexGuid = stringifyMetadataID({
 						...metadataId,
@@ -458,7 +459,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			await forArrayOrSingleAsyncParallel(resData.MediaContainer.Metadata, async (metadataItem) => {
 				try {
 					// get letterboxd id
-					let letterboxdMetadataId = metadataItem.Pseuplex.metadataIds[this.metadata.sourceSlug];
+					let letterboxdMetadataId: (string | null | undefined) = metadataItem.Pseuplex.metadataIds[this.metadata.sourceSlug];
 					if(!letterboxdMetadataId) {
 						if(!metadataItem.guid) {
 							return;

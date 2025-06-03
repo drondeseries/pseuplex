@@ -58,7 +58,7 @@ export const stringifyPlayQueueURIParts = (uriParts: PlexPlayQueueURIParts): str
 	} else if(uriParts.machineIdentifier != null) {
 		uri = '/';
 	} else {
-		return uriParts.path;
+		return uriParts.path!;
 	}
 	uri += uriParts.machineIdentifier;
 	if(uriParts.sourceIdentifier == null) {

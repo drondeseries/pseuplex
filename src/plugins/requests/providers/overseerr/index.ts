@@ -94,7 +94,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 	}
 
 	_findOverseerrUserFromPlexUser(token: string, userInfo: PlexServerAccountInfo): (overseerrTypes.User | null) {
-		let overseerrUser = this._plexTokensToOverseerrUsersMap[token];
+		let overseerrUser: (overseerrTypes.User | undefined) = this._plexTokensToOverseerrUsersMap[token];
 		if(overseerrUser) {
 			return overseerrUser;
 		}
@@ -130,7 +130,8 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 	
 	async requestPlexItem(plexItem: plexTypes.PlexMetadataItem, options: PlexMediaRequestOptions): Promise<RequestInfo> {
 		// get overseerr user info
-		const overseerrUser = await this._getOverseerrUserFromPlexUser(options.plexAuthContext['X-Plex-Token'], options.plexUserInfo);
+		const userToken = options.plexAuthContext['X-Plex-Token'];
+		const overseerrUser = userToken ? await this._getOverseerrUserFromPlexUser(userToken, options.plexUserInfo) : null;
 		if(!overseerrUser) {
 			throw httpError(401, `User is not allowed to request media from ${this.slug}`);
 		}
@@ -154,7 +155,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				}
 				const grandparentGuidParts = parsePlexMetadataGuid(plexItem.grandparentGuid);
 				options.seasons = [plexItem.parentIndex];
-				plexItem = firstOrSingle((await this.app.plexMetadataClient.getMetadata(grandparentGuidParts.id)).MediaContainer.Metadata);
+				plexItem = firstOrSingle((await this.app.plexMetadataClient.getMetadata(grandparentGuidParts.id)).MediaContainer.Metadata)!;
 				if(!plexItem) {
 					throw httpError(500, `Unable to fetch show for episode`);
 				}
@@ -175,7 +176,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				}
 				const parentGuidParts = parsePlexMetadataGuid(plexItem.parentGuid);
 				options.seasons = [plexItem.index];
-				plexItem = firstOrSingle((await this.app.plexMetadataClient.getMetadata(parentGuidParts.id)).MediaContainer.Metadata);
+				plexItem = firstOrSingle((await this.app.plexMetadataClient.getMetadata(parentGuidParts.id)).MediaContainer.Metadata)!;
 				if(!plexItem) {
 					throw httpError(500, `Unable to fetch show for season`);
 				}
@@ -190,7 +191,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				break;
 
 			default:
-				throw new Error(`Unsupported media type ${type}`);
+				throw new Error(`Unsupported media type ${plexItem.type}`);
 		}
 		// parse media id
 		const matchedGuid = plexItem.Guid?.find((guid) => guid.id?.startsWith(guidPrefix))?.id;

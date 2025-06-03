@@ -90,6 +90,10 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 	responseFilters?: PseuplexReadOnlyResponseFilters = {
 		findGuidInLibrary: async (resData, context) => {
 			const plexAuthContext = context.userReq.plex.authContext;
+			const userToken = plexAuthContext['X-Plex-Token'];
+			if(!userToken) {
+				return;
+			}
 			const plexUserInfo = context.userReq.plex.userInfo;
 			// check if requests are enabled
 			const requestsEnabled = this.config.perUser[plexUserInfo.email]?.requestsEnabled ?? this.config.requestsEnabled;
@@ -103,12 +107,12 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 				return;
 			}
 			// get request provider
-			const requestProvider = await this._getRequestsProviderForPlexUser(plexAuthContext['X-Plex-Token'], plexUserInfo);
+			const requestProvider = await this._getRequestsProviderForPlexUser(userToken, plexUserInfo);
 			if(!requestProvider) {
 				return;
 			}
 			// parse params
-			const mediaType = intParam(context.userReq.query['type']);
+			const mediaType = intParam(context.userReq.query['type']) as plexTypes.PlexMediaItemTypeNumeric;
 			let guid = stringParam(context.userReq.query['guid']);
 			let season: number | undefined = undefined;
 			if(!guid) {

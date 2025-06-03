@@ -7,7 +7,7 @@ import { forArrayOrSingle, httpError } from '../utils';
 import { parsePlexMetadataGuid } from './metadataidentifier';
 
 export const createPlexServerIdToGuidCache = (options: plexServerAPI.PlexAPIRequestOptions) => {
-	return new CachedFetcher(async (id: string) => {
+	return new CachedFetcher<string | null>(async (id: string) => {
 		let metadatas = (await plexServerAPI.getLibraryMetadata(id, options))?.MediaContainer?.Metadata;
 		let metadata: plexTypes.PlexMetadataItem;
 		if(metadatas instanceof Array) {
@@ -18,7 +18,7 @@ export const createPlexServerIdToGuidCache = (options: plexServerAPI.PlexAPIRequ
 		if(!metadata) {
 			throw httpError(404, "Not Found");
 		}
-		return metadata.guid;
+		return metadata.guid ?? null;
 	});
 };
 
