@@ -73,8 +73,8 @@ const readPrefsFromPlist = async (plistPath: string | '-', stdin?: string): Prom
 			}
 		});
 		if(plistPath == '-') {
-			child.stdin.write(stdin);
-			child.stdin.end();
+			child.stdin!.write(stdin);
+			child.stdin!.end();
 		}
 	});
 	return JSON.parse(jsonOut);

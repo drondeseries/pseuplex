@@ -88,7 +88,7 @@ export const plexServerFetch = async <TResult>(options: (PlexAPIRequestOptions &
 	// parse response
 	const responseText = await res.text();
 	if(!responseText) {
-		return undefined;
+		return undefined as TResult;
 	}
 	const contentType = parseHttpContentType(res.headers.get('content-type')).contentTypes[0];
 	//console.log(`Response (${contentTypeInfo.contentType}):\n${responseText}`);

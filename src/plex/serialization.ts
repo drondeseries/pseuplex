@@ -2,7 +2,7 @@
 import xml2js from 'xml2js';
 import express from 'express';
 
-export const parseHttpContentType = (contentType: string): {contentTypes: string[], contentTypeSuffix: string} => {
+export const parseHttpContentType = (contentType: string | null | undefined): {contentTypes: string[], contentTypeSuffix: string} => {
 	if(!contentType) {
 		return { contentTypes: [], contentTypeSuffix: '' };
 	}

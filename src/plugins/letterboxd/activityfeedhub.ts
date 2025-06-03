@@ -4,11 +4,12 @@ import * as plexTypes from '../../plex/types';
 import {
 	PseuplexFeedHub,
 	PseuplexFeedHubOptions,
-	PseuplexRequestContext,
-	PseuplexMetadataTransformOptions
+	PseuplexMetadataTransformOptions,
+	PseuplexRequestContext
 } from '../../pseuplex';
 import { LetterboxdMetadataProvider } from './metadata';
 import * as lbtransform from './transform';
+import { LoadableListFetchedChunk } from '../../fetching/LoadableListFragment';
 
 type PageToken = {
 	csrf: string;
@@ -39,7 +40,7 @@ export class LetterboxdActivityFeedHub extends PseuplexFeedHub<letterboxd.Film,n
 		return Number.isNaN(parsedToken) ? null : parsedToken;
 	}
 
-	override async fetchPage(pageToken: PageToken | null) {
+	override async fetchPage(pageToken: PageToken | null): Promise<LoadableListFetchedChunk<letterboxd.Film,number,PageToken>> {
 		const page = await this._fetchPage(pageToken);
 		return {
 			items: page.items.filter((item) => (item.film != null)).map((item) => {
@@ -47,7 +48,7 @@ export class LetterboxdActivityFeedHub extends PseuplexFeedHub<letterboxd.Film,n
 				return {
 					id: item.film!.href,
 					token: !Number.isNaN(token) ? token : item.id as any,
-					item: item.film
+					item: item.film!
 				};
 			}),
 			nextPageToken: (page.items.length > 0 && !page.end) ? {

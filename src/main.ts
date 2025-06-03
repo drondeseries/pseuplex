@@ -78,8 +78,8 @@ const readPlexPrefsIfNeeded = async () => {
 			if(process.platform == 'win32') {
 				// on windows, we can read plex's registry config to determine the appdata path
 				await readPlexPrefsIfNeeded();
-				if(plexPrefs.LocalAppDataPath) {
-					appDataPath = plexPrefs.LocalAppDataPath;
+				if(plexPrefs!.LocalAppDataPath) {
+					appDataPath = plexPrefs!.LocalAppDataPath;
 				}
 			}
 		}
@@ -91,7 +91,7 @@ const readPlexPrefsIfNeeded = async () => {
 		let plexMachineId = cfg.plex.processedMachineIdentifier;
 		if(!plexMachineId) {
 			await readPlexPrefsIfNeeded();
-			plexMachineId = plexPrefs.ProcessedMachineIdentifier;
+			plexMachineId = plexPrefs!.ProcessedMachineIdentifier;
 		}
 		sslConfig.p12Password = calculatePlexP12Password({ProcessedMachineIdentifier:plexMachineId});
 	}

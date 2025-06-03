@@ -39,7 +39,7 @@ export class LetterboxdFilmsHub extends PseuplexFeedHub<letterboxd.Film,void,str
 		return -1;
 	}
 
-	override async fetchPage() {
+	override async fetchPage(pageToken: string | null) {
 		const page = await this._fetchPage();
 		return {
 			items: page.items.map((film) => {

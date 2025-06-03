@@ -20,11 +20,11 @@ export class PlexClient {
 		return this.requestOptions.serverURL;
 	}
 
-	get authContext(): plexTypes.PlexAuthContext | undefined {
+	get authContext(): plexTypes.PlexAuthContext | null | undefined {
 		return this.requestOptions.authContext;
 	}
 	
-	private _mediaProviderClient: PlexMediaProviderClient | Promise<PlexMediaProviderClient>;
+	private _mediaProviderClient?: PlexMediaProviderClient | Promise<PlexMediaProviderClient>;
 	async getMediaProvider(options?: PlexClientMethodOptions): Promise<PlexMediaProviderClient> {
 		if(!this._mediaProviderClient || options?.authContext) {
 			const mediaProviderTask = getPlexMediaProviderClient(mergeObjects(this.requestOptions, options));
@@ -42,7 +42,7 @@ export class PlexClient {
 		return this._mediaProviderClient;
 	}
 
-	private async _getMediaProviderMethod<TMethodName extends keyof PlexMediaProviderClient>(name: TMethodName): Promise<PlexMediaProviderClient[TMethodName]> {
+	private async _getMediaProviderMethod<TMethodName extends keyof PlexMediaProviderClient>(name: TMethodName) {
 		const mediaProvider = await this.getMediaProvider();
 		const method = mediaProvider[name];
 		if(!method) {
@@ -59,7 +59,7 @@ export class PlexClient {
 		return (await this._getMediaProviderMethod('getMetadataChildren'))(id, params, options);
 	}
 
-	async getMatches(params?: plexTypes.PlexGetLibraryMatchesParams, options?: PlexClientMethodOptions) {
+	async getMatches(params: plexTypes.PlexGetLibraryMatchesParams, options?: PlexClientMethodOptions) {
 		return (await this._getMediaProviderMethod('getMatches'))(params, options);
 	}
 }
@@ -192,7 +192,7 @@ export class PlexMediaProviderClient extends PlexSubclientBase<
 			const settingsClientTask = this.fetch({
 				endpoint: feature.key,
 				method: 'GET',
-				authContext: options.authContext
+				authContext: options?.authContext
 			}).then((settingsPage: plexTypes.PlexMediaProviderSettingsPage) => {
 				return new PlexMediaProviderSettingsClient(settingsPage, this.requestOptions);
 			});

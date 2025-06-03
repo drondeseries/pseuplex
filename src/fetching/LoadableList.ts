@@ -28,10 +28,10 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 	}
 	
 	get totalItemCount(): number | null {
-		if(this._fragment == null) {
+		let fragment = this._fragment;
+		if(fragment == null) {
 			return null;
 		}
-		let fragment = this._fragment;
 		let count = 0;
 		while(fragment != null) {
 			if(fragment._contents.nextPageToken != null) {
@@ -44,10 +44,10 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 	}
 
 	get totalUniqueItemCount(): number | null {
-		if(this._fragment == null) {
+		let fragment = this._fragment;
+		if(fragment == null) {
 			return null;
 		}
-		let fragment = this._fragment;
 		let count = 0;
 		while(fragment != null) {
 			if(fragment._contents.nextPageToken != null) {
@@ -60,10 +60,10 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 	}
 
 	get totalLoadedItemCount(): number {
-		if(this._fragment == null) {
+		let fragment = this._fragment;
+		if(fragment == null) {
 			return 0;
 		}
-		let fragment = this._fragment;
 		let count = 0;
 		while(fragment != null) {
 			count += fragment.itemCount;
@@ -73,10 +73,10 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 	}
 
 	get totalLoadedUniqueItemCount(): number {
-		if(this._fragment == null) {
+		let fragment = this._fragment;
+		if(fragment == null) {
 			return 0;
 		}
-		let fragment = this._fragment;
 		let count = 0;
 		while(fragment != null) {
 			count += fragment.uniqueItemCount;
@@ -91,7 +91,7 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 			return;
 		}
 		const startFragment = this._fragment;
-		if(startFragment._nextFragment == null || startFragment.isLoading || startFragment._nextFragment.isLoading) {
+		if(!startFragment || startFragment._nextFragment == null || startFragment.isLoading || startFragment._nextFragment.isLoading) {
 			// don't queue right now
 			return;
 		}
@@ -130,7 +130,7 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 		// attempt to load atleast 1 item into the list
 		await startFragment.getOrFetchItems(0, Math.max(1, count), options);
 		// merge fragments after a delay
-		if(this._fragment._nextFragment) {
+		if(this._fragment?._nextFragment) {
 			this._queueFragmentMerge();
 		}
 		// return the items from the start of the list
@@ -145,8 +145,8 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 			await this.getOrFetchStartItems(count, options);
 		}
 		// find where the start token begins in the list
-		const tokenPoint = startToken != null ? this._fragment.findItemTokenPoint(startToken) : {
-			fragment: this._fragment,
+		const tokenPoint = startToken != null ? this._fragment!.findItemTokenPoint(startToken) : {
+			fragment: this._fragment!,
 			index: 0,
 			uniqueIndex: 0,
 			isUniqueItem: true
@@ -168,7 +168,7 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 			page.totalItemCount -= tokenPoint.index;
 		}
 		// merge fragments after a delay
-		if(this._fragment._nextFragment) {
+		if(this._fragment?._nextFragment) {
 			this._queueFragmentMerge();
 		}
 		// done

@@ -99,6 +99,9 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 				acceptType = xmlAcceptType;
 				if(opts.responseModifier) {
 					// since we're modifying the response, it's easier to parse as json
+					if(!proxyReqOpts.headers) {
+						proxyReqOpts.headers = {};
+					}
 					proxyReqOpts.headers['accept'] = 'application/json';
 				}
 				isApiRequest = true;
@@ -208,7 +211,7 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 			}
 			// parse response
 			let resData = await JSON.parse(proxyResString);
-			if(proxyRes.statusCode < 200 || proxyRes.statusCode >= 300) {
+			if(!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300) {
 				// don't modify errors
 				resData = (await serializeResponseContent(userReq, userRes, resData)).data;
 				// log user response

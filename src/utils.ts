@@ -62,12 +62,12 @@ export const intArrayParam = (value: any): number[] | undefined => {
 	}
 	if(value instanceof Array) {
 		return value.map((val) => {
-			return intParam(val);
+			return intParam(val)!;
 		});
 	}
 	if(typeof value === 'string') {
 		return value.split(',').map((val) => {
-			return intParam(val);
+			return intParam(val)!;
 		});
 	}
 	return undefined;
@@ -93,13 +93,6 @@ export const mapObject = <TNewValue,TValue>(obj: object, mapper: (key: string, v
 		mappedObject[key] = mapper(key, obj[key]);
 	}
 	return mappedObject;
-};
-
-export const nameOf = (obj: {[key:string]: any}): string => {
-	for(const key in obj) {
-		return key;
-	}
-	return undefined;
 };
 
 export const combinePathSegments = (part1: string, part2: string) => {
@@ -335,12 +328,14 @@ export const createDebouncer = (delay: number): ((callback: () => void) => void)
 	};
 };
 
-export const mergeObjects = <T1 extends {[key: (string | number)]: any}, T2 extends {[key: (string | number)]: any}>(obj1: T1, obj2: T2): (T1 & T2) => {
+export const mergeObjects = <T1 extends {[key: (string | number)]: any}, T2 extends {[key: (string | number)]: any}>(obj1: T1, obj2: T2 | null | undefined): (T1 & T2) => {
 	const newObj: any = {...obj1};
-	for(const key in obj2) {
-		const val = obj2[key];
-		if(val !== undefined || newObj[key] === undefined) {
-			newObj[key] = val;
+	if(obj2) {
+		for(const key in obj2) {
+			const val = obj2[key];
+			if(val !== undefined || newObj[key] === undefined) {
+				newObj[key] = val;
+			}
 		}
 	}
 	return newObj;

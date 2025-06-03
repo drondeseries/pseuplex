@@ -59,12 +59,12 @@ export class PlexServerAccountsStore {
 				throw error;
 			}).then(async (myPlexAccountPage) => {
 				// check that required data exists
-				if(!myPlexAccountPage.MyPlex?.username) {
+				if(!myPlexAccountPage?.MyPlex?.username) {
 					return null;
 				}
 				// fetch the rest of the user data from plex
-				const plexTvOptions = {...this.plexServerProperties.requestOptions};
-				delete plexTvOptions.serverURL;
+				const plexTvOptions: plexTVAPI.PlexTVAPIRequestOptions = {...this.plexServerProperties.requestOptions};
+				delete (plexTvOptions as {serverURL?: string}).serverURL;
 				const plexUserInfo = await plexTVAPI.getCurrentUser({
 					...plexTvOptions,
 					authContext: {
@@ -105,8 +105,8 @@ export class PlexServerAccountsStore {
 		}
 		try {
 			// fetch users that the plex server is shared with
-			const plexTvOptions = {...this.plexServerProperties.requestOptions};
-			delete plexTvOptions.serverURL;
+			const plexTvOptions: plexTVAPI.PlexTVAPIRequestOptions = {...this.plexServerProperties.requestOptions};
+			delete (plexTvOptions as {serverURL?: string}).serverURL;
 			const task = plexTVAPI.getSharedServers({
 				clientIdentifier: machineId,
 			}, plexTvOptions).then((sharedServersPage) => {
@@ -152,7 +152,7 @@ export class PlexServerAccountsStore {
 			return null;
 		}
 		// get user info for token
-		let userInfo = this._tokensToPlexOwnersMap[token] ?? this._tokensToPlexUsersMap[token];
+		let userInfo: (PlexServerAccountInfo | null) = this._tokensToPlexOwnersMap[token] ?? this._tokensToPlexUsersMap[token];
 		if(userInfo) {
 			return userInfo;
 		}

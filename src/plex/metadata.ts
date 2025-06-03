@@ -27,7 +27,7 @@ export class PlexGuidToInfoCache extends CachedFetcher<{
 	slug?: string;
 	parentSlug?: string;
 	grandparentSlug?: string;
-}> {
+} | null> {
 	plexMetadataClient: PlexClient;
 
 	constructor(options: {
