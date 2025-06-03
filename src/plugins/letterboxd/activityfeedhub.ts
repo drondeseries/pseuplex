@@ -30,8 +30,8 @@ export class LetterboxdActivityFeedHub extends PseuplexFeedHub<letterboxd.Film,n
 		this._fetchPage = fetchPage;
 	}
 
-	override get metadataBasePath(): string {
-		return this._options.metadataTransformOptions.metadataBasePath;
+	override get metadataTransformOptions(): PseuplexMetadataTransformOptions {
+		return this._options.metadataTransformOptions;
 	}
 
 	override parseItemTokenParam(itemToken: string): number | null {
@@ -45,7 +45,7 @@ export class LetterboxdActivityFeedHub extends PseuplexFeedHub<letterboxd.Film,n
 			items: page.items.filter((item) => (item.film != null)).map((item) => {
 				const token = Number.parseInt(item.id);
 				return {
-					id: item.film.href,
+					id: item.film!.href,
 					token: !Number.isNaN(token) ? token : item.id as any,
 					item: item.film
 				};

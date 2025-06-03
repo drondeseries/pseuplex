@@ -1,8 +1,9 @@
 import * as plexTypes from '../plex/types';
 import { parseMetadataIDFromKey } from '../plex/metadataidentifier';
 import { CachedFetcher } from '../fetching/CachedFetcher';
-import type { PseuplexSection } from './section';
+import { PseuplexMetadataTransformOptions } from './metadata';
 import type { PseuplexRequestContext } from './types';
+import { parseMetadataID, stringifyPartialMetadataID } from './metadataidentifier';
 
 export type PseuplexHubPage = {
 	hub: plexTypes.PlexHub;
@@ -16,11 +17,15 @@ export type PseuplexHubPageParams = plexTypes.PlexHubPageParams & {
 	listStartToken?: string | null | undefined;
 };
 
+export type PseuplexHubSectionInfo = {
+	id: string;
+	title: string;
+	uuid: string;
+}
+
 export abstract class PseuplexHub {
-	get metadataBasePath() {
-		return '/library/metadata/';
-	}
-	abstract readonly section?: PseuplexSection;
+	abstract readonly metadataTransformOptions: PseuplexMetadataTransformOptions;
+	abstract readonly section?: PseuplexHubSectionInfo;
 	
 	abstract get(params: PseuplexHubPageParams, context: PseuplexRequestContext): Promise<PseuplexHubPage>;
 	
@@ -56,7 +61,8 @@ export abstract class PseuplexHub {
 	
 	async getHubListEntry(params: PseuplexHubPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexHubWithItems> {
 		const page = await this.get(params, context);
-		let metadataBasePath = this.metadataBasePath;
+		let transformOpts = this.metadataTransformOptions;
+		let metadataBasePath = transformOpts.metadataBasePath;
 		if(metadataBasePath && !metadataBasePath.endsWith('/')) {
 			metadataBasePath += '/';
 		}
@@ -65,13 +71,18 @@ export abstract class PseuplexHub {
 				let metadataId = parseMetadataIDFromKey(item.key, metadataBasePath)?.id;
 				if (!metadataId) {
 					metadataId = item.ratingKey;
+					if(metadataId && !transformOpts.qualifiedMetadataId) {
+						// unqualify metadata id
+						const fullMetadataIdParts = parseMetadataID(metadataId);
+						metadataId = stringifyPartialMetadataID(fullMetadataIdParts);
+					}
 				}
 				return metadataId;
 			})
 			.filter((metadataId) => metadataId);
 		return {
 			...page.hub,
-			hubKey: metadataIds.length > 0 ? `${metadataBasePath}${metadataIds.join(',')}` : undefined,
+			hubKey: (metadataIds.length > 0 ? `${metadataBasePath}${metadataIds.join(',')}` : undefined) as string,
 			size: (page.items?.length ?? 0),
 			more: page.more,
 			Metadata: page.items

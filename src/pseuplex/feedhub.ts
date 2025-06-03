@@ -20,7 +20,8 @@ import {
 import {
 	PseuplexHub,
 	PseuplexHubPage,
-	PseuplexHubPageParams
+	PseuplexHubPageParams,
+	PseuplexHubSectionInfo
 } from './hub';
 import { PseuplexSection } from './section';
 
@@ -36,7 +37,7 @@ export type PseuplexFeedHubOptions = {
 	uniqueItemsOnly: boolean;
 	loadAheadCount?: number;
 	listStartFetchInterval?: ListFetchInterval;
-	section?: PseuplexSection;
+	section?: PseuplexHubSectionInfo;
 	matchToPlexServerMetadata?: boolean;
 	loggingOptions?: PseuplexFeedHubLoggingOptions;
 };
@@ -56,7 +57,7 @@ export abstract class PseuplexFeedHub<
 	_options: TOptions;
 	_itemList: LoadableList<TItem,TItemToken,TPageToken>;
 
-	get section() {
+	get section(): PseuplexHubSectionInfo | undefined {
 		return this._options.section;
 	}
 	
@@ -94,7 +95,7 @@ export abstract class PseuplexFeedHub<
 			}
 			start = params.start ?? 0;
 			const itemCount = params.count ?? opts.defaultItemCount;
-			chunk = await this._itemList.getOrFetchItems(listStartItemToken, start, itemCount, {
+			chunk = await this._itemList.getOrFetchItems(listStartItemToken ?? null, start, itemCount, {
 				unique: opts.uniqueItemsOnly,
 				loadAheadCount
 			});

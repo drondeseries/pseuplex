@@ -2,16 +2,15 @@
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
 import {
-	PseuplexFeedHub,
-	PseuplexRequestContext,
 	PseuplexMetadataTransformOptions,
 	PseuplexPartialMetadataIDString,
-	qualifyPartialMetadataID
+	qualifyPartialMetadataID,
+	PseuplexHubSectionInfo,
 } from '../../pseuplex';
-import { PseuplexSection } from '../../pseuplex/section';
 import * as lbtransform from './transform';
 import { LetterboxdMetadataProvider } from './metadata';
 import { LetterboxdActivityFeedHub } from './activityfeedhub';
+import { LetterboxdFilmsHub } from './filmshub';
 
 
 export const createUserFollowingFeedHub = (letterboxdUsername: string, options: {
@@ -21,7 +20,7 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 	uniqueItemsOnly: boolean,
 	metadataTransformOptions?: PseuplexMetadataTransformOptions,
 	letterboxdMetadataProvider: LetterboxdMetadataProvider,
-	section?: PseuplexSection,
+	section?: PseuplexHubSectionInfo,
 	matchToPlexServerMetadata?: boolean,
 }): LetterboxdActivityFeedHub => {
 	return new LetterboxdActivityFeedHub({
@@ -42,7 +41,7 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 		section: options.section,
 		matchToPlexServerMetadata: options.matchToPlexServerMetadata,
 	}, async (pageToken) => {
-		console.log(`Fetching user following feed for ${letterboxdUsername}`);
+		console.log(`Fetching user following feed for ${letterboxdUsername} (pageToken=${JSON.stringify(pageToken)})`);
 		return await letterboxd.getUserFollowingFeed(letterboxdUsername, {
 			after: pageToken?.token ?? undefined,
 			csrf: pageToken?.csrf ?? undefined
@@ -69,43 +68,7 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 		? qualifyPartialMetadataID(metadataId, options.letterboxdMetadataProvider.sourceSlug)
 		: metadataId;
 	const hubPath = `${metadataTransformOpts.metadataBasePath}/${metadataIdInPath}/${options.relativePath}`;
-	return new class extends PseuplexFeedHub<letterboxd.Film,void,string> {
-		override get metadataBasePath() {
-			return metadataTransformOpts.metadataBasePath;
-		}
-
-		override parseItemTokenParam(itemToken: string): void {
-			// similar list items dont have tokens
-			return undefined;
-		}
-
-		override compareItemTokens(itemToken1: void, itemToken2: void): number {
-			// Since we only load this list once (listStartFetchInterval = 'never'),
-			//  we will always assume "reloads" of the list come before the old version
-			return -1;
-		}
-
-		override async fetchPage(pageToken: string | null) {
-			console.log(`Fetching letterboxd similar items hub for ${metadataId}`);
-			const page = await letterboxd.getSimilar(filmOpts);
-			return {
-				items: page.items.map((film) => {
-					return {
-						id: film.href,
-						token: undefined,
-						item: film
-					};
-				}),
-				hasMore: false,
-				totalItemCount: page.items?.length ?? 0,
-				nextPageToken: null
-			};
-		}
-
-		override async transformItem(item: letterboxd.Film, context: PseuplexRequestContext): Promise<plexTypes.PlexMetadataItem> {
-			return await lbtransform.transformLetterboxdFilmHubEntry(item, context, options.letterboxdMetadataProvider, metadataTransformOpts);
-		}
-	}({
+	return new LetterboxdFilmsHub({
 		hubPath: hubPath,
 		title: options.title,
 		type: plexTypes.PlexMediaItemType.Movie,
@@ -115,6 +78,11 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 		promoted: options.promoted,
 		defaultItemCount: options.defaultCount ?? 12,
 		uniqueItemsOnly: true,
-		listStartFetchInterval: 'never'
+		listStartFetchInterval: 'never',
+		letterboxdMetadataProvider: options.letterboxdMetadataProvider,
+		metadataTransformOptions: metadataTransformOpts,
+	}, async () => {
+		console.log(`Fetching letterboxd similar items hub for ${metadataId}`);
+		return await letterboxd.getSimilar(filmOpts);
 	});
 };
