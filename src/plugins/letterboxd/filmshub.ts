@@ -14,7 +14,7 @@ export type LetterboxdFilmsHubOptions = PseuplexFeedHubOptions & {
 	metadataTransformOptions: PseuplexMetadataTransformOptions;
 };
 
-export type LetterboxdFilmsPageFetcher = () => Promise<letterboxd.FilmsPage>;
+export type LetterboxdFilmsPageFetcher = (pageToken: string | null) => Promise<letterboxd.FilmsPage>;
 
 export class LetterboxdFilmsHub extends PseuplexFeedHub<letterboxd.Film,void,string,LetterboxdFilmsHubOptions> {
 	_fetchPage: LetterboxdFilmsPageFetcher;
@@ -40,7 +40,7 @@ export class LetterboxdFilmsHub extends PseuplexFeedHub<letterboxd.Film,void,str
 	}
 
 	override async fetchPage(pageToken: string | null) {
-		const page = await this._fetchPage();
+		const page = await this._fetchPage(pageToken);
 		return {
 			items: page.items.map((film) => {
 				return {
@@ -49,9 +49,9 @@ export class LetterboxdFilmsHub extends PseuplexFeedHub<letterboxd.Film,void,str
 					item: film
 				};
 			}),
-			hasMore: false,
+			hasMore: (page.nextPageHref ? true : false),
 			totalItemCount: page.items?.length ?? 0,
-			nextPageToken: null
+			nextPageToken: page.nextPageHref,
 		};
 	}
 

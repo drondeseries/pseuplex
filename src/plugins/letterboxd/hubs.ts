@@ -81,8 +81,14 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 		listStartFetchInterval: 'never',
 		letterboxdMetadataProvider: options.letterboxdMetadataProvider,
 		metadataTransformOptions: metadataTransformOpts,
-	}, async () => {
+	}, async (pageHref: string | null) => {
+		let opts: letterboxd.GetSimilarFilmsOptions;
+		if(pageHref) {
+			opts = {href:pageHref};
+		} else {
+			opts = filmOpts;
+		}
 		console.log(`Fetching letterboxd similar items hub for ${metadataId}`);
-		return await letterboxd.getSimilar(filmOpts);
+		return await letterboxd.getSimilarFilms(opts);
 	});
 };

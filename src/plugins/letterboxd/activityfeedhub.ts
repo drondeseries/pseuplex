@@ -59,6 +59,7 @@ export class LetterboxdActivityFeedHub extends PseuplexFeedHub<letterboxd.Film,n
 	}
 
 	override compareItemTokens(itemToken1: number, itemToken2: number) {
+		// larger token is first (ie, newer date)
 		return itemToken2 - itemToken1;
 	}
 

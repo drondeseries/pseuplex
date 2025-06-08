@@ -12,7 +12,7 @@ import {
 } from '../../pseuplex';
 import * as lbTransform from './transform';
 
-export type LetterboxdMetadataItem = letterboxd.FilmInfo;
+export type LetterboxdMetadataItem = letterboxd.FilmPage;
 
 export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<LetterboxdMetadataItem> {
 	readonly sourceDisplayName = "Letterboxd";
@@ -21,7 +21,7 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 	override async fetchMetadataItem(id: PseuplexPartialMetadataIDString): Promise<LetterboxdMetadataItem> {
 		console.log(`Fetching letterboxd info for ${id}`);
 		const getFilmOpts = lbTransform.getFilmOptsFromPartialMetadataId(id);
-		const filmInfo = await letterboxd.getFilmInfo(getFilmOpts);
+		const filmInfo = await letterboxd.getFilm(getFilmOpts);
 		return filmInfo;
 	}
 
@@ -89,7 +89,7 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 		}
 		// get metadata
 		console.log(`Fetching letterboxd film from ${JSON.stringify(getFilmOpts)}`);
-		const filmInfoTask = letterboxd.getFilmInfo(getFilmOpts)
+		const filmInfoTask = letterboxd.getFilm(getFilmOpts)
 			.catch((error: letterboxd.LetterboxdError) => {
 				if(error.statusCode == 404 || error.message.search(/[nN]ot [fF]ound/) != -1) {
 					return null;

@@ -474,9 +474,10 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					}
 					// attach letterboxd friends reviews
 					const getFilmOpts = lbTransform.getFilmOptsFromPartialMetadataId(letterboxdMetadataId);
-					const friendViewings = await letterboxd.getFriendsReviews({
+					const friendViewings = await letterboxd.getReviews({
 						...getFilmOpts,
-						username: letterboxdUsername
+						userSlug: letterboxdUsername,
+						friends: true
 					});
 					const reviews = friendViewings.items.map((viewing) => {
 						return lbTransform.viewingToPlexReview(viewing);

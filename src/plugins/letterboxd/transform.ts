@@ -20,7 +20,7 @@ import {
 } from '../../utils';
 import { LetterboxdMetadataProvider } from './metadata';
 
-export const partialMetadataIdFromFilmInfo = (filmInfo: letterboxd.FilmInfo): PseuplexPartialMetadataIDString => {
+export const partialMetadataIdFromFilmInfo = (filmInfo: letterboxd.FilmPage): PseuplexPartialMetadataIDString => {
 	return stringifyPartialMetadataID({
 		directory: filmInfo.pageData.type,
 		id: filmInfo.pageData.slug
@@ -40,7 +40,7 @@ export const getFilmOptsFromPartialMetadataId = (metadataId: PseuplexPartialMeta
 	}
 };
 
-export const fullMetadataIdFromFilmInfo = (filmInfo: letterboxd.FilmInfo, opts:{asUrl: boolean}): PseuplexMetadataIDString => {
+export const fullMetadataIdFromFilmInfo = (filmInfo: letterboxd.FilmPage, opts:{asUrl: boolean}): PseuplexMetadataIDString => {
 	return stringifyMetadataID({
 		isURL: opts.asUrl,
 		source: PseuplexMetadataSource.Letterboxd,
@@ -49,7 +49,7 @@ export const fullMetadataIdFromFilmInfo = (filmInfo: letterboxd.FilmInfo, opts:{
 	});
 };
 
-export const filmInfoToPlexMetadata = (filmInfo: letterboxd.FilmInfo, options: PseuplexMetadataTransformOptions): PseuplexMetadataItem => {
+export const filmInfoToPlexMetadata = (filmInfo: letterboxd.FilmPage, options: PseuplexMetadataTransformOptions): PseuplexMetadataItem => {
 	const releasedEvent = filmInfo.ldJson.releasedEvent;
 	const partialMetadataId = partialMetadataIdFromFilmInfo(filmInfo);
 	const fullMetadataId = fullMetadataIdFromFilmInfo(filmInfo,{asUrl:false});
@@ -100,7 +100,7 @@ export const filmInfoToPlexMetadata = (filmInfo: letterboxd.FilmInfo, options: P
 	};
 };
 
-export const filmInfoGuids = (filmInfo: letterboxd.FilmInfo) => {
+export const filmInfoGuids = (filmInfo: letterboxd.FilmPage) => {
 	let guids: `${string}://${string}`[] = [];
 	const tmdbInfo = filmInfo.pageData.tmdb;
 	if(tmdbInfo && tmdbInfo.id) {
