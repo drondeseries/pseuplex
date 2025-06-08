@@ -13,7 +13,9 @@
 	},
 	"perUser": {
 		"exampleuser@example.com": {
-			"letterboxdUsername": "letterboxdusername"
+			"letterboxd": {
+				"username": "letterboxdusername"
+			}
 		}
 	}
 }

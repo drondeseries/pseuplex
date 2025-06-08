@@ -43,12 +43,16 @@ import {
 } from '../../utils';
 
 type LetterboxdFlags = {
-	letterboxdSimilarItemsEnabled?: boolean;
-	letterboxdFriendsActivityHubEnabled?: boolean;
-	letterboxdFriendsReviewsEnabled?: boolean;
+	letterboxd?: {
+		similarItemsEnabled?: boolean;
+		friendsActivityHubEnabled?: boolean;
+		friendsReviewsEnabled?: boolean;
+	},
 };
 type LetterboxdPerUserPluginConfig = {
-	letterboxdUsername?: string;
+	letterboxd?: {
+		username?: string;
+	},
 } & LetterboxdFlags;
 export type LetterboxdPluginConfig = (PseuplexConfigBase<LetterboxdPerUserPluginConfig> & LetterboxdFlags);
 
@@ -370,11 +374,11 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// get prefs
 		const config = this.config;
 		const userPrefs = config.perUser[userInfo.email];
-		const friendsActvityHubEnabled = userPrefs?.letterboxdFriendsActivityHubEnabled ?? config.letterboxdFriendsActivityHubEnabled ?? true;
+		const friendsActvityHubEnabled = userPrefs?.letterboxd?.friendsActivityHubEnabled ?? config.letterboxd?.friendsActivityHubEnabled ?? true;
 		// add friends activity feed hub if enabled
-		if(friendsActvityHubEnabled && userPrefs?.letterboxdUsername) {
+		if(friendsActvityHubEnabled && userPrefs?.letterboxd?.username) {
 			const params = plexTypes.parsePlexHubPageParams(context.userReq, {fromListPage:true});
-			const hub = await this.hubs.userFollowingActivity.get(userPrefs.letterboxdUsername);
+			const hub = await this.hubs.userFollowingActivity.get(userPrefs.letterboxd.username);
 			const page = await hub.getHubListEntry(params, {
 				plexServerURL: this.app.plexServerURL,
 				plexAuthContext: context.userReq.plex.authContext
@@ -396,7 +400,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		const config = this.config;
 		const userPrefs = config.perUser[userInfo.email];
 		// add similar letterboxd movies hub
-		if(userPrefs?.letterboxdSimilarItemsEnabled ?? config.letterboxdSimilarItemsEnabled ?? true) {
+		if(userPrefs?.letterboxd?.similarItemsEnabled ?? config.letterboxd?.similarItemsEnabled ?? true) {
 			const metadataId = context.metadataId;
 			let letterboxdId: string | null = null;
 			// get plex guid from metadata id
@@ -452,9 +456,9 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// get prefs
 		const config = this.config;
 		const userPrefs = config.perUser[userInfo.email];
-		const letterboxdFriendsReviewsEnabled = (userPrefs?.letterboxdFriendsReviewsEnabled ?? config.letterboxdFriendsReviewsEnabled ?? true);
+		const letterboxdFriendsReviewsEnabled = (userPrefs?.letterboxd?.friendsReviewsEnabled ?? config.letterboxd?.friendsReviewsEnabled ?? true);
 		// attach letterboxd friends reviews if needed
-		const letterboxdUsername = userPrefs?.letterboxdUsername;
+		const letterboxdUsername = userPrefs?.letterboxd?.username;
 		if(letterboxdFriendsReviewsEnabled && letterboxdUsername && reqParams?.includeReviews == 1) {
 			await forArrayOrSingleAsyncParallel(resData.MediaContainer.Metadata, async (metadataItem) => {
 				try {

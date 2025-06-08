@@ -59,7 +59,9 @@ Create a `config.json` file with the following structure, and fill in the config
 	},
 	"perUser": {
 		"yourplexuseremail@example.com": {
-			"letterboxdUsername": "<LETTERBOXD USERNAME>"
+			"letterboxd": {
+				"username": "<LETTERBOXD USERNAME>"
+			}
 		}
 	}
 }
@@ -81,13 +83,15 @@ Create a `config.json` file with the following structure, and fill in the config
 	- **watchCertChanges**: Automatically reload the SSL certificate/key whenever your cert/key/p12 file changes
 	- **certReloadDelay**: The time in milliseconds to wait after your cert/key/p12 file changes before reloading SSL (if `ssl.watchCertChanges` is `true`). Default is `1000`.
 - **perUser**: A map of settings to configure for each user on your server. The map keys are the plex email for each user.
-	- **letterboxdUsername**: The letterboxd username for this user
-	- **letterboxdSimilarItemsEnabled**: Display similar items from letterboxd on plex media item pages for this user
-  	- **letterboxdFriendsActivityHubEnabled**: Display the letterboxd friends activity hub on the home page for this user
-  	- **letterboxdFriendsReviewsEnabled**: Display letterboxd friends reviews for this user
-- **letterboxdSimilarItemsEnabled**: Display similar items from letterboxd on plex media item pages for all users
-- **letterboxdFriendsActivityHubEnabled**: Display the letterboxd friends activity hub on the home page for all users
-- **letterboxdFriendsReviewsEnabled**: Display letterboxd friends reviews for all users
+	- **letterboxd**:
+		- **username**: The letterboxd username for this user
+		- **similarItemsEnabled**: Display similar items from letterboxd on plex media item pages for this user
+		- **friendsActivityHubEnabled**: Display the letterboxd friends activity hub on the home page for this user
+		- **friendsReviewsEnabled**: Display letterboxd friends reviews for this user
+- **letterboxd**:
+	- **similarItemsEnabled**: Display similar items from letterboxd on plex media item pages for all users
+	- **friendsActivityHubEnabled**: Display the letterboxd friends activity hub on the home page for all users
+	- **friendsReviewsEnabled**: Display letterboxd friends reviews for all users
 
 ### Network Settings
 

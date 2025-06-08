@@ -11,7 +11,9 @@ import {
 } from '../../pseuplex';
 
 type TemplateFlags = {
-	//
+	templatePlugin?: {
+		enabled?: boolean;
+	}
 };
 type TemplatePerUserPluginConfig = {
 	//

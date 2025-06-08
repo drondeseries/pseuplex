@@ -38,7 +38,9 @@ import { PlexRequestsHandler } from './handler';
 import * as reqsTransform from './transform';
 
 type RequestsFlags = {
-	requestsEnabled?: boolean;
+	requests?: {
+		enabled?: boolean;
+	},
 };
 type RequestsPerUserPluginConfig = {
 	//
@@ -96,7 +98,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 			}
 			const plexUserInfo = context.userReq.plex.userInfo;
 			// check if requests are enabled
-			const requestsEnabled = this.config.perUser[plexUserInfo.email]?.requestsEnabled ?? this.config.requestsEnabled;
+			const requestsEnabled = this.config.perUser[plexUserInfo.email]?.requests?.enabled ?? this.config.requests?.enabled;
 			if(!requestsEnabled) {
 				return;
 			}
