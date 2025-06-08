@@ -289,10 +289,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				const id = req.params.id;
 				const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:false});
 				const hub = await this.hubs.similar.get(id);
-				return await hub.getHub(params, {
-					plexServerURL: this.app.plexServerURL,
-					plexAuthContext: req.plex.authContext
-				});
+				return await hub.getHub(params, this.app.contextForRequest(req));
 			})
 		]);
 		
@@ -310,10 +307,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				return await hub.getHub({
 					...params,
 					listStartToken: stringParam(req.query['listStartToken'])
-				}, {
-					plexServerURL: this.app.plexServerURL,
-					plexAuthContext: req.plex.authContext
-				});
+				}, this.app.contextForRequest(req));
 			})
 		]);
 	}
@@ -379,10 +373,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		if(friendsActvityHubEnabled && userPrefs?.letterboxd?.username) {
 			const params = plexTypes.parsePlexHubPageParams(context.userReq, {fromListPage:true});
 			const hub = await this.hubs.userFollowingActivity.get(userPrefs.letterboxd.username);
-			const page = await hub.getHubListEntry(params, {
-				plexServerURL: this.app.plexServerURL,
-				plexAuthContext: context.userReq.plex.authContext
-			});
+			const page = await hub.getHubListEntry(params, this.app.contextForRequest(context.userReq));
 			if(!resData.MediaContainer.Hub) {
 				resData.MediaContainer.Hub = [];
 			} else if(!(resData.MediaContainer.Hub instanceof Array)) {
@@ -436,10 +427,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			// get letterboxd similar movies hub
 			const hub =  await this.hubs.similar.get(letterboxdId);
 			const hubPageParams = plexTypes.parsePlexHubPageParams(context.userReq, { fromListPage:true });
-			const hubEntry = await hub.getHubListEntry(hubPageParams, {
-				plexServerURL: this.app.plexServerURL,
-				plexAuthContext
-			});
+			const hubEntry = await hub.getHubListEntry(hubPageParams, this.app.contextForRequest(context.userReq));
 			resData.MediaContainer.Hub = pushToArray(resData.MediaContainer.Hub, hubEntry);
 			resData.MediaContainer.size = (resData.MediaContainer.size ?? 0) + 1;
 			if(resData.MediaContainer.totalSize != null) {

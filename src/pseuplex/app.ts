@@ -301,10 +301,7 @@ export class PseuplexApp {
 					return (this.hasAnySections || (this.responseFilters?.mediaProviders?.length ?? 0) > 0);
 				},
 				responseModifier: async (proxyRes, resData: plexTypes.PlexServerMediaProvidersPage, userReq: IncomingPlexAPIRequest, userRes) => {
-					const context: PseuplexRequestContext = {
-						plexServerURL: this.plexServerURL,
-						plexAuthContext: userReq.plex.authContext,
-					};
+					const context = this.contextForRequest(userReq);
 					// add sections
 					const allSections = this.sections;
 					const sectionsFeature = resData.MediaContainer.MediaProvider[0].Feature.find((f) => f.type == plexTypes.PlexFeatureType.Content) as plexTypes.PlexContentFeature;
@@ -325,10 +322,7 @@ export class PseuplexApp {
 					return this.hasAnySections;
 				},
 				responseModifier: async (proxyRes, resData: plexTypes.PlexLibrarySectionsPage, userReq: IncomingPlexAPIRequest, userRes) => {
-					const context: PseuplexRequestContext = {
-						plexServerURL: this.plexServerURL,
-						plexAuthContext: userReq.plex.authContext,
-					};
+					const context = this.contextForRequest(userReq);
 					// add sections
 					const allSections = this.sections;
 					const existingSections = resData.MediaContainer.Directory ?? [];
@@ -707,6 +701,17 @@ export class PseuplexApp {
 	}
 
 
+
+	contextForRequest(req: IncomingPlexAPIRequest): PseuplexRequestContext {
+		return {
+			plexServerURL: this.plexServerURL,
+			plexAuthContext: req.plex.authContext,
+			plexUserInfo: req.plex.userInfo,
+		};
+	}
+	
+
+
 	getMetadataProvider(sourceSlug: string): (PseuplexMetadataProvider | null) {
 		return this.metadataProviders[sourceSlug] ?? null;
 	}
@@ -1010,6 +1015,8 @@ export class PseuplexApp {
 			}
 		}
 	}
+
+	
 
 	get sections(): Set<PseuplexSection> {
 		const uniqueSections = new Set<PseuplexSection>();

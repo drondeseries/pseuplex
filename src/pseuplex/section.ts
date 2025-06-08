@@ -75,11 +75,9 @@ export class PseuplexSectionBase implements PseuplexSection {
 		};
 	}
 
-	getHubs?(options: {maxCount?: number}): Promise<PseuplexHub[]>;
+	getHubs?(params: plexTypes.PlexHubListPageParams, context: PseuplexRequestContext): Promise<PseuplexHub[]>;
 	async getHubsPage(params: plexTypes.PlexHubListPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexSectionHubsPage> {
-		const hubs = (await this.getHubs?.({
-			maxCount: params.count
-		})) ?? [];
+		const hubs = (await this.getHubs?.(params, context)) ?? [];
 		const hubPageParams: PseuplexHubPageParams = {
 			count: params.count,
 			includeMeta: params.includeMeta,

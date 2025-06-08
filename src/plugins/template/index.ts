@@ -4,23 +4,11 @@ import * as plexTypes from '../../plex/types';
 import { IncomingPlexAPIRequest } from '../../plex/requesthandling';
 import {
 	PseuplexApp,
-	PseuplexConfigBase,
 	PseuplexPlugin,
 	PseuplexPluginClass,
 	PseuplexReadOnlyResponseFilters
 } from '../../pseuplex';
-
-type TemplateFlags = {
-	templatePlugin?: {
-		enabled?: boolean;
-	}
-};
-type TemplatePerUserPluginConfig = {
-	//
-} & TemplateFlags;
-export type TemplatePluginConfig = PseuplexConfigBase<TemplatePerUserPluginConfig> & TemplateFlags & {
-	//
-};
+import { TemplatePluginConfig } from './config';
 
 export default (class TemplatePlugin implements PseuplexPlugin {
 	static slug = '<plugin_name>';
