@@ -36,21 +36,7 @@ import {
 import { OverseerrRequestsProvider } from './providers/overseerr';
 import { PlexRequestsHandler } from './handler';
 import * as reqsTransform from './transform';
-
-type RequestsFlags = {
-	requests?: {
-		enabled?: boolean;
-	},
-};
-type RequestsPerUserPluginConfig = {
-	//
-} & RequestsFlags;
-export type RequestsPluginConfig = PseuplexConfigBase<RequestsPerUserPluginConfig> & RequestsFlags & {
-	plex: {
-		requestedMoviesLibraryId?: string | number;
-		requestedTVShowsLibraryId?: string | number;
-	}
-};
+import { RequestsPluginConfig } from './config';
 
 export default (class RequestsPlugin implements PseuplexPlugin {
 	static slug = 'requests';

@@ -18,7 +18,6 @@ import {
 	PseuplexReadOnlyResponseFilters,
 	PseuplexMetadataIDParts,
 	PseuplexMetadataSource,
-	PseuplexConfigBase,
 	PseuplexSimilarItemsHubProvider,
 	sendMediaUnavailableNotifications,
 	stringifyMetadataID,
@@ -41,20 +40,7 @@ import {
 	pushToArray,
 	stringParam
 } from '../../utils';
-
-type LetterboxdFlags = {
-	letterboxd?: {
-		similarItemsEnabled?: boolean;
-		friendsActivityHubEnabled?: boolean;
-		friendsReviewsEnabled?: boolean;
-	},
-};
-type LetterboxdPerUserPluginConfig = {
-	letterboxd?: {
-		username?: string;
-	},
-} & LetterboxdFlags;
-export type LetterboxdPluginConfig = (PseuplexConfigBase<LetterboxdPerUserPluginConfig> & LetterboxdFlags);
+import { LetterboxdPluginConfig } from './config';
 
 export default (class LetterboxdPlugin implements PseuplexPlugin {
 	static slug = 'letterboxd';
