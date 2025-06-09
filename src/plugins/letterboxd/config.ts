@@ -1,4 +1,4 @@
-import { PseuplexConfigBase } from '../../pseuplex';
+import { PseuplexConfigBase } from '../../pseuplex/configbase';
 
 type LetterboxdFlags = {
 	letterboxd?: {
