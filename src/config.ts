@@ -5,7 +5,7 @@ import { PseuplexConfigBase } from './pseuplex/configbase';
 import { PseuplexServerProtocol } from './pseuplex/types/server';
 import { LetterboxdPluginConfig } from './plugins/letterboxd/config';
 import { RequestsPluginConfig } from './plugins/requests/config';
-import { OverseerrRequestsPluginConfig } from './plugins/requests/providers/overseerr';
+import { OverseerrRequestsPluginConfig } from './plugins/requests/providers/overseerr/config';
 
 export type Config = {
 	protocol?: PseuplexServerProtocol,

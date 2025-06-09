@@ -17,16 +17,7 @@ import {
 	firstOrSingle,
 	httpError
 } from '../../../../utils';
-
-type OverseerPerUserPluginConfig = {
-	//
-};
-export type OverseerrRequestsPluginConfig = PseuplexConfigBase<OverseerPerUserPluginConfig> & {
-	overseerr: {
-		host: string;
-		apiKey: string;
-	}
-};
+import { OverseerrRequestsPluginConfig } from './config';
 
 export class OverseerrRequestsProvider implements RequestsProvider {
 	readonly slug = 'overseerr';
