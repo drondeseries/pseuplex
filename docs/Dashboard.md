@@ -40,7 +40,7 @@ Displays a pseudo "Dashboard" section in your server that can be configured to s
 		```json
 		{
 			"plugin": "letterboxd",
-			"hub": "similar",
+			"hub": "list",
 			"arg": "oscars:oscar-winning-films-best-picture?by=added"
 		}
 		```
