@@ -354,7 +354,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		// get prefs
 		const config = this.config;
 		const userPrefs = config.perUser[userInfo.email];
-		const friendsActvityHubEnabled = userPrefs?.letterboxd?.friendsActivityHubEnabled ?? config.letterboxd?.friendsActivityHubEnabled ?? true;
+		const friendsActvityHubEnabled = userPrefs?.letterboxd?.friendsActivityHubEnabled ?? config.letterboxd?.friendsActivityHubEnabled ?? false;
 		// add friends activity feed hub if enabled
 		if(friendsActvityHubEnabled && userPrefs?.letterboxd?.username) {
 			const params = plexTypes.parsePlexHubPageParams(context.userReq, {fromListPage:true});

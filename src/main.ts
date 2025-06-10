@@ -17,6 +17,7 @@ import {
 import { PseuplexApp } from './pseuplex';
 import LetterboxdPlugin from './plugins/letterboxd';
 import RequestsPlugin from './plugins/requests';
+import DashboardPlugin from './plugins/dashboard';
 import {
 	calculatePlexP12Password,
 	getPlexP12Path,
@@ -132,7 +133,8 @@ const readPlexPrefsIfNeeded = async () => {
 		},
 		plugins: [
 			LetterboxdPlugin,
-			RequestsPlugin
+			RequestsPlugin,
+			DashboardPlugin,
 		],
 		config: cfg
 	});

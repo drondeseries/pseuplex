@@ -36,6 +36,14 @@ This project is still very much a WIP and it is not recommended to enable remote
 
 	![Letterboxd Friends Reviews](docs/images/letterboxd_friends_reviews.png)
 
+- ### Customizable "Dashboard" Section
+
+	A "dashboard" section can be shown with customizable hubs, such as your friends activity on letterboxd. This allows you to extend the typical recommended movies and shows you see on your homepage. The "unavailable" status will still show for movies and shows that aren't on your server.
+
+	![Dashboard Section](docs/images/dashboard_section.png)
+
+	A list of hubs that can be configured are available [here](./docs/Dashboard#hubs)
+
 ## Setup
 
 ### SSL
@@ -57,10 +65,22 @@ Create a `config.json` file with the following structure, and fill in the config
 		"keyPath": "/etc/pseudo_plex_proxy/ssl_cert.key",
 		"certPath": "/etc/pseudo_plex_proxy/ssl_cert.crt"
 	},
+	"dashboard": {
+		"enabled": true,
+	},
 	"perUser": {
 		"yourplexuseremail@example.com": {
 			"letterboxd": {
 				"username": "<LETTERBOXD USERNAME>"
+			},
+			"dashboard": {
+				"hubs": [
+					{
+						"plugin": "letterboxd",
+						"hub": "userFollowingActivity",
+						"arg": "<LETTERBOXD USERNAME>"
+					}
+				]
 			}
 		}
 	}
@@ -82,16 +102,30 @@ Create a `config.json` file with the following structure, and fill in the config
 	- **autoP12Password**: Automatically determine the password of your plex server's SSL p12 file.
 	- **watchCertChanges**: Automatically reload the SSL certificate/key whenever your cert/key/p12 file changes
 	- **certReloadDelay**: The time in milliseconds to wait after your cert/key/p12 file changes before reloading SSL (if `ssl.watchCertChanges` is `true`). Default is `1000`.
+- **letterboxd**:
+	- **similarItemsEnabled**: Display similar items from letterboxd on plex media item pages for all users
+	- **friendsActivityHubEnabled**: Display the letterboxd friends activity hub on the home page for all users
+	- **friendsReviewsEnabled**: Display letterboxd friends reviews for all users
+- **dashboard**:
+	- **enabled**: Controls whether to show a pseudo "Dashboard" section for all users, which will show custom hubs
+	- **title**: The title to display for the section
+	- **hubs**: An array of hubs to show on the dashboard section for all users
+		- **plugin**: The name of the plugin that this hub comes from (for example, `letterboxd` for letterboxd hubs)
+		- **hub**: The name of the hub within the plugin (for example, `userFollowingActivity` the activity feed of users that a given user is following)
+		- **arg**: The argument to pass to the hub provider for this hub. (for `letterboxd`.`userFollowingActivity`, this would be a letterboxd username slug, for example `crew`)
 - **perUser**: A map of settings to configure for each user on your server. The map keys are the plex email for each user.
 	- **letterboxd**:
 		- **username**: The letterboxd username for this user
 		- **similarItemsEnabled**: Display similar items from letterboxd on plex media item pages for this user
 		- **friendsActivityHubEnabled**: Display the letterboxd friends activity hub on the home page for this user
 		- **friendsReviewsEnabled**: Display letterboxd friends reviews for this user
-- **letterboxd**:
-	- **similarItemsEnabled**: Display similar items from letterboxd on plex media item pages for all users
-	- **friendsActivityHubEnabled**: Display the letterboxd friends activity hub on the home page for all users
-	- **friendsReviewsEnabled**: Display letterboxd friends reviews for all users
+	- **dashboard**:
+		- **enabled**: Controls whether to show a pseudo "Dashboard" section for this user, which will show custom hubs
+		- **title**: The title to display for the section for this user
+		- **hubs**: An array of hubs to show on the dashboard section for this user
+			- **plugin**: The name of the plugin that this hub comes from (for example, `letterboxd` for letterboxd hubs)
+			- **hub**: The name of the hub within the plugin (for example, `userFollowingActivity` the activity feed of users that a given user is following)
+			- **arg**: The argument to pass to the hub. (for `letterboxd`.`userFollowingActivity`, this would be a letterboxd username slug, for example `crew`)
 
 ### Network Settings
 
