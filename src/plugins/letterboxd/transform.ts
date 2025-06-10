@@ -1,4 +1,4 @@
-
+import qs from 'qs';
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
 import {
@@ -19,6 +19,7 @@ import {
 	combinePathSegments
 } from '../../utils';
 import { LetterboxdMetadataProvider } from './metadata';
+import { booleanQueryParam } from '../../plex/api/serialization';
 
 export const partialMetadataIdFromFilmInfo = (filmInfo: letterboxd.FilmPage): PseuplexPartialMetadataIDString => {
 	return stringifyPartialMetadataID({
@@ -174,5 +175,38 @@ export const viewingToPlexReview = (viewing: letterboxd.Viewing): plexTypes.Plex
 		image: (viewing.rating && viewing.rating < 5) ? "rottentomatoes://image.rating.spilled" : "rottentomatoes://image.rating.upright",
 		link: letterboxd.BASE_URL + viewing.href,
 		text: (ratingString ? `${ratingString}\n${viewing.text ?? ''}` : viewing.text)!
+	};
+};
+
+
+export type PseuplexLetterboxdListID = `${string}:${string}` | `${string}:${string}?${string}`;
+
+export const getFilmListOptsFromPartialListId = (listId: PseuplexLetterboxdListID): (letterboxd.GetFilmListOptions & {
+	listSlug: string;
+	userSlug: string;
+}) => {
+	const colonIndex = listId.indexOf(':');
+	if(colonIndex == -1) {
+		throw new Error(`Invalid list id ${listId}`);
+	}
+	const queryIndex = listId.indexOf(':', colonIndex + 1);
+	const listSlugEndIndex = (queryIndex != -1) ? queryIndex : listId.length;
+	const userSlug = listId.substring(0, colonIndex);
+	const listSlug = listId.substring(colonIndex+1, listSlugEndIndex);
+	const queryString = (queryIndex != -1) ? listId.substring(queryIndex+1) : undefined;
+	const query = queryString ? qs.parse(queryString) : undefined;
+	if(query.detail) {
+		query.detail = booleanQueryParam(query.detail as any) as any;
+	}
+	if(query.upcoming) {
+		query.upcoming = booleanQueryParam(query.upcoming as any) as any;
+	}
+	if(typeof query.genre === 'string') {
+		query.genre = query.genre.split(',');
+	}
+	return  {
+		...query,
+		userSlug,
+		listSlug,
 	};
 };

@@ -31,7 +31,8 @@ import {
 } from './metadata';
 import {
 	createUserFollowingFeedHub,
-	createSimilarItemsHub
+	createSimilarItemsHub,
+	createListHub,
 } from './hubs'
 import * as lbTransform from './transform';
 import {
@@ -50,6 +51,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 	readonly hubs: {
 		readonly userFollowingActivity: PseuplexHubProvider & {readonly basePath: string};
 		readonly similar: PseuplexSimilarItemsHubProvider;
+		readonly list: PseuplexHubProvider & {readonly basePath: string};
 	};
 	//readonly section?: PseuplexSection;
 
@@ -89,6 +91,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						} : undefined),
 						//section: section,
 						//matchToPlexServerMetadata: true
+						loggingOptions: app.loggingOptions,
 					});
 				}
 			}(),
@@ -108,7 +111,28 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 								qualifiedMetadataId: true,
 							},
 						} : undefined),
-						defaultCount: 12
+						defaultCount: 12,
+						loggingOptions: app.loggingOptions,
+					});
+				}
+			}(),
+
+			list: new class extends PseuplexHubProvider {
+				readonly basePath = `${self.basePath}/list`;
+				override fetch(listId: lbTransform.PseuplexLetterboxdListID): PseuplexHub | Promise<PseuplexHub> {
+					return createListHub(listId, {
+						path: `${this.basePath}/${listId}`,
+						style: plexTypes.PlexHubStyle.Shelf,
+						promoted: true,
+						letterboxdMetadataProvider: self.metadata,
+						...(app.metadataIdMappings ? {
+							metadataTransformOptions: {
+								metadataBasePath: '/library/metadata',
+								qualifiedMetadataId: true,
+							},
+						} : undefined),
+						defaultCount: 12,
+						loggingOptions: app.loggingOptions,
 					});
 				}
 			}()
@@ -259,7 +283,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					plexAuthContext: req.plex.authContext,
 					plexUserInfo: req.plex.userInfo,
 					plexParams: params,
-				})
+				});
 				// filter response
 				const metadataId = parsePartialMetadataID(id);
 				await this.app.filterResponse('metadataRelatedHubsFromProvider', resData, { userReq:req, userRes:res, metadataId, metadataProvider });
@@ -283,6 +307,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		router.get(`${this.hubs.userFollowingActivity.basePath}/:letterboxdUsername`, [
 			this.app.middlewares.plexAuthentication,
 			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexMetadataPage> => {
+				const context = this.app.contextForRequest(req);
 				const letterboxdUsername = req.params['letterboxdUsername'];
 				if(!letterboxdUsername) {
 					throw httpError(400, "No user provided");
@@ -293,7 +318,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				return await hub.getHub({
 					...params,
 					listStartToken: stringParam(req.query['listStartToken'])
-				}, this.app.contextForRequest(req));
+				}, context);
 			})
 		]);
 	}

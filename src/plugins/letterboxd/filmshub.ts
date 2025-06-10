@@ -17,7 +17,7 @@ export type LetterboxdFilmsHubOptions = PseuplexFeedHubOptions & {
 export type LetterboxdFilmsPageFetcher = (pageToken: string | null) => Promise<letterboxd.FilmsPage>;
 
 export class LetterboxdFilmsHub extends PseuplexFeedHub<letterboxd.Film,void,string,LetterboxdFilmsHubOptions> {
-	_fetchPage: LetterboxdFilmsPageFetcher;
+	private _fetchPage: LetterboxdFilmsPageFetcher;
 
 	constructor(options: LetterboxdFilmsHubOptions, fetchPage: LetterboxdFilmsPageFetcher) {
 		super(options);

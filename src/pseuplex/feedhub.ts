@@ -48,6 +48,8 @@ export type PseuplexFeedHubLoggingOptions = {
 
 const DEFAULT_LOAD_AHEAD_COUNT = 1;
 
+export type PseuplexFeedHubChunk<TItem,TItemToken,TPageToken> = LoadableListFetchedChunk<TItem,TItemToken,TPageToken>;
+
 export abstract class PseuplexFeedHub<
 	TItem,
 	TItemToken extends (string | number | void),
@@ -78,7 +80,7 @@ export abstract class PseuplexFeedHub<
 	}
 	
 	abstract parseItemTokenParam(itemToken: string): TItemToken | null;
-	abstract fetchPage(pageToken: TPageToken | null): Promise<LoadableListFetchedChunk<TItem,TItemToken,TPageToken>>;
+	abstract fetchPage(pageToken: TPageToken | null): Promise<PseuplexFeedHubChunk<TItem,TItemToken,TPageToken>>;
 	abstract compareItemTokens(itemToken1: TItemToken, itemToken2: TItemToken): number;
 	abstract transformItem(item: TItem, context: PseuplexRequestContext): (plexTypes.PlexMetadataItem | Promise<plexTypes.PlexMetadataItem>);
 	

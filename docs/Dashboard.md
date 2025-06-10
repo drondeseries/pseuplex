@@ -31,3 +31,16 @@ Displays a pseudo "Dashboard" section in your server that can be configured to s
 			"arg": "film:legend"
 		}
 		```
+	
+	- **list**: (*list id*)
+
+		Get Films from a film list on letterboxd.
+
+		[Example](https://letterboxd.com/oscars/list/oscar-winning-films-best-picture/)
+		```json
+		{
+			"plugin": "letterboxd",
+			"hub": "similar",
+			"arg": "oscars:oscar-winning-films-best-picture?by=added"
+		}
+		```
