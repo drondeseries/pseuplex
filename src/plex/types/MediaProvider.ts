@@ -69,9 +69,7 @@ export type PlexAction = {
 
 export type PlexContentFeature = {
 	type: PlexFeatureType.Content;
-	Directory: (PlexContentDirectory & {
-		Pivot?: PlexPivot[];
-	})[];
+	Directory: PlexContentDirectoryWithPivots[];
 };
 
 export type PlexContentDirectory = {
@@ -94,8 +92,20 @@ export type PlexContentDirectory = {
 	context?: PlexPivotContext;
 };
 
+export type PlexContentDirectoryWithPivots = PlexContentDirectory & {
+	Pivot?: PlexPivot[];
+};
+
+export enum PlexPivotID {
+	Recommended = 'recommended',
+	Library = 'library',
+	Collections = 'collections',
+	Playlists = 'playlists',
+	Categories = 'categories',
+}
+
 export type PlexPivot = {
-	id: string; // "recommended", "library", "collections", "playlists", "categories"
+	id: PlexPivotID | string; // "recommended", "library", "collections", "playlists", "categories"
 	key: string; // "/hubs/section/1", "/library/sections/1/all?type=1", "/library/sections/1/collections", "/playlists?type=15&sectionID=1&playlistType=video"
 	type: PlexPivotType;
 	title: string; // "Recommended", "Library", "Collections"

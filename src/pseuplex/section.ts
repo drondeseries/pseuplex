@@ -14,8 +14,10 @@ export interface PseuplexSection {
 	readonly path: string;
 	readonly hubsPath: string;
 
-	getMediaProviderDirectory(context: PseuplexRequestContext): Promise<plexTypes.PlexContentDirectory>;
-	getLibrarySectionsEntry(context: PseuplexRequestContext): Promise<plexTypes.PlexLibrarySection>;
+	getSectionPage(context: PseuplexRequestContext): Promise<plexTypes.PlexLibrarySectionPage>;
+	getMediaProviderDirectory(context: PseuplexRequestContext): Promise<plexTypes.PlexContentDirectoryWithPivots>;
+	getLibrarySectionsEntry(params: plexTypes.PlexLibrarySectionsPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexLibrarySection>;
+	getPromotedHubsPage(params: plexTypes.PlexHubListPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexSectionHubsPage>;
 	getHubsPage(params: plexTypes.PlexHubListPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexSectionHubsPage>;
 }
 
@@ -49,25 +51,52 @@ export class PseuplexSectionBase implements PseuplexSection {
 		this.allowSync = options.allowSync ?? false;
 	}
 
-	async getMediaProviderDirectory(context: PseuplexRequestContext): Promise<plexTypes.PlexContentDirectory> {
+	async getTitle(context: PseuplexRequestContext): Promise<string> {
+		return this.title;
+	}
+
+	async getSectionPage(context: PseuplexRequestContext): Promise<plexTypes.PlexLibrarySectionPage> {
+		const titlePromise = this.getTitle(context);
+		return {
+			MediaContainer: {
+				size: 0,
+				allowSync: false,
+				// art: someart
+				content: plexTypes.PlexLibrarySectionContentType.Secondary,
+				identifier: plexTypes.PlexPluginIdentifier.PlexAppLibrary,
+				librarySectionID: this.id,
+				// thumb: somethumb
+				title1: await titlePromise,
+				viewGroup: plexTypes.PlexLibrarySectionViewGroup.Secondary,
+			}
+		};
+	}
+
+	async getMediaProviderDirectory(context: PseuplexRequestContext): Promise<plexTypes.PlexContentDirectoryWithPivots> {
+		const titlePromise = this.getTitle(context);
+		const pivotsPromise = this.getPivots?.();
 		return {
 			id: `${this.id}`,
 			key: this.path,
 			hubKey: this.hubsPath,
-			title: this.title,
+			title: await titlePromise,
 			uuid: this.uuid,
 			type: this.type,
 			refreshing: false,
+			Pivot: await pivotsPromise,
 		};
 	}
 
-	async getLibrarySectionsEntry(context: PseuplexRequestContext): Promise<plexTypes.PlexLibrarySection> {
+	async getPivots?(): Promise<plexTypes.PlexPivot[]>;
+
+	async getLibrarySectionsEntry(params: plexTypes.PlexLibrarySectionsPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexLibrarySection> {
+		const titlePromise = this.getTitle(context);
 		return {
 			allowSync: this.allowSync,
 			key: `${this.id}`,
 			uuid: this.uuid!,
 			type: this.type,
-			title: this.title,
+			title: await titlePromise,
 			refreshing: false,
 			filters: true,
 			content: true,
@@ -76,24 +105,51 @@ export class PseuplexSectionBase implements PseuplexSection {
 	}
 
 	getHubs?(params: plexTypes.PlexHubListPageParams, context: PseuplexRequestContext): Promise<PseuplexHub[]>;
-	async getHubsPage(params: plexTypes.PlexHubListPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexSectionHubsPage> {
-		const hubs = (await this.getHubs?.(params, context)) ?? [];
+	getPromotedHubs?(params: plexTypes.PlexHubListPageParams, context: PseuplexRequestContext): Promise<PseuplexHub[]>;
+
+	private async hubPageFromHubs(
+		params: plexTypes.PlexHubListPageParams,
+		context: PseuplexRequestContext,
+		hubsPromise: (PseuplexHub[] | Promise<PseuplexHub[] | undefined> | undefined),
+		promoted: boolean,
+	): Promise<plexTypes.PlexSectionHubsPage> {
+		const titlePromise = this.getTitle(context);
+		const hubs = (await hubsPromise) ?? [];
 		const hubPageParams: PseuplexHubPageParams = {
 			count: params.count,
 			includeMeta: params.includeMeta,
 			excludeFields: params.excludeFields
 		};
+		const hubEntriesPromise = Promise.all(hubs.map((hub) => {
+			return hub.getHubListEntry(hubPageParams, context)
+		}));
 		return {
 			MediaContainer: {
 				size: hubs.length,
 				allowSync: false,
 				librarySectionID: this.id,
-				librarySectionTitle: this.title,
+				librarySectionTitle: await titlePromise,
 				librarySectionUUID: this.uuid!,
-				Hub: await Promise.all(hubs.map((hub) => {
-					return hub.getHubListEntry(hubPageParams, context)
-				}))
+				Hub: await hubEntriesPromise,
 			}
 		};
+	}
+	
+	async getHubsPage(params: plexTypes.PlexHubListPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexSectionHubsPage> {
+		return await this.hubPageFromHubs(
+			params,
+			context,
+			this.getHubs?.(params, context),
+			false
+		);
+	}
+
+	async getPromotedHubsPage(params: plexTypes.PlexHubListPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexSectionHubsPage> {
+		return await this.hubPageFromHubs(
+			params,
+			context,
+			this.getHubs?.(params, context),
+			true
+		);
 	}
 }

@@ -297,16 +297,19 @@ export class PseuplexApp {
 		router.get('/media/providers', [
 			this.middlewares.plexAuthentication,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
-				filter: (req, res) => {
-					return (this.hasAnySections || (this.responseFilters?.mediaProviders?.length ?? 0) > 0);
+				filter: async (req: IncomingPlexAPIRequest, res) => {
+					const context = this.contextForRequest(req);
+					return ((await this.hasSections(context)) || (this.responseFilters?.mediaProviders?.length ?? 0) > 0);
 				},
 				responseModifier: async (proxyRes, resData: plexTypes.PlexServerMediaProvidersPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					const context = this.contextForRequest(userReq);
 					// add sections
-					const allSections = this.sections;
+					const allSections = await this.getSections(context);
 					const sectionsFeature = resData.MediaContainer.MediaProvider[0].Feature.find((f) => f.type == plexTypes.PlexFeatureType.Content) as plexTypes.PlexContentFeature;
 					if(sectionsFeature) {
-						sectionsFeature.Directory.push(...await Promise.all(Array.from(allSections).map(async (section) => await section.getMediaProviderDirectory(context))));
+						sectionsFeature.Directory.push(...await Promise.all(Array.from(allSections).map(async (section) => {
+							return await section.getMediaProviderDirectory(context);
+						})));
 					}
 					// filter response
 					await this.filterResponse('mediaProviders', resData, { proxyRes, userReq, userRes });
@@ -318,15 +321,19 @@ export class PseuplexApp {
 		router.get(['/library/sections', '/library/sections/all'], [
 			this.middlewares.plexAuthentication,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
-				filter: (req, res) => {
-					return this.hasAnySections;
+				filter: async (req: IncomingPlexAPIRequest, res) => {
+					const context = this.contextForRequest(req);
+					return await this.hasSections(context);
 				},
 				responseModifier: async (proxyRes, resData: plexTypes.PlexLibrarySectionsPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					const context = this.contextForRequest(userReq);
+					const reqParams = userReq.plex.requestParams;
 					// add sections
-					const allSections = this.sections;
+					const allSections = await this.getSections(context);
 					const existingSections = resData.MediaContainer.Directory ?? [];
-					const newSections = await Promise.all(Array.from(allSections).map(async (section) => await section.getLibrarySectionsEntry(context)));
+					const newSections = await Promise.all(Array.from(allSections).map(async (section) => {
+						return await section.getLibrarySectionsEntry(reqParams,context);
+					}));
 					existingSections.push(...newSections);
 					resData.MediaContainer.Directory = existingSections;
 					resData.MediaContainer.size = (resData.MediaContainer.size ?? 0) + newSections.length;
@@ -339,6 +346,28 @@ export class PseuplexApp {
 			this.middlewares.plexAuthentication,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexLibraryHubsPage, userReq: IncomingPlexAPIRequest, userRes) => {
+					const context = this.contextForRequest(userReq);
+					const reqParams = userReq.plex.requestParams;
+					// get hubs for each section
+					// TODO maybe add some sort of sorting?
+					const hubsPromisesForSections = (await this.getSections(context)).map((section) => {
+						return section.getHubsPage(reqParams, context);
+					});
+					// add hubs from sections
+					const allSectionHubs: plexTypes.PlexHubWithItems[] = [];
+					for(const sectionHubsPromise of hubsPromisesForSections) {
+						const sectionHubs = (await sectionHubsPromise)?.MediaContainer?.Hub;
+						if(sectionHubs && sectionHubs.length > 0) {
+							allSectionHubs.push(...sectionHubs);
+						}
+					}
+					if(allSectionHubs.length > 0) {
+						resData.MediaContainer.Hub = allSectionHubs.concat(resData.MediaContainer.Hub ?? []);
+						resData.MediaContainer.size += allSectionHubs.length;
+						if(resData.MediaContainer.totalSize != null) {
+							resData.MediaContainer.totalSize += allSectionHubs.length;
+						}
+					}
 					// filter response
 					await this.filterResponse('hubs', resData, { proxyRes, userReq, userRes });
 					// remap IDs if needed (since filters may add hubs)
@@ -356,7 +385,37 @@ export class PseuplexApp {
 			this.middlewares.plexAuthentication,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexLibraryHubsPage, userReq: IncomingPlexAPIRequest, userRes) => {
-					// filter rresponse
+					const context = this.contextForRequest(userReq);
+					const reqParams = userReq.plex.requestParams;
+					// get section IDs to include
+					const contentDirectoryID = userReq.query?.['contentDirectoryID'];
+					const contentDirIds = ((typeof contentDirectoryID == 'string') ? contentDirectoryID.split(',') : contentDirectoryID) as (string[] | undefined);
+					// get promoted hubs for included sections
+					// TODO maybe add some sort of sorting?
+					const hubsPromisesForSections = (await this.getSections(context)).map((section) => {
+						// ensure we're including this section
+						if(contentDirIds.findIndex((id) => (id == section.id)) == -1) {
+							return null;
+						}
+						// get promoted hubs for this section
+						return section.getPromotedHubsPage(reqParams, context);
+					});
+					// add hubs from sections
+					const allSectionHubs: plexTypes.PlexHubWithItems[] = [];
+					for(const sectionHubsPromise of hubsPromisesForSections) {
+						const sectionHubs = (await sectionHubsPromise)?.MediaContainer?.Hub;
+						if(sectionHubs && sectionHubs.length > 0) {
+							allSectionHubs.push(...sectionHubs);
+						}
+					}
+					if(allSectionHubs.length > 0) {
+						resData.MediaContainer.Hub = allSectionHubs.concat(resData.MediaContainer.Hub ?? []);
+						resData.MediaContainer.size += allSectionHubs.length;
+						if(resData.MediaContainer.totalSize != null) {
+							resData.MediaContainer.totalSize += allSectionHubs.length;
+						}
+					}
+					// filter response
 					await this.filterResponse('promotedHubs', resData, { proxyRes, userReq, userRes });
 					// remap IDs if needed (since filters may add hubs)
 					if(this.metadataIdMappings && resData.MediaContainer.Hub) {
@@ -597,37 +656,41 @@ export class PseuplexApp {
 		]);
 
 		router.use('/photo', ((req, res, next) => {
-			const urlPathParts = parseURLPath(req.url);
-			const queryItems = urlPathParts.queryItems;
-			if(queryItems) {
-				let urlQueryArg = queryItems['url'];
-				const urlsToRewrite = [
-					`http://127.0.0.1:${this.config.port}`,
-					`https://127.0.0.1:${this.config.port}`
-				];
-				if(urlQueryArg) {
-					if(urlQueryArg instanceof Array) {
-						for(let i=0; i<urlQueryArg.length; i++) {
-							const cmpUrl = urlQueryArg[i];
+			try {
+				const urlPathParts = parseURLPath(req.url);
+				const queryItems = urlPathParts.queryItems;
+				if(queryItems) {
+					let urlQueryArg = queryItems['url'];
+					const urlsToRewrite = [
+						`http://127.0.0.1:${this.config.port}`,
+						`https://127.0.0.1:${this.config.port}`
+					];
+					if(urlQueryArg) {
+						if(urlQueryArg instanceof Array) {
+							for(let i=0; i<urlQueryArg.length; i++) {
+								const cmpUrl = urlQueryArg[i];
+								for(const urlToRewrite of urlsToRewrite) {
+									if(cmpUrl.startsWith(urlToRewrite) && cmpUrl[urlToRewrite.length] == '/') {
+										urlQueryArg[i] = cmpUrl.substring(urlToRewrite.length);
+										break;
+									}
+								}
+							}
+						} else {
 							for(const urlToRewrite of urlsToRewrite) {
-								if(cmpUrl.startsWith(urlToRewrite) && cmpUrl[urlToRewrite.length] == '/') {
-									urlQueryArg[i] = cmpUrl.substring(urlToRewrite.length);
+								if(urlQueryArg.startsWith(urlToRewrite) && urlQueryArg[urlToRewrite.length] == '/') {
+									urlQueryArg = urlQueryArg.substring(urlToRewrite.length);
 									break;
 								}
 							}
 						}
-					} else {
-						for(const urlToRewrite of urlsToRewrite) {
-							if(urlQueryArg.startsWith(urlToRewrite) && urlQueryArg[urlToRewrite.length] == '/') {
-								urlQueryArg = urlQueryArg.substring(urlToRewrite.length);
-								break;
-							}
-						}
+						queryItems['url'] = urlQueryArg;
 					}
-					queryItems['url'] = urlQueryArg;
 				}
+				req.url = stringifyURLPath(urlPathParts);
+			} catch(error) {
+				console.error(error);
 			}
-			req.url = stringifyURLPath(urlPathParts);
 			next();
 		}));
 
@@ -1018,25 +1081,24 @@ export class PseuplexApp {
 
 	
 
-	get sections(): Set<PseuplexSection> {
-		const uniqueSections = new Set<PseuplexSection>();
+	async getSections(context: PseuplexRequestContext): Promise<PseuplexSection[]> {
+		const sections: PseuplexSection[] = [];
 		for(const pluginSlug in this.plugins) {
 			const plugin = this.plugins[pluginSlug];
-			const pluginSections = plugin.sections;
+			const pluginSections = await plugin.getSections?.(context);
 			if(pluginSections && pluginSections.length > 0) {
 				for(const section of pluginSections) {
-					uniqueSections.add(section);
+					sections.push(section);
 				}
 			}
 		}
-		return uniqueSections;
+		return sections;
 	}
 
-	get hasAnySections(): boolean {
+	async hasSections(context: PseuplexRequestContext): Promise<boolean> {
 		for(const pluginSlug in this.plugins) {
 			const plugin = this.plugins[pluginSlug];
-			const pluginSections = plugin.sections;
-			if(pluginSections && pluginSections.length > 0) {
+			if(await plugin.hasSections?.(context)) {
 				return true;
 			}
 		}

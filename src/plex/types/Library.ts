@@ -3,7 +3,9 @@ import {
 	PlexLibraryAgent,
 	PlexLibraryScanner,
 	PlexMediaItemType,
-	PlexMediaItemTypeNumeric
+	PlexMediaItemTypeNumeric,
+	PlexPluginIdentifier,
+	PlexXMLBoolean
 } from './common';
 import { PlexMediaContainer } from './MediaContainer';
 
@@ -16,6 +18,10 @@ export type PlexGetLibraryMatchesParams = {
 	language?: PlexLanguage
 };
 
+export type PlexLibrarySectionsPageParams = {
+	includePreferences?: PlexXMLBoolean;
+}
+
 export type PlexLibrarySection = {
 	allowSync: boolean;
 	art?: string;
@@ -23,7 +29,7 @@ export type PlexLibrarySection = {
 	filters: boolean;
 	refreshing?: boolean;
 	thumb?: string; // "/:/resources/show.png", "/:/resources/movie.png"
-	key: string;
+	key: string; // "1"
 	type: PlexMediaItemType;
 	title: string;
 	agent?: PlexLibraryAgent;
@@ -68,5 +74,42 @@ export type PlexLibrarySectionsPage = PlexMediaContainer & {
 		size: number;
 		title1: string;
 		Directory: PlexLibrarySection[];
+	}
+};
+
+
+
+export type PlexLibrarySectionDirectory = {
+	key: string;
+	title: string;
+} & ({
+	secondary?: boolean;
+} | {
+	search: boolean;
+	prompt: string;
+});
+
+export enum PlexLibrarySectionContentType {
+	Secondary = 'secondary',
+}
+
+export enum PlexLibrarySectionViewGroup {
+	Secondary = 'secondary',
+}
+
+export type PlexLibrarySectionPage = {
+	MediaContainer: {
+		size: number;
+		allowSync: boolean;
+		art?: string;
+		content: PlexLibrarySectionContentType;
+		identifier: PlexPluginIdentifier;
+		librarySectionID: (number | string);
+		mediaTagPrefix?: string;
+		mediaTagVersion?: number;
+		thumb?: string;
+		title1: string;
+		viewGroup: PlexLibrarySectionViewGroup;
+		Directory?: PlexLibrarySectionDirectory[];
 	}
 };

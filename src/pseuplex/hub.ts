@@ -104,6 +104,9 @@ export abstract class PseuplexHubProvider<THub extends PseuplexHub = PseuplexHub
 	abstract fetch(id: string): (THub | Promise<THub>);
 
 	async get(id: string): Promise<THub> {
+		if(id == null) {
+			throw new Error("Invalid null id");
+		}
 		return this.cache.getOrFetch(id);
 	}
 }

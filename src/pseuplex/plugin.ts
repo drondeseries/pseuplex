@@ -4,7 +4,7 @@ import express from 'express';
 import * as plexTypes from '../plex/types';
 import { IncomingPlexAPIRequest } from '../plex/requesthandling';
 import { PlexServerAccountInfo } from '../plex/accounts';
-import { PseuplexMetadataPage } from './types';
+import { PseuplexMetadataPage, PseuplexRequestContext } from './types';
 import { PseuplexHubProvider } from './hub';
 import { PseuplexMetadataProvider } from './metadata';
 import { PseuplexMetadataIDParts, PseuplexPartialMetadataIDParts } from './metadataidentifier';
@@ -51,11 +51,12 @@ export type PseuplexPlayQueueURIResolverOptions = {
 
 
 export interface PseuplexPlugin {
-	readonly sections?: PseuplexSection[];
 	readonly metadataProviders?: PseuplexMetadataProvider[];
 	readonly hubs?: { readonly [hubName: string]: PseuplexHubProvider };
 	readonly responseFilters?: PseuplexReadOnlyResponseFilters;
 
 	defineRoutes?: (router: express.Express) => void;
 	resolvePlayQueueURI?: (uri: plexTypes.PlexPlayQueueURIParts, options: PseuplexPlayQueueURIResolverOptions) => Promise<string | false>;
+	hasSections?: (context: PseuplexRequestContext) => Promise<boolean>;
+	getSections?: (context: PseuplexRequestContext) => Promise<PseuplexSection[]>;
 };
