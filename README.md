@@ -42,7 +42,7 @@ This project is still very much a WIP and it is not recommended to enable remote
 
 	![Dashboard Section](docs/images/dashboard_section.png)
 
-	A list of hubs that can be configured are available [here](./docs/Dashboard#hubs)
+	A list of hubs that can be configured is available [here](./docs/Dashboard#hubs)
 
 ## Setup
 
