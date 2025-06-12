@@ -99,6 +99,14 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			
 			similar: new class extends PseuplexHubProvider {
 				readonly relativePath = 'similar';
+
+				override transformHubID(id: string): (string | Promise<string>) {
+					if(id.indexOf(':') != -1) {
+						return id;
+					}
+					return `film:${id}`;
+				}
+
 				override fetch(metadataId: PseuplexPartialMetadataIDString): PseuplexHub | Promise<PseuplexHub> {
 					return createSimilarItemsHub(metadataId, {
 						relativePath: this.relativePath,
