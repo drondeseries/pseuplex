@@ -83,7 +83,7 @@ export const plexProxy = (serverURL: string, args: PlexProxyOptions, opts: expre
 			// add x-forwarded headers
 			const encrypted = requestIsEncrypted(userReq);
 			const fwdHeaders = {
-				for: userReq.connection?.remoteAddress || userReq.socket.remoteAddress,
+				for: (userReq.connection || userReq.socket)?.remoteAddress,
 				port: getPortFromRequest(userReq),
 				proto: encrypted ? 'https' : 'http'
 			};
