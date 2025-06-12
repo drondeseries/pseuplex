@@ -38,11 +38,13 @@ This project is still very much a WIP. While I've tried to do my due diligence i
 
 - ### Customizable "Dashboard" Section
 
-	A "dashboard" section can be shown with customizable hubs, such as your friends activity on letterboxd. This allows you to extend the typical recommended movies and shows you see on your homepage. The "unavailable" status will still show for movies and shows that aren't on your server.
+	A fake "dashboard" section can be shown with customizable hubs, such as your friends activity on letterboxd. This allows you to extend the typical recommended movies and shows you see on your homepage.
+	
+	The "unavailable" status will still show on the details page for movies and shows that aren't on your server.
 
 	![Dashboard Section](docs/images/dashboard_section.png)
 
-	A list of hubs that can be configured is available [here](docs/Dashboard#hubs)
+	A list of hubs that can be configured is available [here](docs/Dashboard#hubs).
 
 ## Setup
 
