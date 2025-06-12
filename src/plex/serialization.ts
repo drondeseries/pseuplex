@@ -1,6 +1,7 @@
 
 import xml2js from 'xml2js';
 import express from 'express';
+import * as plexTypes from './types';
 
 export const parseHttpContentType = (contentType: string | null | undefined): {contentTypes: string[], contentTypeSuffix: string} => {
 	if(!contentType) {
@@ -29,7 +30,7 @@ const attrKey = '$';
 const xmlToJsonParser = new xml2js.Parser({
 	explicitRoot: true,
 	explicitArray: true,
-	attrkey: attrKey as any
+	attrkey: attrKey as any,
 	//mergeAttrs: true
 });
 
@@ -62,7 +63,7 @@ const NameValidationRegex = /^[a-zA-Z0-9:\-_\.]+$/
 const convertPlexJSForXMLBuilder = (json: any, parentKey: string) => {
 	const xmlObj = {};
 	const xmlAttrs = {};
-	for(const key in json) {
+	for(let key in json) {
 		// ignore invalid keys
 		if(!NameValidationRegex.test(key)) {
 			continue;
@@ -72,6 +73,33 @@ const convertPlexJSForXMLBuilder = (json: any, parentKey: string) => {
 			// ignore
 			continue;
 		}
+		/*if(key === 'Metadata') {
+			let type: string | undefined;
+			if(val instanceof Array) {
+				for(const el of val) {
+					if(type == null) {
+						type = el.type;
+					}
+					else if(el.type != type) {
+						type = null;
+						break;
+					}
+				}
+			}
+			switch(type) {
+				case plexTypes.PlexMediaItemType.Movie:
+					key = 'Video';
+					break;
+				case plexTypes.PlexMediaItemType.Track:
+					key = 'Track';
+					break;
+				case plexTypes.PlexMediaItemType.Album:
+				case plexTypes.PlexMediaItemType.TVShow:
+				case plexTypes.PlexMediaItemType.Season:
+					key = 'Directory';
+					break;
+			}
+		}*/
 		const valType = typeof val;
 		if(valType === 'boolean') {
 			xmlAttrs[key] = val ? 1 : 0;

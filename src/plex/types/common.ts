@@ -43,11 +43,13 @@ export enum PlexMediaItemType {
 	TVShow = 'show',
 	Season = 'season',
 	Episode = 'episode',
+	Artist = 'artist',
 	Album = 'album',
+	Track = 'track',
 	Clip = 'clip',
 	Photos = 'photos',
 	Playlist = 'playlist',
-	Mixed = 'mixed'
+	Mixed = 'mixed',
 }
 
 export enum PlexMediaItemTypeNumeric {
