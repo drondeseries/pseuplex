@@ -2,6 +2,8 @@ import letterboxd from 'letterboxd-retriever';
 import {
 	PseuplexFeedHub,
 	PseuplexFeedHubOptions,
+	PseuplexHubPage,
+	PseuplexHubPageParams,
 	PseuplexMetadataTransformOptions,
 	PseuplexRequestContext
 } from '../../pseuplex';
@@ -29,6 +31,14 @@ export class LetterboxdFilmListHub extends PseuplexFeedHub<letterboxd.Film,numbe
 	constructor(options: LetterboxdFilmListHubOptions, fetchPage: LetterboxdFilmListPageFetcher) {
 		super(options);
 		this._fetchPage = fetchPage;
+	}
+
+	override async get(params: PseuplexHubPageParams, context: PseuplexRequestContext): Promise<PseuplexHubPage> {
+		const page = await super.get(params, context);
+		if(this.title != null) {
+			page.hub.title = this.title;
+		}
+		return page;
 	}
 
 	get metadataTransformOptions(): PseuplexMetadataTransformOptions {

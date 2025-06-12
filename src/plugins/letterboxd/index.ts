@@ -1,3 +1,4 @@
+import qs from 'querystring';
 import express from 'express';
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
@@ -119,6 +120,43 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 
 			list: new class extends PseuplexHubProvider {
 				readonly basePath = `${self.basePath}/list`;
+
+				override transformHubID(id: string): string {
+					if(!id.startsWith('/') && id.indexOf('://') == -1) {
+						return id;
+					}
+					let hrefParts: letterboxd.ListHrefParts;
+					try {
+						hrefParts = letterboxd.parseHref(id) as letterboxd.ListHrefParts;
+					} catch(error) {
+						console.error(error);
+						return id;
+					}
+					const { userSlug, listSlug } = hrefParts;
+					if(!listSlug) {
+						return id;
+					}
+					delete hrefParts.base;
+					delete hrefParts.userSlug;
+					delete hrefParts.listSlug;
+					const queryKeys = Object.keys(hrefParts).sort();
+					if(queryKeys.length > 0) {
+						const query = {};
+						for(const key of queryKeys) {
+							const val = hrefParts[key];
+							if(val instanceof Array) {
+								query[key] = val.join(',');
+							} else if (typeof val === 'boolean') {
+								query[key] = val ? 1 : 0;
+							} else {
+								query[key] = val;
+							}
+						}
+						return `${userSlug}:${listSlug}?${qs.stringify(query)}`
+					}
+					return `${userSlug}:${listSlug}`;
+				}
+
 				override fetch(listId: lbTransform.PseuplexLetterboxdListID): PseuplexHub | Promise<PseuplexHub> {
 					return createListHub(listId, {
 						path: `${this.basePath}/${listId}`,
@@ -292,18 +330,18 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			})
 		]);
 		
-		// get similar items hub for metadata item
+		// get similar films on letterboxd as a hub
 		router.get(`${this.metadata.basePath}/:id/${this.hubs.similar.relativePath}`, [
 			this.app.middlewares.plexAuthentication,
 			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
 				const id = req.params.id;
 				const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:false});
 				const hub = await this.hubs.similar.get(id);
-				return await hub.getHub(params, this.app.contextForRequest(req));
+				return await hub.getHubPage(params, this.app.contextForRequest(req));
 			})
 		]);
 		
-		// get letterboxd friend activity hub
+		// get letterboxd friend activity as a hub
 		router.get(`${this.hubs.userFollowingActivity.basePath}/:letterboxdUsername`, [
 			this.app.middlewares.plexAuthentication,
 			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexMetadataPage> => {
@@ -313,12 +351,26 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					throw httpError(400, "No user provided");
 				}
 				const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:false});
-				//console.log(`params: ${JSON.stringify(params)}`);
 				const hub = await this.hubs.userFollowingActivity.get(letterboxdUsername);
-				return await hub.getHub({
+				return await hub.getHubPage({
 					...params,
 					listStartToken: stringParam(req.query['listStartToken'])
 				}, context);
+			})
+		]);
+
+		// get letterboxd list as a hub
+		router.get(`${this.hubs.list.basePath}/:listId`, [
+			this.app.middlewares.plexAuthentication,
+			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubPage> => {
+				const listId = req.params['listId'];
+				if(!listId) {
+					throw httpError(400, "No list ID provided");
+				}
+				const context = this.app.contextForRequest(req);
+				const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:false});
+				const hub = await this.hubs.list.get(listId);
+				return await hub.getHubPage(params, context);
 			})
 		]);
 	}

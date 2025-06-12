@@ -1,4 +1,4 @@
-import qs from 'qs';
+import qs from 'querystring';
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
 import {
@@ -181,10 +181,10 @@ export const viewingToPlexReview = (viewing: letterboxd.Viewing): plexTypes.Plex
 
 export type PseuplexLetterboxdListID = `${string}:${string}` | `${string}:${string}?${string}`;
 
-export const getFilmListOptsFromPartialListId = (listId: PseuplexLetterboxdListID): (letterboxd.GetFilmListOptions & {
-	listSlug: string;
+export const getFilmListOptsFromPartialListId = (listId: PseuplexLetterboxdListID): letterboxd.GetFilmListOptions & {
 	userSlug: string;
-}) => {
+	listSlug: string;
+} => {
 	const colonIndex = listId.indexOf(':');
 	if(colonIndex == -1) {
 		throw new Error(`Invalid list id ${listId}`);
@@ -195,14 +195,16 @@ export const getFilmListOptsFromPartialListId = (listId: PseuplexLetterboxdListI
 	const listSlug = listId.substring(colonIndex+1, listSlugEndIndex);
 	const queryString = (queryIndex != -1) ? listId.substring(queryIndex+1) : undefined;
 	const query = queryString ? qs.parse(queryString) : undefined;
-	if(query.detail) {
-		query.detail = booleanQueryParam(query.detail as any) as any;
-	}
-	if(query.upcoming) {
-		query.upcoming = booleanQueryParam(query.upcoming as any) as any;
-	}
-	if(typeof query.genre === 'string') {
-		query.genre = query.genre.split(',');
+	if(query) {
+		if(query.detail) {
+			query.detail = booleanQueryParam(query.detail as any) as any;
+		}
+		if(query.upcoming) {
+			query.upcoming = booleanQueryParam(query.upcoming as any) as any;
+		}
+		if(typeof query.genre === 'string') {
+			query.genre = query.genre.split(',');
+		}
 	}
 	return  {
 		...query,

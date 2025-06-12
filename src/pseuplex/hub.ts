@@ -29,7 +29,7 @@ export abstract class PseuplexHub {
 	
 	abstract get(params: PseuplexHubPageParams, context: PseuplexRequestContext): Promise<PseuplexHubPage>;
 	
-	async getHub(params: PseuplexHubPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexHubPage> {
+	async getHubPage(params: PseuplexHubPageParams, context: PseuplexRequestContext): Promise<plexTypes.PlexHubPage> {
 		const page = await this.get(params, context);
 		const section = this.section;
 		return {
@@ -101,11 +101,15 @@ export abstract class PseuplexHubProvider<THub extends PseuplexHub = PseuplexHub
 		});
 	}
 
+	transformHubID?(id: string): (string | Promise<string>);
 	abstract fetch(id: string): (THub | Promise<THub>);
 
 	async get(id: string): Promise<THub> {
 		if(id == null) {
 			throw new Error("Invalid null id");
+		}
+		if(this.transformHubID) {
+			id = await this.transformHubID(id);
 		}
 		return this.cache.getOrFetch(id);
 	}

@@ -1,5 +1,4 @@
 
-import * as qs from 'qs';
 import express from 'express';
 import {
 	PlexXMLBoolean,

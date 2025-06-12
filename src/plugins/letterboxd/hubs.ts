@@ -124,7 +124,7 @@ export const createListHub = async (listId: lbtransform.PseuplexLetterboxdListID
 	const listOpts = lbtransform.getFilmListOptsFromPartialListId(listId);
 	return new LetterboxdFilmListHub({
 		hubPath: options.path,
-		title: `${listOpts.userSlug}'s ${listOpts.listSlug} List`,
+		title: `${listOpts.userSlug}'s ${listOpts.listSlug} list`,
 		type: plexTypes.PlexMediaItemType.Movie,
 		style: options.style,
 		hubIdentifier: `${plexTypes.PlexGeneralHubIdentifierType.CustomCollection}.letterboxd`,
