@@ -4,7 +4,7 @@ A middleware proxy for the plex server API. This sits in between the plex client
 
 Inspired by [Replex](https://github.com/lostb1t/replex)
 
-This project is still very much a WIP and it is not recommended to enable remote access yet.
+This project is still very much a WIP. While I've tried to do my due diligence in terms of security ([middleware](src/plex/requesthandling.ts#L77) prevents unauthorized requests from tokens not listed in the shared account list), I'm really the only contributor right now. Use at your own risk.
 
 **Note: Some functionality may be broken in the new mobile apps**
 
@@ -104,15 +104,15 @@ Create a `config.json` file with the following structure, and fill in the config
 	- **certReloadDelay**: The time in milliseconds to wait after your cert/key/p12 file changes before reloading SSL (if `ssl.watchCertChanges` is `true`). Default is `1000`.
 - **letterboxd**:
 	- **similarItemsEnabled**: Display similar items from letterboxd on plex media item pages for all users
-	- **friendsActivityHubEnabled**: Display the letterboxd friends activity hub on the home page for all users
-	- **friendsReviewsEnabled**: Display letterboxd friends reviews for all users
+	- **friendsActivityHubEnabled**: Display the letterboxd friends activity hub on the home page for all users with a letterboxd username configured
+	- **friendsReviewsEnabled**: Display letterboxd friends reviews for all users with a letterboxd username configured
 - **dashboard**:
 	- **enabled**: Controls whether to show a pseudo "Dashboard" section for all users, which will show custom hubs
 	- **title**: The title to display for the section
-	- **hubs**: An array of hubs to show on the dashboard section for all users
+	- **hubs**: An array of hubs to show on the dashboard section for all users. For a list of hubs that can be configured, see [here](docs/Dashboard#hubs).
 		- **plugin**: The name of the plugin that this hub comes from (for example, `letterboxd` for letterboxd hubs)
 		- **hub**: The name of the hub within the plugin (for example, `userFollowingActivity` the activity feed of users that a given user is following)
-		- **arg**: The argument to pass to the hub provider for this hub. (for `letterboxd`.`userFollowingActivity`, this would be a letterboxd username slug, for example `crew`)
+		- **arg**: The argument to pass to the hub provider for this hub. (for `letterboxd`.`userFollowingActivity` hub, this would be a letterboxd username slug, for example `crew`)
 - **perUser**: A map of settings to configure for each user on your server. The map keys are the plex email for each user.
 	- **letterboxd**:
 		- **username**: The letterboxd username for this user
@@ -122,10 +122,10 @@ Create a `config.json` file with the following structure, and fill in the config
 	- **dashboard**:
 		- **enabled**: Controls whether to show a pseudo "Dashboard" section for this user, which will show custom hubs
 		- **title**: The title to display for the section for this user
-		- **hubs**: An array of hubs to show on the dashboard section for this user
+		- **hubs**: An array of hubs to show on the dashboard section for this user. For a list of hubs that can be configured, see [here](docs/Dashboard#hubs).
 			- **plugin**: The name of the plugin that this hub comes from (for example, `letterboxd` for letterboxd hubs)
-			- **hub**: The name of the hub within the plugin (for example, `userFollowingActivity` the activity feed of users that a given user is following)
-			- **arg**: The argument to pass to the hub. (for `letterboxd`.`userFollowingActivity`, this would be a letterboxd username slug, for example `crew`)
+			- **hub**: The name of the hub within the plugin
+			- **arg**: The argument to pass to the hub provider
 
 ### Network Settings
 
