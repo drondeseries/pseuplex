@@ -28,7 +28,7 @@ Displays a pseudo "Dashboard" section in your server that can be configured to s
 		{
 			"plugin": "letterboxd",
 			"hub": "similar",
-			"arg": "film:legend"
+			"arg": "legend"
 		}
 		```
 	
@@ -41,6 +41,6 @@ Displays a pseudo "Dashboard" section in your server that can be configured to s
 		{
 			"plugin": "letterboxd",
 			"hub": "list",
-			"arg": "oscars:oscar-winning-films-best-picture?by=added"
+			"arg": "/magrosleau/list/psychosexual-dramas-nihilistic-fever-dreams/by/added"
 		}
 		```
