@@ -96,12 +96,12 @@ export const plexProxy = (serverURL: string, args: PlexProxyOptions, opts: expre
 				const newHeaderVal = fwdHeaders[headerSuffix];
 				if(newHeaderVal) {
 					const headerVal = (prevHeaderVal || '') + (prevHeaderVal ? ',' : '') + newHeaderVal;
-					proxyReq.setHeader(headerName, headerVal);
+					headers[headerName] = headerVal;
 				}
 			}
 			const fwdHost = userReq.headers['x-forwarded-host'] || userReq.headers['host'];
 			if(fwdHost) {
-				proxyReq.setHeader('x-forwarded-host', fwdHost);
+				headers['x-forwarded-host'] = fwdHost;
 			}
 			// call other modifier if needed
 			if(opts.userResHeaderDecorator) {
