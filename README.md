@@ -6,8 +6,6 @@ Inspired by [Replex](https://github.com/lostb1t/replex)
 
 This project is still very much a WIP. While I've tried to do my due diligence in terms of security ([middleware](src/plex/requesthandling.ts#L77) prevents unauthorized requests from tokens not listed in the shared account list), I'm really the only contributor right now. Use at your own risk.
 
-**Note: Some functionality may be broken in the new mobile apps**
-
 ## Features
 
 - ### Similar Films on Letterboxd
