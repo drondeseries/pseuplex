@@ -42,6 +42,12 @@ This project is still very much a WIP. While I've tried to do my due diligence i
 
 	![Letterboxd Friends Reviews](docs/images/letterboxd_friends_reviews.png)
 
+## Contributing
+
+This app is structured to have different ["plugins"](src/plugins) to provide different functionality. At the moment, these are only defined [in this project](src/main.ts#L134) and not externally loaded, but this may change in the future if there's an interest in it. If you would like to add your own set of functionality unrelated to letterboxd or any existing functionality, you should create your own "plugin".
+
+Feel free to ask me if you're unsure of where to implement something!
+
 ## Setup
 
 ### SSL
