@@ -19,7 +19,7 @@ Displays a pseudo "Dashboard" section in your server that can be configured to s
 		}
 		```
 
-	- **similar**: (*letterboxd metadata id*)
+	- **similar**: (*letterboxd film slug*)
 
 		Films similar to a given film on letterboxd.
 
@@ -32,7 +32,7 @@ Displays a pseudo "Dashboard" section in your server that can be configured to s
 		}
 		```
 	
-	- **list**: (*list id*)
+	- **list**: (*list href*)
 
 		Get Films from a film list on letterboxd.
 
