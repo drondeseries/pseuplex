@@ -18,7 +18,6 @@ import {
 	plexHttpProxy,
 	PlexProxyLoggingOptions,
 	PlexProxyOptions,
-	plexThinProxy
 } from '../plex/proxy';
 import {
 	createPlexAuthenticationMiddleware,

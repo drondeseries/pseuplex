@@ -29,6 +29,19 @@ export type PlexProxyLoggingOptions = {
 } & URLLogStringArgs;
 export type PlexProxyOptions = PlexProxyLoggingOptions;
 
+function requestIsEncrypted(req: express.Request) {
+	const connection = ((req.connection || req.socket) as {encrypted?: boolean; pair?: boolean;})
+	const encrypted = (connection?.encrypted || connection?.pair);
+	return encrypted ? true : false;
+}
+
+function getPortFromRequest(req: express.Request) {
+  const port = req.headers.host?.match(/:(\d+)/)?.[1];
+  return (port != null) ?
+	port
+    : requestIsEncrypted(req) ? '443' : '80';
+};
+
 export const plexThinProxy = (serverURL: string, args: PlexProxyOptions, proxyOptions: expressHttpProxy.ProxyOptions = {}) => {
 	proxyOptions = {
 		preserveHostHdr: true,
@@ -67,6 +80,29 @@ export const plexProxy = (serverURL: string, args: PlexProxyOptions, opts: expre
 		userResHeaderDecorator: (headers, userReq, userRes, proxyReq, proxyRes) => {
 			// add a custom header to the response to check if we went through pseuplex
 			headers[constants.APP_CUSTOM_HEADER] = 'yes';
+			// add x-forwarded headers
+			const encrypted = requestIsEncrypted(userReq);
+			const fwdHeaders = {
+				for: userReq.connection?.remoteAddress || userReq.socket.remoteAddress,
+				port: getPortFromRequest(userReq),
+				proto: encrypted ? 'https' : 'http'
+			};
+			for(const headerSuffix in fwdHeaders) {
+				if(headerSuffix == null) {
+					continue;
+				}
+				const headerName = 'x-forwarded-' + headerSuffix;
+				const prevHeaderVal = userReq.headers[headerName];
+				const newHeaderVal = fwdHeaders[headerSuffix];
+				if(newHeaderVal) {
+					const headerVal = (prevHeaderVal || '') + (prevHeaderVal ? ',' : '') + newHeaderVal;
+					proxyReq.setHeader(headerName, headerVal);
+				}
+			}
+			const fwdHost = userReq.headers['x-forwarded-host'] || userReq.headers['host'];
+			if(fwdHost) {
+				proxyReq.setHeader('x-forwarded-host', fwdHost);
+			}
 			// call other modifier if needed
 			if(opts.userResHeaderDecorator) {
 				return opts.userResHeaderDecorator(headers, userReq, userRes, proxyReq, proxyRes);
