@@ -41,6 +41,6 @@ Displays a pseudo "Dashboard" section in your server that can be configured to s
 		{
 			"plugin": "letterboxd",
 			"hub": "list",
-			"arg": "/magrosleau/list/psychosexual-dramas-nihilistic-fever-dreams/by/added/"
+			"arg": "/oscars/list/oscar-winning-films-best-picture/by/added/"
 		}
 		```
