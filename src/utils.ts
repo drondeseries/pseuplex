@@ -30,7 +30,7 @@ export const stringParam = (value: any): string | undefined => {
 
 export const stringArrayParam = (value: any): string[] | undefined => {
 	if(value instanceof Array) {
-		return value;
+		return value.flatMap((dir) => (typeof dir === 'string' ? dir.split(',') : dir));
 	}
 	const str = stringParam(value);
 	if(str == undefined) {

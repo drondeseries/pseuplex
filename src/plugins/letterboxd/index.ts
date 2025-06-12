@@ -213,7 +213,11 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 
 		promotedHubs: async (resData, context) => {
 			const pinnedContentDirectoryID = context.userReq.query['pinnedContentDirectoryID'];
-			const pinnedContentDirIds = (typeof pinnedContentDirectoryID == 'string') ? pinnedContentDirectoryID.split(',') : pinnedContentDirectoryID;
+			const pinnedContentDirIds = (typeof pinnedContentDirectoryID == 'string') ?
+				pinnedContentDirectoryID.split(',')
+				: (pinnedContentDirectoryID instanceof Array) ?
+					pinnedContentDirectoryID?.flatMap((dir) => (typeof dir === 'string' ? dir.split(',') : dir))
+					: pinnedContentDirectoryID;
 			const contentDirectoryID = context.userReq.query['contentDirectoryID'];
 			const contentDirIds = (typeof contentDirectoryID == 'string') ? contentDirectoryID.split(',') : contentDirectoryID;
 			if(!pinnedContentDirIds || pinnedContentDirIds.length == 0 || !contentDirIds || contentDirIds.length == 0 || contentDirIds[0] == pinnedContentDirIds[0]) {

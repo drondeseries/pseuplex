@@ -2,7 +2,7 @@
 import { CachedFetcher } from '../fetching/CachedFetcher';
 import * as plexTypes from './types';
 import * as plexServerAPI from './api';
-import { PlexClient, PlexClientMethodOptions } from './client';
+import { PlexClient } from './client';
 import { forArrayOrSingle, httpError } from '../utils';
 import { parsePlexMetadataGuid } from './metadataidentifier';
 
