@@ -8,17 +8,25 @@ This project is still very much a WIP. While I've tried to do my due diligence i
 
 ## Features
 
+- ### Customizable "Dashboard" Section
+
+	A fake "dashboard" section can be shown with customizable hubs, such as your friends activity on letterboxd. This allows you to extend the typical recommended movies and shows you see on your homepage.
+
+	![Dashboard Section](docs/images/dashboard_section.png)
+
+	A list of hubs that can be configured is available [here](docs/Dashboard#hubs).
+
+	For movies that aren't available on your server, the "unavailable" status will appear on the details page.
+
+	![Unavailable](docs/images/unavailable.png)
+
+	**Note**: The unavailable status will not show on the Roku client or any other client that doesn't subscribe to the plex server websocket.
+
 - ### Similar Films on Letterboxd
 
 	Instead of only showing related movies from your server, you can show the list of similar movies from letterboxd
 
 	![Similar Films on Letterboxd](docs/images/letterboxd_similar.png)
-
-	For movies that aren't available on your server, the "unavailable" status will appear on the film page.
-
-	![Unavailable](docs/images/unavailable.png)
-
-	**Note**: The unavailable status will not show on the Roku client or any other client that doesn't subscribe to the plex server websocket.
 
 - ### Letterboxd Friends Activity
 
@@ -33,16 +41,6 @@ This project is still very much a WIP. While I've tried to do my due diligence i
 	**NOTE: In the newer mobile apps, Plex now fetches critics reviews from plex.tv instead of from your server, so this feature sadly no longer works for those apps. It's unclear if this is intentional or a mistake, but hopefully they will decide to fix this.**
 
 	![Letterboxd Friends Reviews](docs/images/letterboxd_friends_reviews.png)
-
-- ### Customizable "Dashboard" Section
-
-	A fake "dashboard" section can be shown with customizable hubs, such as your friends activity on letterboxd. This allows you to extend the typical recommended movies and shows you see on your homepage.
-	
-	The "unavailable" status will still show on the details page for movies and shows that aren't on your server.
-
-	![Dashboard Section](docs/images/dashboard_section.png)
-
-	A list of hubs that can be configured is available [here](docs/Dashboard#hubs).
 
 ## Setup
 
