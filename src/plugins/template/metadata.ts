@@ -8,6 +8,7 @@ import {
 	PseuplexMetadataTransformOptions,
 	PseuplexPartialMetadataIDString,
 } from '../../pseuplex';
+import * as tmplTransform from './transform';
 
 
 export type TemplateMetadataItem = {
@@ -34,20 +35,15 @@ export class TemplateMetadataProvider extends PseuplexMetadataProviderBase<Templ
 	}
 
 	override transformMetadataItem(metadataItem: TemplateMetadataItem, transformOpts: PseuplexMetadataTransformOptions): PseuplexMetadataItem {
-		// TODO map raw metadata item to pseuplex metadata item
-		const idString = this.idFromMetadataItem(metadataItem);
-		return {
-			key: `/pseuplex/templateprovider/${idString}`,
-			ratingKey: idString,
-			title: metadataItem.title,
-		} as any;
+		return tmplTransform.templateItemToPlexMetadata(metadataItem, transformOpts);
 	}
 
 	override idFromMetadataItem(metadataItem: TemplateMetadataItem): PseuplexPartialMetadataIDString {
-		return `${qs.escape(metadataItem.id)}`;
+		return tmplTransform.partialMetadataIdFromTemplateItem(metadataItem);
 	}
 
 	override getPlexMatchParams(metadataItem: TemplateMetadataItem): PlexMediaItemMatchParams {
+		// TODO give parameters to find a matching plex item from the given metadata item
 		let types: plexTypes.PlexMediaItemTypeNumeric[];
 		switch(metadataItem.type) {
 			case 'movie':
@@ -60,6 +56,7 @@ export class TemplateMetadataProvider extends PseuplexMetadataProviderBase<Templ
 
 			default:
 				types = [plexTypes.PlexMediaItemTypeNumeric.Movie, plexTypes.PlexMediaItemTypeNumeric.Show];
+				break;
 		}
 		return {
 			title: metadataItem.title,

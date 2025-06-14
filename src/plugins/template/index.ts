@@ -15,7 +15,6 @@ export default (class TemplatePlugin implements PseuplexPlugin {
 	readonly slug = TemplatePlugin.slug;
 	readonly app: PseuplexApp;
 
-
 	constructor(app: PseuplexApp) {
 		this.app = app;
 	}
