@@ -44,9 +44,7 @@ export type PseuplexReadOnlyResponseFilters = {
 
 export type PseuplexPlayQueueURIResolverOptions = {
 	plexMachineIdentifier: string;
-	plexServerURL: string;
-	plexAuthContext: plexTypes.PlexAuthContext;
-	plexUserInfo: PlexServerAccountInfo;
+	context: PseuplexRequestContext;
 };
 
 

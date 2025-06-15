@@ -1,6 +1,7 @@
 
 import * as plexTypes from '../../plex/types';
 import { PlexServerAccountInfo } from '../../plex/accounts';
+import { PseuplexRequestContext } from '../../pseuplex';
 
 export type RequestInfo = {
 	requestId: string | number;
@@ -8,9 +9,7 @@ export type RequestInfo = {
 
 export type PlexMediaRequestOptions = {
 	seasons?: number[];
-	plexServerURL: string;
-	plexUserInfo: PlexServerAccountInfo;
-	plexAuthContext: plexTypes.PlexAuthContext;
+	context: PseuplexRequestContext;
 };
 
 export interface RequestsProvider {

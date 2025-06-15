@@ -1,6 +1,7 @@
 import * as plexTypes from '../plex/types';
 import { PlexClient } from '../plex/client';
 import { findInArrayOrSingle, firstOrSingle } from '../utils';
+import { PseuplexRequestContext } from './types';
 
 export type PlexMetadataMatchStoreOptions = {
 	plexServerURL: string,
@@ -24,17 +25,15 @@ export type PlexMediaItemMatchParams = {
 	guids: `${string}://${string}`[]
 };
 
-export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, options: PlexMediaItemMatchParams & {
-	authContext?: plexTypes.PlexAuthContext | undefined
-}): Promise<plexTypes.PlexMetadataItem | null> => {
+export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, params: PlexMediaItemMatchParams, context: PseuplexRequestContext): Promise<plexTypes.PlexMetadataItem | null> => {
 	// match against guids
-	if(options.guids) {
-		for(const guid of options.guids) {
+	if(params.guids) {
+		for(const guid of params.guids) {
 			const matchesPage = await metadataClient.getMatches({
-				type: options.types,
+				type: params.types,
 				guid
 			}, {
-				authContext: options.authContext
+				authContext: context.plexAuthContext
 			});
 			const metadataItem = firstOrSingle(matchesPage.MediaContainer.Metadata);
 			if(metadataItem) {
@@ -43,15 +42,15 @@ export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, opti
 		}
 	}
 	// no matches against guids, so try finding by title and year if possible
-	if(options.year) {
+	if(params.year) {
 		const matchesPage = await metadataClient.getMatches({
-			type: options.types,
-			title: options.title,
-			year: options.year as number
+			type: params.types,
+			title: params.title,
+			year: params.year as number
 		});
-		const lowercaseTitle = options.title.toLowerCase();
+		const lowercaseTitle = params.title.toLowerCase();
 		const metadataItem = findInArrayOrSingle(matchesPage.MediaContainer.Metadata, (metadataItem) => {
-			return (metadataItem.title.toLowerCase() == lowercaseTitle && metadataItem.year == options.year);
+			return (metadataItem.title.toLowerCase() == lowercaseTitle && metadataItem.year == params.year);
 		});
 		if(metadataItem) {
 			return metadataItem;

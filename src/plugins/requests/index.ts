@@ -146,10 +146,8 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 					// get request properties
 					const { providerSlug, mediaType, plexId } = req.params;
 					const season = intParam(req.params.season);
-					const plexUserInfo = req.plex.userInfo;
-					const plexAuthContext = req.plex.authContext;
 					const plexParams = req.plex.requestParams;
-					const plexServerURL = this.app.plexServerURL;
+					const context = this.app.contextForRequest(req);
 					// handle request
 					return this.requestsHandler.handlePlexRequest({
 						requestProviderSlug: providerSlug,
@@ -158,10 +156,8 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 						season
 					}, {
 						children,
-						plexServerURL,
-						plexAuthContext,
-						plexUserInfo,
-						plexParams
+						plexParams,
+						context,
 					});
 				})
 			]);

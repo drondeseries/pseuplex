@@ -245,6 +245,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			this.app.middlewares.plexAuthentication,
 			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexMetadataPage> => {
 				console.log(`\ngot request for letterboxd item ${req.params.id}`);
+				const context = this.app.contextForRequest(req);
 				const reqAuthContext = req.plex.authContext;
 				const reqUserInfo = req.plex.userInfo;
 				const params = req.plex.requestParams;
@@ -256,9 +257,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				// get metadatas from letterboxd
 				const metadataProvider = this.metadata;
 				const resData = await metadataProvider.get(ids, {
-					plexServerURL: this.app.plexServerURL,
-					plexAuthContext: reqAuthContext,
-					plexUserInfo: reqUserInfo,
+					context: context,
 					includePlexDiscoverMatches: true,
 					includeUnmatched: true,
 					transformMatchKeys: true,
@@ -278,9 +277,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						// add similar items hub
 						const metadataProvider = this.metadata;
 						const resData = await metadataProvider.getRelatedHubs(metadataId, {
-							plexServerURL: this.app.plexServerURL,
-							plexAuthContext: reqAuthContext,
-							plexUserInfo: reqUserInfo,
+							context
 						});
 						// filter response
 						await this.app.filterResponse('metadataRelatedHubsFromProvider', resData, { userReq:req, userRes:res, metadataId:metadataIdParts, metadataProvider });
@@ -325,14 +322,13 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			this.app.middlewares.plexAuthentication,
 			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
 				const id = req.params.id;
+				const context = this.app.contextForRequest(req);
 				const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:true});
 				// add similar items hub
 				const metadataProvider = this.metadata;
 				const resData = await metadataProvider.getRelatedHubs(id, {
-					plexServerURL: this.app.plexServerURL,
-					plexAuthContext: req.plex.authContext,
-					plexUserInfo: req.plex.userInfo,
 					plexParams: params,
+					context,
 				});
 				// filter response
 				const metadataId = parsePartialMetadataID(id);
@@ -347,9 +343,10 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			this.app.middlewares.plexAuthentication,
 			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
 				const id = req.params.id;
+				const context = this.app.contextForRequest(req);
 				const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:false});
 				const hub = await this.hubs.similar.get(id);
-				return await hub.getHubPage(params, this.app.contextForRequest(req));
+				return await hub.getHubPage(params, context);
 			})
 		]);
 		
@@ -405,9 +402,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		const slugs = uri.path.substring(idsStartIndex, idsEndIndex).split(',');
 		// get letterboxd item(s) (resolving the key(s) if needed)
 		let metadatas = (await this.metadata.get(slugs, {
-			plexServerURL: options.plexServerURL,
-			plexAuthContext: options.plexAuthContext,
-			plexUserInfo: options.plexUserInfo,
+			context: options.context,
 			includePlexDiscoverMatches: false,
 			includeUnmatched: false,
 			transformMatchKeys: false // keep the resolved key

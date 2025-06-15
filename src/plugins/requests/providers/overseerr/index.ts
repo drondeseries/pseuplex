@@ -121,8 +121,8 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 	
 	async requestPlexItem(plexItem: plexTypes.PlexMetadataItem, options: PlexMediaRequestOptions): Promise<RequestInfo> {
 		// get overseerr user info
-		const userToken = options.plexAuthContext['X-Plex-Token'];
-		const overseerrUser = userToken ? await this._getOverseerrUserFromPlexUser(userToken, options.plexUserInfo) : null;
+		const userToken = options.context.plexAuthContext['X-Plex-Token'];
+		const overseerrUser = userToken ? await this._getOverseerrUserFromPlexUser(userToken, options.context.plexUserInfo) : null;
 		if(!overseerrUser) {
 			throw httpError(401, `User is not allowed to request media from ${this.slug}`);
 		}

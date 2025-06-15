@@ -10,7 +10,8 @@ import {
 	PseuplexMetadataProvider,
 	PseuplexMetadataProviderParams,
 	PseuplexMetadataSource,
-	PseuplexMetadataItem
+	PseuplexMetadataItem,
+	PseuplexRequestContext
 } from '../../pseuplex';
 import * as extPlexTransform from '../../pseuplex/externalplex/transform';
 import {
@@ -155,10 +156,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 
 	async handlePlexRequest(id: RequestPartialMetadataIDParts, options: {
 		children?: boolean,
-		plexServerURL: string,
-		plexUserInfo: PlexServerAccountInfo,
-		plexAuthContext: plexTypes.PlexAuthContext,
 		plexParams?: plexTypes.PlexMetadataPageParams | plexTypes.PlexMetadataChildrenPageParams,
+		context: PseuplexRequestContext,
 	}): Promise<PseuplexMetadataPage> {
 		// find requests provider
 		const providerSlug = id.requestProviderSlug;
@@ -169,8 +168,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			throw httpError(418, `Requests provider with ID ${providerSlug} is not configured`);
 		}
 		// ensure user is allowed to make requests to this request provider
-		const userToken = options.plexAuthContext['X-Plex-Token'];
-		if(!userToken || !(await reqProvider.canPlexUserMakeRequests(userToken, options.plexUserInfo))) {
+		const userToken = options.context.plexAuthContext['X-Plex-Token'];
+		if(!userToken || !(await reqProvider.canPlexUserMakeRequests(userToken, options.context.plexUserInfo))) {
 			throw httpError(401, `User is not allowed to make ${reqProvider.slug} requests`);
 		}
 		// get numeric media type
@@ -196,8 +195,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				guid: guid
 			}
 		), {
-			serverURL: options.plexServerURL,
-			authContext: options.plexAuthContext,
+			serverURL: options.context.plexServerURL,
+			authContext: options.context.plexAuthContext,
 			verbose: this.loggingOptions.logOutgoingRequests,
 		});
 		const libraryMetadataItem = firstOrSingle(libraryMetadataPage.MediaContainer.Metadata);
@@ -214,8 +213,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				}
 			}
 			const plexDisplayedPage: plexTypes.PlexMetadataPage = await plexServerAPI.fetch({
-				serverURL: options.plexServerURL,
-				authContext: options.plexAuthContext,
+				serverURL: options.context.plexServerURL,
+				authContext: options.context.plexAuthContext,
 				method: 'GET',
 				endpoint: itemKey,
 				params: options.plexParams,
@@ -312,10 +311,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			const requestedPlexItem = firstOrSingle(requestedPlexItemPage.MediaContainer.Metadata);
 			if(requestedPlexItem) {
 				reqInfo = await reqProvider.requestPlexItem(requestedPlexItem, {
-					plexServerURL: options.plexServerURL,
-					plexUserInfo: options.plexUserInfo,
-					plexAuthContext: options.plexAuthContext,
-					seasons: id.season != null ? [id.season] : undefined
+					seasons: id.season != null ? [id.season] : undefined,
+					context: options.context,
 				});
 				// TODO add request state to the output metadata somehow
 			}
@@ -366,9 +363,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			const idParts = reqsTransform.parsePartialRequestMetadataId(id);
 			const metadataPage = await this.handlePlexRequest(idParts, {
 				children: false,
-				plexServerURL: options.plexServerURL,
-				plexAuthContext: options.plexAuthContext,
-				plexUserInfo: options.plexUserInfo,
+				context: options.context,
 				plexParams: options.plexParams
 			});
 			return metadataPage.MediaContainer.Metadata
@@ -395,10 +390,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		const idParts = reqsTransform.parsePartialRequestMetadataId(id);
 		const metadataPage = await this.handlePlexRequest(idParts, {
 			children: false,
-			plexServerURL: options.plexServerURL,
-			plexAuthContext: options.plexAuthContext,
-			plexUserInfo: options.plexUserInfo,
-			plexParams: options.plexParams
+			plexParams: options.plexParams,
+			context: options.context,
 		});
 		let metadatas = metadataPage.MediaContainer.Metadata;
 		if(!(metadatas instanceof Array)) {

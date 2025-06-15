@@ -155,10 +155,7 @@ export const transformLetterboxdFilmHubEntry = async (film: letterboxd.Film, con
 			librarySectionKey: section.path,
 		});
 	}
-	return await metadataProvider.attachPlexDataIfAble(metadataId, metadataItem, {
-		plexServerURL: context.plexServerURL,
-		plexAuthContext: context.plexAuthContext
-	});
+	return await metadataProvider.attachPlexDataIfAble(metadataId, metadataItem, context);
 }
 
 export const viewingToPlexReview = (viewing: letterboxd.Viewing): plexTypes.PlexReview => {

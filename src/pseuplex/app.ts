@@ -96,17 +96,13 @@ export type PseuplexPluginClass = {
 // app
 
 type PseuplexAppMetadataParams = {
-	plexServerURL: string;
-	plexAuthContext: plexTypes.PlexAuthContext;
-	plexUserInfo: PlexServerAccountInfo;
 	plexParams?: plexTypes.PlexMetadataPageParams;
+	context: PseuplexRequestContext;
 };
 
 type PseuplexAppMetadataChildrenParams = {
-	plexServerURL: string;
-	plexAuthContext: plexTypes.PlexAuthContext;
-	plexUserInfo: PlexServerAccountInfo;
 	plexParams?: plexTypes.PlexMetadataChildrenPageParams;
+	context: PseuplexRequestContext;
 };
 
 type PseuplexAppConfig = PseuplexConfigBase<{[key: string]: any}> & {[key: string]: any};
@@ -446,12 +442,11 @@ export class PseuplexApp {
 				...plexReqHandlerOpts,
 				metadataIdMappings: this.metadataIdMappings,
 			}, async (req: IncomingPlexAPIRequest, res, metadataIds, keysToIdsMap): Promise<PseuplexMetadataPage> => {
+				const context = this.contextForRequest(req);
 				// get metadatas
 				const resData = await this.getMetadata(metadataIds, {
-					plexServerURL: this.plexServerURL,
-					plexAuthContext: req.plex.authContext,
-					plexUserInfo: req.plex.userInfo,
-					plexParams: req.plex.requestParams
+					plexParams: req.plex.requestParams,
+					context,
 				});
 				// process metadata items
 				await forArrayOrSingleAsyncParallel(resData.MediaContainer.Metadata, async (metadataItem) => {
@@ -539,6 +534,7 @@ export class PseuplexApp {
 				...plexReqHandlerOpts,
 				metadataIdMappings: this.metadataIdMappings,
 			}, async (req: IncomingPlexAPIRequest, res, metadataId, keysToIdsMap): Promise<plexTypes.PlexMetadataPage | PseuplexMetadataPage> => {
+				const context = this.contextForRequest(req);
 				// get metadatas
 				const plexParams = {
 					...req.plex.requestParams,
@@ -546,10 +542,8 @@ export class PseuplexApp {
 					'X-Plex-Container-Size': intParam(req.query['X-Plex-Container-Size'] ?? req.header('x-plex-container-size'))
 				}
 				const resData = await this.getMetadataChildren(metadataId, {
-					plexServerURL: this.plexServerURL,
-					plexAuthContext: req.plex.authContext,
-					plexUserInfo: req.plex.userInfo,
-					plexParams: plexParams
+					plexParams: plexParams,
+					context,
 				});
 				// remap IDs if needed
 				if(this.metadataIdMappings) {
@@ -568,12 +562,11 @@ export class PseuplexApp {
 				...plexReqHandlerOpts,
 				metadataIdMappings: this.metadataIdMappings,
 			}, async (req: IncomingPlexAPIRequest, res, metadataId, keysToIdsMap): Promise<plexTypes.PlexHubsPage> => {
+				const context = this.contextForRequest(req);
 				// get metadata
 				const resData = await this.getMetadataRelatedHubs(metadataId, {
 					plexParams: req.plex.requestParams,
-					plexServerURL: this.plexServerURL,
-					plexAuthContext: req.plex.authContext,
-					plexUserInfo: req.plex.userInfo,
+					context,
 				});
 				// filter hub list page
 				await this.filterResponse('metadataRelatedHubs', resData, { userReq:req, userRes:res, metadataId });
@@ -642,6 +635,7 @@ export class PseuplexApp {
 			this.middlewares.plexAuthentication,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				requestPathModifier: async (req: IncomingPlexAPIRequest): Promise<string> => {
+					const context = this.contextForRequest(req);
 					// parse url path
 					const urlPathParts = parseURLPath(req.url);
 					const queryItems = urlPathParts.queryItems;
@@ -656,9 +650,7 @@ export class PseuplexApp {
 					// resolve play queue uri
 					const resolveOptions: PseuplexPlayQueueURIResolverOptions = {
 						plexMachineIdentifier: await this.plexServerProperties.getMachineIdentifier(),
-						plexServerURL: this.plexServerURL,
-						plexAuthContext: req.plex.authContext,
-						plexUserInfo: req.plex.userInfo,
+						context,
 					};
 					uriProp = await transformArrayOrSingleAsyncParallel(uriProp, async (uri) => {
 						return await this.resolvePlayQueueURI(uri, resolveOptions);
@@ -820,8 +812,8 @@ export class PseuplexApp {
 					const fullMetadataId = stringifyMetadataID(metadataId);
 					const metadatas = (await plexServerAPI.getLibraryMetadata(fullMetadataId, {
 						params: params.plexParams,
-						serverURL: params.plexServerURL,
-						authContext: params.plexAuthContext,
+						serverURL: params.context.plexServerURL,
+						authContext: params.context.plexAuthContext,
 						verbose: this.loggingOptions.logOutgoingRequests,
 					})).MediaContainer?.Metadata;
 					// transform metadata
@@ -830,7 +822,7 @@ export class PseuplexApp {
 							isOnServer: true,
 							metadataIds: {},
 							plexMetadataIds: {
-								[params.plexServerURL]: metadataItem.ratingKey
+								[params.context.plexServerURL]: metadataItem.ratingKey
 							}
 						};
 						return metadataItem;
@@ -843,7 +835,7 @@ export class PseuplexApp {
 					}
 					const metadatas = (await plexServerAPI.getLibraryMetadata(metadataId.id, {
 						serverURL: itemPlexServerURL,
-						authContext: params.plexAuthContext,
+						authContext: params.context.plexAuthContext,
 						params: params.plexParams,
 						verbose: this.loggingOptions.logOutgoingRequests,
 					})).MediaContainer?.Metadata;
@@ -905,8 +897,8 @@ export class PseuplexApp {
 			const fullMetadataId = stringifyMetadataID(metadataId);
 			const metadataPage = await plexServerAPI.getLibraryMetadataChildren(fullMetadataId, {
 				params: params.plexParams,
-				serverURL: params.plexServerURL,
-				authContext: params.plexAuthContext,
+				serverURL: params.context.plexServerURL,
+				authContext: params.context.plexAuthContext,
 				verbose: this.loggingOptions.logOutgoingRequests,
 			});
 			// TODO transform metadata children
@@ -919,7 +911,7 @@ export class PseuplexApp {
 			}
 			const metadataPage = await plexServerAPI.getLibraryMetadataChildren(metadataId.id, {
 				serverURL: itemPlexServerURL,
-				authContext: params.plexAuthContext,
+				authContext: params.context.plexAuthContext,
 				params: params.plexParams,
 				verbose: this.loggingOptions.logOutgoingRequests,
 			});
@@ -947,8 +939,8 @@ export class PseuplexApp {
 			return await plexServerAPI.getLibraryMetadataRelatedHubs(metadataIdString, {
 				params: options.plexParams,
 				// TODO include forwarded request headers
-				serverURL: options.plexServerURL,
-				authContext: options.plexAuthContext,
+				serverURL: options.context.plexServerURL,
+				authContext: options.context.plexAuthContext,
 				verbose: this.loggingOptions.logOutgoingRequests,
 			});
 		} else if(metadataId.source == PseuplexMetadataSource.PlexServer) {
