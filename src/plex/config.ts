@@ -48,7 +48,7 @@ const readPrefsFromXML = async (configPath: string): Promise<PlexPreferences> =>
 const readPrefsFromWinReg = async (): Promise<PlexPreferences> => {
 	const reg = new WinRegistry({
 		hive: WinRegistry.HKCU,
-		key: "Software\\Plex, Inc.\\Plex Media Server"
+		key: "\\Software\\Plex, Inc.\\Plex Media Server"
 	});
 	const items: WinRegistry.RegistryItem[] = await util.promisify(reg.values.bind(reg))();
 	const cfg: PlexPreferences = {} as any;
