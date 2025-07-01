@@ -60,7 +60,7 @@ const readPlexPrefsIfNeeded = async () => {
 	if(cfg.plex.port) {
 		plexServerURL += `:${cfg.plex.port}`;
 	}
-	if(!plexServerURL.indexOf('://')) {
+	if(plexServerURL.indexOf('://') === -1) {
 		plexServerURL = 'http://'+plexServerURL;
 	}
 
