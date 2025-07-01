@@ -81,12 +81,11 @@ function windows_reg_query {
 		>&2 echo "no registry key provided"
 		return 1
 	fi
-	local line=
-	(reg query "$1" -v "$2" || return $?) | while read -r line; do
+	(reg query "$1" -v "$2" || return $?) | ( while read -r line; do
 		line=$(tr -d '\0\n\r' <<< "$line")
 		if [ -z "$line" ] || [ "$line" == "$1" ]; then
 			continue
-		elif ! [[ $line == $2* ]]; then
+		elif [[ $line != "$2"* ]]; then
 			continue
 		fi
 		local key_len="${#2}"
@@ -94,13 +93,17 @@ function windows_reg_query {
 		line=$(cut -c "$key_len"- <<< "$line" | sed -E 's/^ {1,4}[a-zA-Z0-9_-]+ {1,4}//')
 		echo "$line"
 		return 0
-	done
-	>&2 echo "failed to parse reg query output"
-	return 1
+	done; return 1; )
+	result=$?
+	if [ $result -ne 0 ]; then
+		>&2 echo "Failed to parse reg query output for $1\\$2"
+		return $result
+	fi
+	return 0
 }
 
 function plex_windows_reg_query {
-	windows_reg_query 'HKEY_CURRENT_USER\Software\Plex, Inc.\Plex Media Server' "$@"
+	windows_reg_query 'HKEY_CURRENT_USER\Software\Plex, Inc.\Plex Media Server' "$@" || return $?
 }
 
 
