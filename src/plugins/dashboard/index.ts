@@ -70,7 +70,7 @@ export default (class DashboardPlugin implements DashboardPluginDef, PseuplexPlu
 
 	async getSections(context: PseuplexRequestContext): Promise<PseuplexSection[]> {
 		const hubsConfig = this.getDashboardHubsConfigForContext(context);
-		if(hubsConfig.length == 0) {
+		if((hubsConfig?.length ?? 0) == 0) {
 			return []
 		}
 		return [
