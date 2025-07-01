@@ -173,7 +173,7 @@ export class PlexServerAccountsStore {
 		try {
 			return await this.getTokenUserInfo(token);
 		} catch(error) {
-			console.error("Error while fetching token info for user:");
+			console.error(`Error while fetching token info for user token ${token}:`);
 			console.error(error);
 			return null;
 		}
