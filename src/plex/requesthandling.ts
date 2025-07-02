@@ -78,8 +78,7 @@ export const createPlexAuthenticationMiddleware = (accountsStore: PlexServerAcco
 	return async (req: express.Request, res: express.Response, next: (error?: Error) => void) => {
 		try {
 			const authContext = plexTypes.parseAuthContextFromRequest(req);
-			const userToken = authContext?.['X-Plex-Token'];
-			const userInfo = userToken ? await accountsStore.getTokenUserInfoOrNull(userToken) : null;
+			const userInfo = await accountsStore.getUserInfoOrNull(authContext);
 			if(!userInfo) {
 				throw httpError(401, "Not Authorized");
 			}

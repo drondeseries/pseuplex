@@ -147,7 +147,8 @@ export class PlexServerAccountsStore {
 		}
 	}
 
-	async getTokenUserInfo(token: string): Promise<PlexServerAccountInfo | null> {
+	async getUserInfo(authContext: PlexAuthContext): Promise<PlexServerAccountInfo | null> {
+		const token = authContext['X-Plex-Token'];
 		if(!token) {
 			return null;
 		}
@@ -169,11 +170,11 @@ export class PlexServerAccountsStore {
 		return null;
 	}
 
-	async getTokenUserInfoOrNull(token: string): Promise<PlexServerAccountInfo | null> {
+	async getUserInfoOrNull(authContext: PlexAuthContext): Promise<PlexServerAccountInfo | null> {
 		try {
-			return await this.getTokenUserInfo(token);
+			return await this.getUserInfo(authContext);
 		} catch(error) {
-			console.error(`Error while fetching token info for user token ${token}:`);
+			console.error(`Error while fetching user info from token:`);
 			console.error(error);
 			return null;
 		}
