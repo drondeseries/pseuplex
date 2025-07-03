@@ -289,9 +289,10 @@ function output_ssl_privatekey {
 
 function get_prefs_value {
 	local prefname="$1"
+	local result
 	if [ -z "$platform" ]; then
 		platform=$(get_platform)
-		local result=$?
+		result=$?
 		if [ $result -ne 0 ]; then
 			return $result
 		fi
@@ -319,6 +320,10 @@ function get_prefs_value {
 			return 1
 			;;
 	esac
+	result=$?
+	if [ $result -ne 0 ]; then
+		return $result
+	fi
 }
 
 
