@@ -37,7 +37,7 @@ function requestIsEncrypted(req: express.Request) {
 
 function getPortFromRequest(req: express.Request) {
   const port = req.headers.host?.match(/:(\d+)/)?.[1];
-  return (port != null) ?
+  return port ?
 	port
     : requestIsEncrypted(req) ? '443' : '80';
 };
@@ -83,7 +83,7 @@ export const plexProxy = (serverURL: string, args: PlexProxyOptions, opts: expre
 			// add x-forwarded headers
 			const encrypted = requestIsEncrypted(userReq);
 			const fwdHeaders = {
-				for: (userReq.connection || userReq.socket)?.remoteAddress,
+				for: userReq.connection?.remoteAddress || userReq.socket?.remoteAddress,
 				port: getPortFromRequest(userReq),
 				proto: encrypted ? 'https' : 'http'
 			};
@@ -103,6 +103,8 @@ export const plexProxy = (serverURL: string, args: PlexProxyOptions, opts: expre
 			if(fwdHost) {
 				headers['x-forwarded-host'] = fwdHost;
 			}
+			const realIP = headers['x-real-ip'] || fwdHeaders.for;
+			headers['x-real-ip'] = realIP;
 			// call other modifier if needed
 			if(opts.userResHeaderDecorator) {
 				return opts.userResHeaderDecorator(headers, userReq, userRes, proxyReq, proxyRes);
@@ -328,12 +330,11 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 	});
 	if(args.logProxyRequests) {
 		plexGeneralProxy.on('proxyReq', (proxyReq, userReq, userRes) => {
-			/*// fix proxy headers
-			if(userReq.headers['connection']) {
-				proxyReq.setHeader('connection', userReq.headers['connection']);
-			} else {
-				proxyReq.removeHeader('connection');
-			}*/
+			// add x-real-ip to proxy headers
+			if (!userReq.headers['x-real-ip']) {
+				const realIP = userReq.connection?.remoteAddress || userReq.socket?.remoteAddress;
+				proxyReq.setHeader('X-Real-IP', realIP);
+			}
 			// log proxy request if needed
 			if(args.logProxyRequests) {
 				console.log(`\nProxy ${proxyReq.method} ${urlLogString(args, proxyReq.path)}`);
