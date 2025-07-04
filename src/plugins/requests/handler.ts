@@ -105,14 +105,10 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		let metadataItem: plexTypes.PlexMetadataItem | undefined = undefined;
 		const guidParts = parsePlexMetadataGuid(options.guid);
 		if(options.season != null) {
-			const metadataItems = (await options.plexMetadataClient.getMetadataChildren(guidParts.id, {}, {
-				authContext: options.authContext
-			})).MediaContainer.Metadata;
+			const metadataItems = (await options.plexMetadataClient.getMetadataChildren(guidParts.id)).MediaContainer.Metadata;
 			metadataItem = findInArrayOrSingle(metadataItems, (item) => (item.index == options.season));
 		} else {
-			metadataItem = firstOrSingle((await options.plexMetadataClient.getMetadata(guidParts.id, {}, {
-				authContext: options.authContext
-			})).MediaContainer.Metadata);
+			metadataItem = firstOrSingle((await options.plexMetadataClient.getMetadata(guidParts.id)).MediaContainer.Metadata);
 		}
 		if(!metadataItem) {
 			console.error(`No matching metadata found for guid ${options.guid}`);
@@ -232,9 +228,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 					throw httpError(500, "No guid for metadata item");
 				}
 				const plexGuidParts = parsePlexMetadataGuid(libraryMetadataItem.guid);
-				const discoverMetadataPage = await this.plexMetadataClient.getMetadataChildren(plexGuidParts.id, options.plexParams as plexTypes.PlexMetadataChildrenPageParams, {
-					authContext: options.plexAuthContext
-				});
+				const discoverMetadataPage = await this.plexMetadataClient.getMetadataChildren(plexGuidParts.id, options.plexParams as plexTypes.PlexMetadataChildrenPageParams);
 				plexDisplayedPage.MediaContainer.Metadata = transformArrayOrSingle(discoverMetadataPage.MediaContainer.Metadata, (metadataItem: PseuplexMetadataItem) => {
 					const matchingItem = metadataItem.guid ?
 						findInArrayOrSingle(plexDisplayedPage.MediaContainer.Metadata, (cmpMetadataItem) => {
@@ -281,9 +275,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		let itemType: plexTypes.PlexMediaItemType | string;
 		if(id.season != null && id.mediaType == plexTypes.PlexMediaItemType.TVShow) {
 			// get guid for season
-			const showChildrenPage = await this.plexMetadataClient.getMetadataChildren(id.plexId, undefined, {
-				authContext: options.plexAuthContext
-			});
+			const showChildrenPage = await this.plexMetadataClient.getMetadataChildren(id.plexId);
 			const seasonItem = findInArrayOrSingle(showChildrenPage.MediaContainer.Metadata, (item) => {
 				return item.index == id.season
 			});
@@ -306,17 +298,11 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		}
 		// fetch displayed item or item's children from plex discover
 		const resDataPromise = options.children ?
-			this.plexMetadataClient.getMetadataChildren(itemId, options.plexParams as plexTypes.PlexMetadataChildrenPageParams, {
-				authContext: options.plexAuthContext
-			})
-			: this.plexMetadataClient.getMetadata(itemId, options.plexParams as plexTypes.PlexMetadataPageParams, {
-				authContext: options.plexAuthContext
-			});
+			this.plexMetadataClient.getMetadataChildren(itemId, options.plexParams as plexTypes.PlexMetadataChildrenPageParams)
+			: this.plexMetadataClient.getMetadata(itemId, options.plexParams as plexTypes.PlexMetadataPageParams);
 		// fetch requested item
 		const requestedPlexItemPage = (options.children || itemId != id.plexId) ?
-			await this.plexMetadataClient.getMetadata(id.plexId, {}, {
-				authContext: options.plexAuthContext
-			})
+			await this.plexMetadataClient.getMetadata(id.plexId)
 			: await resDataPromise;
 		const resData = await resDataPromise;
 		// send request if needed
