@@ -7,6 +7,7 @@ import * as plexServerAPI from './api';
 import * as plexTVAPI from '../plextv/api';
 import { httpError, HttpError } from '../utils';
 import { PlexServerPropertiesStore } from './serverproperties';
+import { PlexTVCurrentUserInfo } from '../plextv/types/User';
 
 export type PlexServerAccountInfo = {
 	email: string;
@@ -57,20 +58,37 @@ export class PlexServerAccountsStore {
 					return null;
 				}
 				throw error;
-			}).then(async (myPlexAccountPage) => {
+			}).then(async (myPlexAccountPage: PlexMyPlexAccountPage) => {
 				// check that required data exists
 				if(!myPlexAccountPage?.MyPlex?.username) {
+					console.error(`Missing plex account username in MyPlex account response`);
 					return null;
 				}
 				// fetch the rest of the user data from plex
 				const plexTvOptions: plexTVAPI.PlexTVAPIRequestOptions = {...this.plexServerProperties.requestOptions};
 				delete (plexTvOptions as {serverURL?: string}).serverURL;
-				const plexUserInfo = await plexTVAPI.getCurrentUser({
-					...plexTvOptions,
-					authContext: {
-						'X-Plex-Token': token
-					},
-				});
+				let plexUserInfo: PlexTVCurrentUserInfo;
+				try {
+					plexUserInfo = await plexTVAPI.getCurrentUser({
+						...plexTvOptions,
+						authContext: {
+							'X-Plex-Token': token
+						},
+					});
+				} catch (error) {
+					if((error as HttpError).statusCode == 401) {
+						console.error("The plex server owner wasn't able to fetch account info");
+						console.error(error);
+						return null;
+					}
+					throw error;
+				}
+				// ensure the account info matches the owner info
+				if (plexUserInfo.email != myPlexAccountPage.MyPlex.username
+					&& plexUserInfo.username != myPlexAccountPage.MyPlex.username) {
+					console.error(`User info ${plexUserInfo.email ?? plexUserInfo.username} doesnt match plex server owner ${myPlexAccountPage.MyPlex.username}`);
+					return null;
+				}
 				// add user info for owner
 				const userInfo: PlexServerAccountInfo = {
 					email: myPlexAccountPage.MyPlex.username,
