@@ -615,6 +615,7 @@ export class PseuplexApp {
 
 		router.get('/myplex/account', [
 			this.middlewares.plexAuthentication,
+			// ensure that this endpoint NEVER gives data to non-owners
 			(req: IncomingPlexAPIRequest, res, next) => {
 				if (!req.plex.userInfo.isServerOwner) {
 					next(httpError(401, "Get out of here you sussy baka"));
