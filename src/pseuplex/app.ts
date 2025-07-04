@@ -613,15 +613,18 @@ export class PseuplexApp {
 			})
 		]);
 
-		/*router.get('/myplex/account', [
+		router.get('/myplex/account', [
 			this.middlewares.plexAuthentication,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexMyPlexAccountPage, userReq: IncomingPlexAPIRequest, userRes) => {
-					resData.MyPlex.privatePort = this.port;
+					if (!userReq.plex.userInfo.isServerOwner) {
+						throw httpError(401, "Get out of here you sussy baka");
+					}
+					//resData.MyPlex.privatePort = this.port;
 					return resData;
 				}
 			})
-		]);*/
+		]);
 
 		router.post('/playQueues', [
 			this.middlewares.plexAuthentication,
