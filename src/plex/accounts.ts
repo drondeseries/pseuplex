@@ -77,7 +77,7 @@ export class PlexServerAccountsStore {
 					});
 				} catch (error) {
 					if((error as HttpError).statusCode == 401) {
-						console.error("The plex server owner wasn't able to fetch account info");
+						console.error("The plex server owner wasn't able to fetch account info:");
 						console.error(error);
 						return null;
 					}
