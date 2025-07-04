@@ -83,28 +83,32 @@ export const plexProxy = (serverURL: string, args: PlexProxyOptions, opts: expre
 			// add x-forwarded headers
 			const encrypted = requestIsEncrypted(userReq);
 			const fwdHeaders = {
-				for: userReq.connection?.remoteAddress || userReq.socket?.remoteAddress,
-				port: getPortFromRequest(userReq),
-				proto: encrypted ? 'https' : 'http'
+				For: userReq.connection?.remoteAddress || userReq.socket?.remoteAddress,
+				Port: getPortFromRequest(userReq),
+				Proto: encrypted ? 'https' : 'http'
 			};
 			for(const headerSuffix in fwdHeaders) {
 				if(headerSuffix == null) {
 					continue;
 				}
-				const headerName = 'x-forwarded-' + headerSuffix;
-				const prevHeaderVal = userReq.headers[headerName];
+				const headerName = 'X-Forwarded-' + headerSuffix;
+				const lowercaseHeaderName = headerName.toLowerCase();
+				const prevHeaderVal = userReq.headers[headerName] || userReq.headers[lowercaseHeaderName];
 				const newHeaderVal = fwdHeaders[headerSuffix];
 				if(newHeaderVal) {
-					const headerVal = (prevHeaderVal || '') + (prevHeaderVal ? ',' : '') + newHeaderVal;
+					const headerVal = (prevHeaderVal ? `${prevHeaderVal},` : '') + newHeaderVal;
+					delete headers[lowercaseHeaderName];
 					headers[headerName] = headerVal;
 				}
 			}
 			const fwdHost = userReq.headers['x-forwarded-host'] || userReq.headers['host'];
 			if(fwdHost) {
-				headers['x-forwarded-host'] = fwdHost;
+				delete headers['x-forwarded-host'];
+				headers['X-Forwarded-Host'] = fwdHost;
 			}
-			const realIP = headers['x-real-ip'] || fwdHeaders.for;
-			headers['x-real-ip'] = realIP;
+			const realIP = userReq.headers['x-real-ip'] || fwdHeaders.For;
+			delete headers['x-real-ip'];
+			headers['X-Real-IP'] = realIP;
 			// call other modifier if needed
 			if(opts.userResHeaderDecorator) {
 				return opts.userResHeaderDecorator(headers, userReq, userRes, proxyReq, proxyRes);
