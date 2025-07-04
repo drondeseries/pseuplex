@@ -37,12 +37,12 @@ export const parseMetadataIdFromPathParam = (metadataIdString: string): Pseuplex
 export const pseuplexMetadataIdRequestMiddleware = <TResult>(
 	options: PlexAPIRequestHandlerOptions & {metadataIdMappings?: IDMappings | null},
 	handler: (
-		req: IncomingPlexAPIRequest,
+		req: express.Request,
 		res: express.Response,
 		metadataId: PseuplexMetadataIDParts,
 		keysToIdsMap: {[key: string]: (number | string)}) => Promise<TResult>,
 ) => {
-	return asyncRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<boolean> => {
+	return asyncRequestHandler(async (req: express.Request, res): Promise<boolean> => {
 		let metadataId = req.params.metadataId;
 		if(!metadataId) {
 			// let plex handle the empty api request

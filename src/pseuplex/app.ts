@@ -24,7 +24,8 @@ import {
 	IncomingPlexAPIRequest,
 	PlexAPIRequestHandler,
 	plexAPIRequestHandler,
-	PlexAPIRequestHandlerOptions
+	PlexAPIRequestHandlerOptions,
+	PlexAuthedRequestHandler
 } from '../plex/requesthandling';
 import { PlexClient } from '../plex/client';
 import * as extPlexTransform from './externalplex/transform';
@@ -152,6 +153,7 @@ export class PseuplexApp {
 
 	readonly middlewares: {
 		plexAuthentication: express.RequestHandler;
+		plexServerOwnerOnly: PlexAuthedRequestHandler;
 		plexRequestHandler: <TResult>(handler: PlexAPIRequestHandler<TResult>) => ((req: express.Request, res: express.Response) => Promise<void>)
 	};
 	readonly server: http.Server | https.Server;
@@ -194,6 +196,17 @@ export class PseuplexApp {
 		};
 		this.middlewares = {
 			plexAuthentication: createPlexAuthenticationMiddleware(this.plexServerAccounts),
+			plexServerOwnerOnly: (req: IncomingPlexAPIRequest, res, next) => {
+				if(!req.plex) {
+					next(httpError(500, "Cannot access endpoint without plex authentication"));
+					return;
+				}
+				if (!req.plex.userInfo.isServerOwner) {
+					next(httpError(401, "Get out of here you sussy baka"));
+					return;
+				}
+				next();
+			},
 			plexRequestHandler: <TResult>(handler: PlexAPIRequestHandler<TResult>) => plexAPIRequestHandler(handler, plexReqHandlerOpts)
 		};
 		
@@ -616,13 +629,7 @@ export class PseuplexApp {
 		router.get('/myplex/account', [
 			this.middlewares.plexAuthentication,
 			// ensure that this endpoint NEVER gives data to non-owners
-			(req: IncomingPlexAPIRequest, res, next) => {
-				if (!req.plex.userInfo.isServerOwner) {
-					next(httpError(401, "Get out of here you sussy baka"));
-					return;
-				}
-				next();
-			},
+			this.middlewares.plexServerOwnerOnly,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexMyPlexAccountPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					resData.MyPlex.privatePort = this.port;

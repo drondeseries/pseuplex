@@ -96,3 +96,6 @@ export const createPlexAuthenticationMiddleware = (accountsStore: PlexServerAcco
 	};
 };
 
+export type PlexAuthedRequestHandler =
+	((req: IncomingPlexAPIRequest, res: express.Response) => (void | Promise<void>))
+	| ((req: IncomingPlexAPIRequest, res: express.Response, next: (error?: Error) => void) => (void | Promise<void>));
