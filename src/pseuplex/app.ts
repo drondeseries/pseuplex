@@ -659,6 +659,7 @@ export class PseuplexApp {
 
 		router.use('/photo', ((req, res, next) => {
 			try {
+				// TODO implement a way to disallow local IPs that don't refer to the plex server
 				const urlPathParts = parseURLPath(req.url);
 				const queryItems = urlPathParts.queryItems;
 				if(queryItems) {
