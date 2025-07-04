@@ -615,14 +615,18 @@ export class PseuplexApp {
 
 		router.get('/myplex/account', [
 			this.middlewares.plexAuthentication,
+			(req: IncomingPlexAPIRequest, res, next) => {
+				if (!req.plex.userInfo.isServerOwner) {
+					next(httpError(401, "Get out of here you sussy baka"));
+					return;
+				}
+				next();
+			},
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
-				responseModifier: async (proxyRes, resData: plexTypes.PlexMyPlexAccountPage, userReq: IncomingPlexAPIRequest, userRes) => {
-					if (!userReq.plex.userInfo.isServerOwner) {
-						throw httpError(401, "Get out of here you sussy baka");
-					}
+				/*responseModifier: async (proxyRes, resData: plexTypes.PlexMyPlexAccountPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					//resData.MyPlex.privatePort = this.port;
 					return resData;
-				}
+				}*/
 			})
 		]);
 
