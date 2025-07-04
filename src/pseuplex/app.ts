@@ -624,10 +624,10 @@ export class PseuplexApp {
 				next();
 			},
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
-				/*responseModifier: async (proxyRes, resData: plexTypes.PlexMyPlexAccountPage, userReq: IncomingPlexAPIRequest, userRes) => {
-					//resData.MyPlex.privatePort = this.port;
+				responseModifier: async (proxyRes, resData: plexTypes.PlexMyPlexAccountPage, userReq: IncomingPlexAPIRequest, userRes) => {
+					resData.MyPlex.privatePort = this.port;
 					return resData;
-				}*/
+				}
 			})
 		]);
 
