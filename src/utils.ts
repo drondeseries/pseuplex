@@ -290,8 +290,9 @@ export const isNullOrEmpty = (obj: any) => {
 };
 
 export const asyncRequestHandler = <TRequest extends express.Request = express.Request>(
-	handler: (req: TRequest, res: express.Response) => Promise<boolean>) => {
-	return async (req, res, next) => {
+	handler: (req: TRequest, res: express.Response) => Promise<boolean>
+) => {
+	return async (req: TRequest, res: express.Response, next: (error?: Error) => void) => {
 		let done: boolean;
 		try {
 			done = await handler(req,res);

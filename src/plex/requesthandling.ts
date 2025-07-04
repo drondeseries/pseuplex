@@ -61,7 +61,7 @@ export type PlexAPIRequestHandlerOptions = {
 export type PlexAPIRequestHandler<TResult> = (req: express.Request, res: express.Response) => Promise<TResult>;
 export type PlexAPIRequestHandlerMiddleware<TResult> = (handler: PlexAPIRequestHandler<TResult>, options?: PlexAPIRequestHandlerOptions) => ((req: express.Request, res: express.Response) => Promise<void>);
 export const plexAPIRequestHandler = <TResult>(handler: PlexAPIRequestHandler<TResult>, options?: PlexAPIRequestHandlerOptions) => {
-	return async (req, res) => {
+	return async (req: IncomingPlexAPIRequest, res: express.Response) => {
 		await handlePlexAPIRequest(req, res, handler, options);
 	};
 };
