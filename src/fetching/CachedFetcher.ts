@@ -101,6 +101,7 @@ export class CachedFetcher<ItemType> {
 			}
 		}
 		const now = process.uptime();
+		delete this._cache[id]; // ensure new ID is added to the end
 		this._cache[id] = {
 			item: value,
 			updatedAt: now,
