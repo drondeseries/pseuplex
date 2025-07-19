@@ -89,14 +89,14 @@ export class RequestExecutor {
 	}
 
 	private _performRequestWork<T>(work: () => Promise<T>): Promise<T> {
-		const promise = work();
-		if(promise) {
-			this._requestPromises.add(promise);
-			promise.finally(() => {
-				this._requestPromises.delete(promise);
-			});
+		let promise = work();
+		if(!promise) {
+			return promise;
 		}
-		return promise;
+		this._requestPromises.add(promise);
+		return promise.finally(() => {
+			this._requestPromises.delete(promise);
+		});
 	}
 
 	private _getRetryAfterSeconds(res: Response): number {
