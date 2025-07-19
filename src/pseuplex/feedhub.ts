@@ -172,6 +172,7 @@ export abstract class PseuplexFeedHub<
 						return item;
 					});
 				} catch(error) {
+					console.error(`Failed to match hub ${opts.hubIdentifier} items to plex metadata:`);
 					console.error(error);
 				}
 			}

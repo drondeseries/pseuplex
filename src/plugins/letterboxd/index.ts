@@ -137,6 +137,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					try {
 						hrefParts = letterboxd.parseHref(id) as letterboxd.ListHrefParts;
 					} catch(error) {
+						console.error(`Failed to parse href ${id} :`);
 						console.error(error);
 						return id;
 					}
@@ -550,6 +551,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						metadataItem.Review = reviews;
 					}
 				} catch(error) {
+					console.error(`Failed to attach letterboxd friends reviews to plex item with guid ${metadataItem?.guid} and slug ${metadataItem?.slug} :`);
 					console.error(error);
 				}
 			});

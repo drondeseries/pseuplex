@@ -20,6 +20,7 @@ export const handlePlexAPIRequest = async <TResult>(req: express.Request, res: e
 		const result = await handler(req,res);
 		serializedRes = serializeResponseContent(req, res, result);
 	} catch(error) {
+		console.error("Plex request handler failed:");
 		console.error(error);
 		let statusCode =
 			(error as HttpError).statusCode

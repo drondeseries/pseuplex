@@ -67,10 +67,18 @@ export const readSSLCertAndKey = async (sslConfig: SSLConfig): Promise<Certifica
 export const watchSSLCertAndKeyChanges = (sslConfig: SSLConfig, opts: {debounceDelay?: number}, callback: (certData: CertificateData) => void): { close: () => void } | null => {
 	const debouncer = opts.debounceDelay != null ? createDebouncer(opts.debounceDelay) : undefined;
 	const onCallback = async () => {
+		let certData: CertificateData;
 		try {
-			const certData = await readSSLCertAndKey(sslConfig);
+			certData = await readSSLCertAndKey(sslConfig);
+		} catch(error) {
+			console.error(`Error while reading SSL certificate and key:`);
+			console.error(error);
+			return;
+		}
+		try {
 			callback(certData);
 		} catch(error) {
+			console.error(`Error while handling SSL cert change:`);
 			console.error(error);
 		}
 	};

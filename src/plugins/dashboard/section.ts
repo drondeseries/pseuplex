@@ -60,6 +60,7 @@ export class DashboardSection extends PseuplexSectionBase {
 				}
 				hubs.push(hub);
 			} catch(error) {
+				console.error(`Hub ${hubConfig.hub} ${hubConfig.arg ? `(${hubConfig.arg}) ` : ''}) from plugin ${hubConfig.plugin} failed:`);
 				console.error(error);
 			}
 		}

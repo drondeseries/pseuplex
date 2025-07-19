@@ -699,6 +699,7 @@ export class PseuplexApp {
 				}
 				req.url = stringifyURLPath(urlPathParts);
 			} catch(error) {
+				console.error(`Failed to transform photo url for request to url ${req.url} :`);
 				console.error(error);
 			}
 			next();
@@ -708,6 +709,7 @@ export class PseuplexApp {
 		const plexGeneralProxy = plexHttpProxy(this.plexServerURL, plexProxyArgs);
 		plexGeneralProxy.on('error', (error) => {
 			console.error();
+			console.error(`Got proxy error:`);
 			console.error(error);
 		});
 		router.use((req, res) => {
@@ -1017,6 +1019,7 @@ export class PseuplexApp {
 				} as any);
 				if(result) {
 					promises.push(result.catch((error) => {
+						console.error(`Filter for ${urlLogString(this.loggingOptions, context.userReq.url)} response failed:`);
 						console.error(error);
 					}));
 				}

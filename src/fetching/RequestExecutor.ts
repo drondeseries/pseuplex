@@ -13,7 +13,7 @@ export class RequestExecutor {
 	private _requestPromises = new Set<Promise<any>>();
 	private _retryingRequestCount: number = 0;
 	private _nextRetryTime: number | null = null;
-
+	
 	constructor(options?: RequestExecutorOptions) {
 		this.options = options || {
 			maxRetries: 3,

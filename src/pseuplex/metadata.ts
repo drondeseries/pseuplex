@@ -195,6 +195,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 				}
 			}
 		} catch(error) {
+			console.error(`Failed to attach plex data to metadata ${metadataId} :`);
 			console.error(error);
 		}
 		return metadataItem;

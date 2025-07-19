@@ -175,6 +175,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 					return provider;
 				}
 			} catch(error) {
+				console.error(`Failed check for whether user ${userInfo?.email} can make requests:`);
 				console.error(error);
 			}
 		}
