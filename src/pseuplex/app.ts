@@ -76,6 +76,7 @@ import {
 	transformArrayOrSingleAsyncParallel,
 	intParam,
 } from '../utils/misc';
+import { IPv4NormalizeMode } from '../utils/ip';
 
 
 
@@ -117,6 +118,7 @@ export type PseuplexAppOptions = {
 	slug?: string;
 	protocol?: PseuplexServerProtocol;
 	port: number;
+	ipv4ForwardingMode?: IPv4NormalizeMode;
 	serverOptions: https.ServerOptions;
 	plexServerURL: string;
 	plexAdminAuthContext: plexTypes.PlexAuthContext;
@@ -276,7 +278,8 @@ export class PseuplexApp {
 		// create router and define routes
 		const protocol = options.protocol ?? PseuplexServerProtocol.httpolyglot;
 		const plexProxyArgs: PlexProxyOptions = {
-			...this.loggingOptions
+			...this.loggingOptions,
+			ipv4Mode: options.ipv4ForwardingMode
 		};
 		const router = express();
 

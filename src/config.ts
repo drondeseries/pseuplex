@@ -1,6 +1,7 @@
 
 import fs from 'fs';
 import { SSLConfig } from './utils/ssl';
+import { IPv4NormalizeModeKey } from './utils/ip';
 import { PseuplexConfigBase } from './pseuplex/configbase';
 import { PseuplexServerProtocol } from './pseuplex/types/server';
 import { LetterboxdPluginConfig } from './plugins/letterboxd/config';
@@ -10,6 +11,7 @@ import { OverseerrRequestsPluginConfig } from './plugins/requests/providers/over
 export type Config = {
 	protocol?: PseuplexServerProtocol,
 	port: number;
+	ipv4ForwardingMode?: IPv4NormalizeModeKey;
 	plex: {
 		host?: string;
 		port?: number;

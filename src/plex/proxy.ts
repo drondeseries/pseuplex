@@ -15,6 +15,10 @@ import {
 	urlLogString,
 	URLLogStringArgs
 } from '../utils/logging';
+import {
+	IPv4NormalizeMode,
+	normalizeIPAddress
+} from '../utils/ip';
 
 export type PlexProxyLoggingOptions = {
 	logProxyRequests?: boolean;
@@ -27,7 +31,10 @@ export type PlexProxyLoggingOptions = {
 	logUserResponseHeaders?: boolean;
 	logUserResponseBody?: boolean;
 } & URLLogStringArgs;
-export type PlexProxyOptions = PlexProxyLoggingOptions;
+
+export type PlexProxyOptions = PlexProxyLoggingOptions & {
+	ipv4Mode?: (IPv4NormalizeMode | (() => IPv4NormalizeMode))
+};
 
 function requestIsEncrypted(req: express.Request) {
 	const connection = ((req.connection || req.socket) as {encrypted?: boolean; pair?: boolean;})
@@ -78,12 +85,15 @@ export const plexProxy = (serverURL: string, args: PlexProxyOptions, opts: expre
 	return plexThinProxy(serverURL, args, {
 		...opts,
 		userResHeaderDecorator: (headers, userReq, userRes, proxyReq, proxyRes) => {
+			const ipv4Mode = ((args.ipv4Mode instanceof Function) ? args.ipv4Mode() : args.ipv4Mode)
+				?? IPv4NormalizeMode.DontChange;
 			// add a custom header to the response to check if we went through pseuplex
 			headers[constants.APP_CUSTOM_HEADER] = 'yes';
 			// add x-forwarded headers
 			const encrypted = requestIsEncrypted(userReq);
+			const remoteAddress = userReq.connection?.remoteAddress || userReq.socket?.remoteAddress;
 			const fwdHeaders = {
-				For: userReq.connection?.remoteAddress || userReq.socket?.remoteAddress,
+				For: normalizeIPAddress(remoteAddress, ipv4Mode),
 				Port: getPortFromRequest(userReq),
 				Proto: encrypted ? 'https' : 'http'
 			};
@@ -334,10 +344,24 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 	});
 	if(args.logProxyRequests) {
 		plexGeneralProxy.on('proxyReq', (proxyReq, userReq, userRes) => {
+			const ipv4Mode = ((args.ipv4Mode instanceof Function) ? args.ipv4Mode() : args.ipv4Mode)
+				?? IPv4NormalizeMode.DontChange;
 			// add x-real-ip to proxy headers
 			if (!userReq.headers['x-real-ip']) {
 				const realIP = userReq.connection?.remoteAddress || userReq.socket?.remoteAddress;
-				proxyReq.setHeader('X-Real-IP', realIP);
+				const normalizedIP = normalizeIPAddress(realIP, ipv4Mode);
+				proxyReq.setHeader('X-Real-IP', normalizedIP);
+				// fix forwarded header if needed
+				if(normalizedIP != realIP) {
+					const forwardedFor = proxyReq.getHeader('X-Forwarded-For');
+					if(forwardedFor && typeof forwardedFor === 'string') {
+						const newForwardedFor = forwardedFor.split(',').map((part) => {
+							const trimmedPart = part.trim();
+							return normalizeIPAddress(trimmedPart, ipv4Mode);
+						}).join(',');
+						proxyReq.setHeader('X-Forwarded-For', newForwardedFor);
+					}
+				}
 			}
 			// log proxy request if needed
 			if(args.logProxyRequests) {

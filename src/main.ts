@@ -14,6 +14,7 @@ import {
 	readSSLCertAndKey,
 	watchSSLCertAndKeyChanges
 } from './utils/ssl';
+import { IPv4NormalizeMode } from './utils/ip';
 import { PseuplexApp } from './pseuplex';
 import LetterboxdPlugin from './plugins/letterboxd';
 import RequestsPlugin from './plugins/requests';
@@ -103,6 +104,7 @@ const readPlexPrefsIfNeeded = async () => {
 	const pseuplex = new PseuplexApp({
 		protocol: cfg.protocol,
 		port: cfg.port,
+		ipv4ForwardingMode: cfg.ipv4ForwardingMode ? IPv4NormalizeMode[cfg.ipv4ForwardingMode] : undefined,
 		plexServerURL,
 		plexAdminAuthContext: {
 			'X-Plex-Token': cfg.plex.token
