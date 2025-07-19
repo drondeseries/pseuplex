@@ -1,6 +1,6 @@
 import http from 'http';
 import express from 'express';
-import { parseURLPath, stringParam } from '../../utils';
+import { parseURLPath, stringParam } from '../../utils/misc';
 
 export type PlexAuthContext = {
 	'X-Plex-Product'?: string;

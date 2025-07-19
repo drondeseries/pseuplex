@@ -19,7 +19,7 @@ import {
 	intParam,
 	stringArrayParam,
 	booleanParam
-} from '../../utils';
+} from '../../utils/misc';
 
 
 export enum PlexHubNumericType {

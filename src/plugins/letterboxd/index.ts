@@ -27,6 +27,7 @@ import {
 	PseuplexMetadataProvider,
 	PseuplexSection
 } from '../../pseuplex';
+import { LetterboxdPluginConfig } from './config';
 import {
 	LetterboxdMetadataProvider
 } from './metadata';
@@ -36,13 +37,12 @@ import {
 	createListHub,
 } from './hubs'
 import * as lbTransform from './transform';
+import { httpError } from '../../utils/error';
 import {
 	forArrayOrSingleAsyncParallel,
-	httpError,
 	pushToArray,
 	stringParam
-} from '../../utils';
-import { LetterboxdPluginConfig } from './config';
+} from '../../utils/misc';
 
 export default (class LetterboxdPlugin implements PseuplexPlugin {
 	static slug = 'letterboxd';

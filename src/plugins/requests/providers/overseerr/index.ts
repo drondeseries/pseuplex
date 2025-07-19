@@ -11,13 +11,11 @@ import {
 	RequestInfo,
 	RequestsProvider
 } from '../../provider';
+import { OverseerrRequestsPluginConfig } from './config';
 import * as overseerrAPI from './api';
 import * as overseerrTypes from './apitypes'
-import {
-	firstOrSingle,
-	httpError
-} from '../../../../utils';
-import { OverseerrRequestsPluginConfig } from './config';
+import { httpError } from '../../../../utils/error';
+import { firstOrSingle } from '../../../../utils/misc';
 
 export class OverseerrRequestsProvider implements RequestsProvider {
 	readonly slug = 'overseerr';

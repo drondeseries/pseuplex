@@ -1,17 +1,18 @@
 
 import express from 'express';
-import {
-	HttpError,
-	httpError,
-	parseQueryParams
-} from '../utils';
 import * as plexTypes from './types';
 import { serializeResponseContent } from './serialization';
 import {
 	PlexServerAccountInfo,
 	PlexServerAccountsStore
 } from './accounts';
-import { urlLogString } from '../logging';
+import { urlLogString } from '../utils/logging';
+import {
+	HttpError,
+	httpError,
+	HttpResponseError,
+} from '../utils/error';
+import { parseQueryParams } from '../utils/misc';
 
 export const handlePlexAPIRequest = async <TResult>(req: express.Request, res: express.Response, handler: (req: express.Request, res: express.Response) => Promise<TResult>, options?: PlexAPIRequestHandlerOptions): Promise<void> => {
 	let serializedRes: {contentType:string, data:string};
@@ -20,7 +21,9 @@ export const handlePlexAPIRequest = async <TResult>(req: express.Request, res: e
 		serializedRes = serializeResponseContent(req, res, result);
 	} catch(error) {
 		console.error(error);
-		let statusCode = (error as HttpError).statusCode;
+		let statusCode =
+			(error as HttpError).statusCode
+			?? (error as HttpResponseError).httpResponse?.status;
 		if(!statusCode) {
 			statusCode = 500;
 		}

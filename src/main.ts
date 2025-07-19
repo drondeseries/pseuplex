@@ -13,7 +13,7 @@ import {
 	SSLConfig,
 	readSSLCertAndKey,
 	watchSSLCertAndKeyChanges
-} from './ssl';
+} from './utils/ssl';
 import { PseuplexApp } from './pseuplex';
 import LetterboxdPlugin from './plugins/letterboxd';
 import RequestsPlugin from './plugins/requests';

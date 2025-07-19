@@ -1,10 +1,6 @@
 import qs from 'querystring';
 import express from 'express';
 import {
-	asyncRequestHandler,
-	httpError
-} from '../utils';
-import {
 	handlePlexAPIRequest,
 	IncomingPlexAPIRequest,
 	PlexAPIRequestHandlerOptions
@@ -14,6 +10,12 @@ import {
 	PseuplexMetadataIDParts
 } from './metadataidentifier';
 import { IDMappings } from './idmappings';
+import {
+	asyncRequestHandler,
+} from '../utils/requesthandling';
+import {
+	httpError,
+} from '../utils/error';
 
 export const parseMetadataIdsFromPathParam = (metadataIdsString: string): PseuplexMetadataIDParts[] => {
 	if(!metadataIdsString) {

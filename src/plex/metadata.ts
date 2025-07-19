@@ -3,8 +3,9 @@ import { CachedFetcher } from '../fetching/CachedFetcher';
 import * as plexTypes from './types';
 import * as plexServerAPI from './api';
 import { PlexClient } from './client';
-import { forArrayOrSingle, httpError } from '../utils';
 import { parsePlexMetadataGuid } from './metadataidentifier';
+import { httpError } from '../utils/error';
+import { forArrayOrSingle } from '../utils/misc';
 
 export const createPlexServerIdToGuidCache = (options: plexServerAPI.PlexAPIRequestOptions) => {
 	return new CachedFetcher<string | null>(async (id: string) => {

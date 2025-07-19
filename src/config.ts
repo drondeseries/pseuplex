@@ -1,6 +1,6 @@
 
 import fs from 'fs';
-import { SSLConfig } from './ssl';
+import { SSLConfig } from './utils/ssl';
 import { PseuplexConfigBase } from './pseuplex/configbase';
 import { PseuplexServerProtocol } from './pseuplex/types/server';
 import { LetterboxdPluginConfig } from './plugins/letterboxd/config';

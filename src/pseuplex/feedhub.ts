@@ -12,7 +12,7 @@ import * as plexServerAPI from '../plex/api';
 import {
 	addQueryArgumentToURLPath,
 	forArrayOrSingle
-} from '../utils';
+} from '../utils/misc';
 import {
 	PseuplexMetadataItem,
 	PseuplexRequestContext

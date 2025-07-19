@@ -29,11 +29,13 @@ import {
 } from './hub';
 import type { PseuplexSection } from './section';
 import {
+	HttpResponseError,
+} from '../utils/error';
+import {
 	firstOrSingle,
 	forArrayOrSingle,
-	HttpError,
-	transformArrayOrSingleAsyncParallel
-} from '../utils';
+	transformArrayOrSingleAsyncParallel,
+} from '../utils/misc';
 
 
 export type PseuplexMetadataParams = {
@@ -329,7 +331,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 					verbose: this.loggingOptions.logOutgoingRequests
 				});
 			} catch(error) {
-				if((error as HttpError).statusCode != 404) {
+				if((error as HttpResponseError).httpResponse?.status != 404) {
 					console.warn(error);
 				}
 			}

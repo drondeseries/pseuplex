@@ -14,7 +14,7 @@ import * as constants from '../constants';
 import {
 	urlLogString,
 	URLLogStringArgs
-} from '../logging';
+} from '../utils/logging';
 
 export type PlexProxyLoggingOptions = {
 	logProxyRequests?: boolean;

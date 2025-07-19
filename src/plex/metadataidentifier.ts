@@ -1,6 +1,6 @@
 
 import * as plexTypes from './types';
-import { httpError } from '../utils';
+import { httpError } from '../utils/error';
 
 export type PlexMetadataKeyParts = {
 	basePath: string;

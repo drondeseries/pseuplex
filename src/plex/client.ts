@@ -1,7 +1,7 @@
 import qs from 'querystring';
 import * as plexServerAPI from './api';
 import * as plexTypes from "./types";
-import { firstOrSingle, mergeObjects } from '../utils';
+import { firstOrSingle, mergeObjects } from '../utils/misc';
 
 
 export type PlexClientMethodOptions = {

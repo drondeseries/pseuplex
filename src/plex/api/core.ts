@@ -2,7 +2,7 @@
 import qs from 'querystring';
 import { PlexAuthContext } from '../types';
 import { parseHttpContentType, plexXMLToJS } from '../serialization';
-import { httpError } from '../../utils';
+import { httpResponseError } from '../../utils/error';
 
 export type PlexAPIRequestOptions = {
 	serverURL: string,
@@ -81,9 +81,7 @@ export const plexServerFetch = async <TResult>(options: (PlexAPIRequestOptions &
 			console.log(`Got response ${res.status} for ${method} ${url}: ${res.statusText}`);
 		}
 		res.body?.cancel();
-		throw httpError(res.status, res.statusText, {
-			url
-		});
+		throw httpResponseError(url, res);
 	}
 	// parse response
 	const responseText = await res.text();

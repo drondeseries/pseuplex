@@ -22,12 +22,11 @@ import {
 	intParam,
 	pushToArray,
 	isNullOrEmpty,
-	httpError,
 	findInArrayOrSingle,
 	forArrayOrSingle,
 	firstOrSingle,
 	transformArrayOrSingle
-} from '../../utils';
+} from '../../utils/misc';
 import {
 	RequestInfo,
 	RequestsProvider,

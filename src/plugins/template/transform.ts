@@ -8,7 +8,7 @@ import {
 	stringifyMetadataID,
 	stringifyPartialMetadataID
 } from '../../pseuplex';
-import { combinePathSegments } from '../../utils';
+import { combinePathSegments } from '../../utils/misc';
 
 export const partialMetadataIdFromTemplateItem = (item: any): PseuplexPartialMetadataIDString => {
 	// TODO create a partial metadata ID from an item from your source

@@ -15,14 +15,6 @@ import {
 } from '../../pseuplex';
 import * as extPlexTransform from '../../pseuplex/externalplex/transform';
 import {
-	findInArrayOrSingle,
-	firstOrSingle,
-	forArrayOrSingle,
-	httpError,
-	transformArrayOrSingle,
-	WithOptionalPropsRecursive
-} from '../../utils';
-import {
 	RequestsProviders,
 	RequestInfo,
 	RequestsProvider,
@@ -32,6 +24,14 @@ import {
 	RequestPartialMetadataIDParts,
 	TransformRequestMetadataOptions,
 } from './transform';
+import { httpError } from '../../utils/error';
+import {
+	findInArrayOrSingle,
+	firstOrSingle,
+	forArrayOrSingle,
+	transformArrayOrSingle,
+	WithOptionalPropsRecursive
+} from '../../utils/misc';
 
 export type PlexRequestsHandlerOptions = {
 	basePath: string;

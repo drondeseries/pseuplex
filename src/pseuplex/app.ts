@@ -64,18 +64,18 @@ import {
 import { IDMappings } from './idmappings';
 import { PseuplexSection } from './section';
 import { CachedFetcher } from '../fetching/CachedFetcher';
+import { urlLogString } from '../utils/logging';
+import { httpError } from '../utils/error';
+import { expressErrorHandler } from '../utils/requesthandling';
 import {
-	httpError,
 	parseURLPath,
 	stringifyURLPath,
 	forArrayOrSingle,
 	forArrayOrSingleAsyncParallel,
 	transformArrayOrSingle,
 	transformArrayOrSingleAsyncParallel,
-	expressErrorHandler,
 	intParam,
-} from '../utils';
-import { urlLogString } from '../logging';
+} from '../utils/misc';
 
 
 

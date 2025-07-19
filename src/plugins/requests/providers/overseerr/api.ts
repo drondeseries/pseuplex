@@ -10,7 +10,7 @@ import {
 	Movie,
 	TVShow
 } from './apitypes';
-import { httpError } from '../../../../utils';
+import { httpResponseError } from '../../../../utils/error';
 
 const overseerrFetch = async (options: {
 	serverURL: string,
@@ -57,7 +57,7 @@ const overseerrFetch = async (options: {
 	});
 	if (!res.ok) {
 		res.body?.cancel();
-		throw httpError(res.status, res.statusText);
+		throw httpResponseError(url, res);
 	}
 	// parse response
 	const resBody = await res.text();

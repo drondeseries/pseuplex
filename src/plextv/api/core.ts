@@ -2,7 +2,7 @@
 import qs from 'querystring';
 import { PlexAuthContext } from '../../plex/types';
 import { parseHttpContentType, plexXMLToJS } from '../../plex/serialization';
-import { httpError } from '../../utils';
+import { httpResponseError } from '../../utils/error';
 
 export type PlexTVAPIRequestOptions = {
 	authContext?: PlexAuthContext | null,
@@ -51,9 +51,7 @@ export const plexTVFetch = async <TResult>(options: (PlexTVAPIRequestOptions & {
 			console.log(`Got response ${res.status} for ${method} ${url}: ${res.statusText}`);
 		}
 		res.body?.cancel();
-		throw httpError(res.status, res.statusText, {
-			url,
-		});
+		throw httpResponseError(url, res);
 	}
 	// parse response
 	const responseText = await res.text();

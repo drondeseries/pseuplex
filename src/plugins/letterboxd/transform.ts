@@ -17,7 +17,7 @@ import {
 import {
 	intParam,
 	combinePathSegments
-} from '../../utils';
+} from '../../utils/misc';
 import { LetterboxdMetadataProvider } from './metadata';
 import { booleanQueryParam } from '../../plex/api/serialization';
 

@@ -2,7 +2,7 @@
 import stream from 'stream';
 import { v4 as uuidv4 } from 'uuid';
 import * as plexTypes from '../plex/types';
-import { sendWebSocketMessage } from '../streamutils';
+import { sendWebSocketMessage } from '../utils/stream';
 
 export const sendMediaUnavailableNotifications = (sockets: stream.Duplex[] | undefined, options: {
 	userID: number | string,

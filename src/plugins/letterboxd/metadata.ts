@@ -91,7 +91,7 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 		console.log(`Fetching letterboxd film from ${JSON.stringify(getFilmOpts)}`);
 		const filmInfoTask = letterboxd.getFilm(getFilmOpts)
 			.catch((error: letterboxd.LetterboxdError) => {
-				if(error.statusCode == 404 || error.message.search(/[nN]ot [fF]ound/) != -1) {
+				if(error.httpResponse?.status == 404 || error.message.search(/[nN]ot [fF]ound/) != -1) {
 					return null;
 				}
 				throw error;

@@ -1,8 +1,9 @@
 
 import qs from 'querystring';
 import express from 'express';
-
-export type HttpError = Error & { statusCode: number };
+import {
+	httpError,
+} from './error';
 
 export type WithOptionalProps<T> = {
 	[key in keyof T]?: T[key]
@@ -10,13 +11,6 @@ export type WithOptionalProps<T> = {
 
 export type WithOptionalPropsRecursive<T> = T extends Array<infer U> ? Array<WithOptionalPropsRecursive<U>> : {
 	[key in keyof T]?: WithOptionalPropsRecursive<T[key]>
-};
-
-export const httpError = (status: number, message: string, props?: {[key: string]: any}): HttpError => {
-	const error = new Error(message) as HttpError;
-	error.statusCode = status;
-	Object.assign(error, props);
-	return error;
 };
 
 export const stringParam = (value: any): string | undefined => {
@@ -287,46 +281,6 @@ export const firstOrSingle = <T>(arrayOrSingle: (T | T[] | undefined)): T | unde
 
 export const isNullOrEmpty = (obj: any) => {
 	return (!obj || (obj instanceof Array && obj.length === 0));
-};
-
-export const asyncRequestHandler = <TRequest extends express.Request = express.Request>(
-	handler: (req: TRequest, res: express.Response) => Promise<boolean>
-) => {
-	return async (req: TRequest, res: express.Response, next: (error?: Error) => void) => {
-		let done: boolean;
-		try {
-			done = await handler(req,res);
-		} catch(error) {
-			next(error);
-			return;
-		}
-		if(!done) {
-			next();
-		}
-	};
-};
-
-export const expressErrorHandler = (error: Error, req: express.Request, res: express.Response, next) => {
-	if(error) {
-		console.error(error);
-		res.status((error as HttpError).statusCode ?? 500).send(error.message);
-		console.log(`Sent error ${error.message}`);
-	} else {
-		next();
-	}
-};
-
-export const createDebouncer = (delay: number): ((callback: () => void) => void) => {
-	let timeout: NodeJS.Timeout | null = null;
-	return (callback: () => void) => {
-		if(timeout) {
-			clearTimeout(timeout);
-		}
-		timeout = setTimeout(() => {
-			timeout = null;
-			callback();
-		}, delay);
-	};
 };
 
 export const mergeObjects = <T1 extends {[key: (string | number)]: any}, T2 extends {[key: (string | number)]: any}>(obj1: T1, obj2: T2 | null | undefined): (T1 & T2) => {

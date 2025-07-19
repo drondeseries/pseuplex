@@ -5,7 +5,7 @@ import {
 } from './types';
 import * as plexServerAPI from './api';
 import * as plexTVAPI from '../plextv/api';
-import { httpError, HttpError } from '../utils';
+import { HttpResponseError } from '../utils/error';
 import { PlexServerPropertiesStore } from './serverproperties';
 import { PlexTVCurrentUserInfo } from '../plextv/types/User';
 
@@ -54,7 +54,7 @@ export class PlexServerAccountsStore {
 				}
 			}).catch((error) => {
 				// 401 means the token isn't authorized as the server owner
-				if((error as HttpError).statusCode == 401) {
+				if((error as HttpResponseError).httpResponse?.status == 401) {
 					return null;
 				}
 				throw error;
@@ -76,7 +76,7 @@ export class PlexServerAccountsStore {
 						},
 					});
 				} catch (error) {
-					if((error as HttpError).statusCode == 401) {
+					if((error as HttpResponseError).httpResponse?.status == 401) {
 						console.error("The plex server owner wasn't able to fetch account info:");
 						console.error(error);
 						return null;

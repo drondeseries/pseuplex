@@ -2,8 +2,8 @@
 import forge from 'node-forge';
 import fs from 'fs';
 import path from 'path';
-import { watchFilepathChanges } from './fileutils';
-import { createDebouncer } from './utils';
+import { watchFilepathChanges } from './files';
+import { createDebouncer } from './timing';
 
 export type SSLConfig = {
 	p12Path?: string;

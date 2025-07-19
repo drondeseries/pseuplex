@@ -1,7 +1,7 @@
 import * as plexTypes from '../plex/types';
 import { PlexClient } from '../plex/client';
-import { findInArrayOrSingle, firstOrSingle } from '../utils';
 import { PseuplexRequestContext } from './types';
+import { findInArrayOrSingle, firstOrSingle } from '../utils/misc';
 
 export type PlexMetadataMatchStoreOptions = {
 	plexServerURL: string,
