@@ -80,7 +80,7 @@ export const plexServerFetch = async <TResult>(options: PlexServerFetchOptions):
 	});
 	if(!res.ok) {
 		if(options.verbose) {
-			console.log(`Got response ${res.status} for ${method} ${url}: ${res.statusText}`);
+			console.error(`Got response ${res.status} for ${method} ${url}: ${res.statusText}`);
 		}
 		res.body?.cancel();
 		throw httpResponseError(url, res);
@@ -88,7 +88,7 @@ export const plexServerFetch = async <TResult>(options: PlexServerFetchOptions):
 	// parse response
 	const responseText = await res.text();
 	if(!responseText) {
-		return undefined as TResult;
+		return undefined!;
 	}
 	const contentType = parseHttpContentType(res.headers.get('content-type')).contentTypes[0];
 	//console.log(`Response (${contentTypeInfo.contentType}):\n${responseText}`);

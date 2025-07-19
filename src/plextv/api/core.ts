@@ -48,7 +48,7 @@ export const plexTVFetch = async <TResult>(options: (PlexTVAPIRequestOptions & {
 	});
 	if(!res.ok) {
 		if(options.verbose) {
-			console.log(`Got response ${res.status} for ${method} ${url}: ${res.statusText}`);
+			console.error(`Got response ${res.status} for ${method} ${url}: ${res.statusText}`);
 		}
 		res.body?.cancel();
 		throw httpResponseError(url, res);
