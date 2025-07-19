@@ -1,7 +1,6 @@
 import {
 	PlexAuthContext,
 	PlexMyPlexAccountPage,
-	PlexServerIdentityPage
 } from './types';
 import * as plexServerAPI from './api';
 import * as plexTVAPI from '../plextv/api';
@@ -38,27 +37,32 @@ export class PlexServerAccountsStore {
 		this.sharedServersMinLifetime = options.sharedServersMinLifetime ?? 60;
 	}
 
-	async _fetchTokenServerOwnerAccount(token: string): Promise<PlexServerAccountInfo | null> {
-		// check if the token belongs to the server owner
+	/// Returns the account info if the token belongs to the server owner, otherwise returns null
+	private async _fetchTokenServerOwnerAccount(token: string): Promise<PlexServerAccountInfo | null> {
 		let task = this._serverOwnerTokenCheckTasks[token];
 		if(task) {
 			// wait for existing task
 			return await task;
 		}
 		try {
-			// send request for myplex account
-			task = plexServerAPI.getMyPlexAccount({
-				...this.plexServerProperties.requestOptions,
-				authContext: {
-					'X-Plex-Token': token
+			task = (async () => {
+				// send request for myplex account
+				let myPlexAccountPage: PlexMyPlexAccountPage | null;
+				try {
+					myPlexAccountPage = await plexServerAPI.getMyPlexAccount({
+						...this.plexServerProperties.requestOptions,
+						authContext: {
+							'X-Plex-Token': token
+						}
+					});
+				} catch(error) {
+					// 401 means the token isn't authorized as the server owner
+					if((error as HttpResponseError).httpResponse?.status != 401) {
+						// all non-401 errors should still get thrown
+						throw error;
+					}
+					myPlexAccountPage = null;
 				}
-			}).catch((error) => {
-				// 401 means the token isn't authorized as the server owner
-				if((error as HttpResponseError).httpResponse?.status == 401) {
-					return null;
-				}
-				throw error;
-			}).then(async (myPlexAccountPage: PlexMyPlexAccountPage) => {
 				// check that required data exists
 				if(!myPlexAccountPage?.MyPlex?.username) {
 					console.error(`Missing plex account username in MyPlex account response`);
@@ -99,7 +103,7 @@ export class PlexServerAccountsStore {
 				};
 				this._tokensToPlexOwnersMap[token] = userInfo;
 				return userInfo;
-			});
+			})();
 			// store pending task and wait
 			this._serverOwnerTokenCheckTasks[token] = task;
 			return await task;
@@ -109,8 +113,9 @@ export class PlexServerAccountsStore {
 		}
 	}
 
-	async _refetchSharedServersIfAble(): Promise<boolean> {
-		// get plex werver machine ID
+	/// Refetches the list of shared servers if needed
+	private async _refetchSharedServersIfAble(): Promise<boolean> {
+		// get plex server machine ID
 		const machineId = await this.plexServerProperties.getMachineIdentifier();
 		// wait for existing fetch operation to finish, if any
 		if(this._sharedServersTask) {
