@@ -28,7 +28,7 @@ export class RequestExecutor {
 	private _requestPromises = new Set<Promise<any>>();
 	private _retryingRequestCount: number = 0;
 	private _nextRetryTime: number | null = null;
-	private _requestCounter: number = 0;
+	private _occasionalDelayCounter: number = 0;
 	private _occasionalDelayPromise: Promise<void> | null = null;
 
 	constructor(options?: RequestExecutorOptions) {
@@ -60,9 +60,10 @@ export class RequestExecutor {
 		firstAttempt: boolean,
 	) {
 		abortSignal?.throwIfAborted();
-		this._requestCounter++;
+		this._occasionalDelayCounter++;
 		// wait for occasional delay if needed
-		if (this._requestCounter > 0 && (this._requestCounter % this.occasionalDelayFrequency) === 0) {
+		if (this._occasionalDelayCounter > this.occasionalDelayFrequency) {
+			this._occasionalDelayCounter = 0;
 			this._occasionalDelayPromise = delay(this.occasionalDelay * 1000).finally(() => {
 				this._occasionalDelayPromise = null;
 			});
