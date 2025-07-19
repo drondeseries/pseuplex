@@ -10,12 +10,14 @@ export type PlexAPIRequestOptions = {
 	verbose?: boolean,
 };
 
-export const plexServerFetch = async <TResult>(options: (PlexAPIRequestOptions & {
+export type PlexServerFetchOptions = PlexAPIRequestOptions & {
 	method?: 'GET' | 'POST' | 'PUT' | 'DELETE',
 	endpoint: string,
 	params?: {[key: string]: string | number | boolean | string[] | number[]} | null,
 	headers?: {[key: string]: string},
-})): Promise<TResult> => {
+};
+
+export const plexServerFetch = async <TResult>(options: PlexServerFetchOptions): Promise<TResult> => {
 	const method = options.method || 'GET';
 	// build URL
 	let serverURL = options.serverURL;

@@ -15,6 +15,7 @@ import {
 	watchSSLCertAndKeyChanges
 } from './utils/ssl';
 import { IPv4NormalizeMode } from './utils/ip';
+import { RequestExecutor } from './fetching/RequestExecutor';
 import { PseuplexApp } from './pseuplex';
 import LetterboxdPlugin from './plugins/letterboxd';
 import RequestsPlugin from './plugins/requests';
@@ -110,11 +111,14 @@ const readPlexPrefsIfNeeded = async () => {
 			'X-Plex-Token': cfg.plex.token
 		},
 		plexMetadataClient: new PlexClient({
-			serverURL: cfg.plex.metadataHost || 'https://metadata.provider.plex.tv',
-			authContext: {
-				'X-Plex-Token': cfg.plex.token
+			requestOptions: {
+				serverURL: cfg.plex.metadataHost || 'https://metadata.provider.plex.tv',
+				authContext: {
+					'X-Plex-Token': cfg.plex.token
+				},
+				verbose: args.logOutgoingRequests,
 			},
-			verbose: args.logOutgoingRequests,
+			requestExecutor: new RequestExecutor(),
 		}),
 		serverOptions: {
 			...sslCertData

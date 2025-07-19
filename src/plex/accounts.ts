@@ -4,9 +4,9 @@ import {
 } from './types';
 import * as plexServerAPI from './api';
 import * as plexTVAPI from '../plextv/api';
+import { PlexTVCurrentUserInfo } from '../plextv/types/User';
 import { HttpResponseError } from '../utils/error';
 import { PlexServerPropertiesStore } from './serverproperties';
-import { PlexTVCurrentUserInfo } from '../plextv/types/User';
 
 export type PlexServerAccountInfo = {
 	email: string;
