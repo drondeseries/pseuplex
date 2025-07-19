@@ -124,3 +124,22 @@ export class RequestExecutor {
 		return retryAfterSeconds;
 	}
 }
+
+
+export class RequestManager {
+	readonly options: RequestExecutorOptions;
+	readonly executors: {[domain: string]: RequestExecutor} = {};
+
+	constructor(options: RequestExecutorOptions) {
+		this.options = options;
+	}
+
+	do<T>(domain: string, work: () => Promise<T>, abortSignal?: AbortSignal): Promise<T> {
+		let executor = this.executors[domain];
+		if(!executor) {
+			executor = new RequestExecutor(this.options);
+			this.executors[domain] = executor;
+		}
+		return executor.do(work, abortSignal);
+	}
+}
