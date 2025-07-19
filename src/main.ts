@@ -15,6 +15,7 @@ import {
 	watchSSLCertAndKeyChanges
 } from './utils/ssl';
 import { IPv4NormalizeMode } from './utils/ip';
+import { modConsoleColors } from './utils/console';
 import { RequestExecutor } from './fetching/RequestExecutor';
 import { PseuplexApp } from './pseuplex';
 import LetterboxdPlugin from './plugins/letterboxd';
@@ -27,6 +28,8 @@ import {
 } from './plex/config';
 import { PlexPreferences } from './plex/types/preferences';
 import { PlexClient } from './plex/client';
+
+modConsoleColors();
 
 let plexPrefs: PlexPreferences | undefined = undefined;
 let cfg: Config;
