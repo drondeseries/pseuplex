@@ -1,29 +1,55 @@
+import { waitForPromise } from '../utils/async';
 import { HttpResponseError } from '../utils/error';
 import { delay } from '../utils/timing';
 
 export type RequestExecutorOptions = {
-	maxRetries: number;
-	defaultDelay: number;
+	maxRetries?: number;
+	defaultDelay?: number;
 	minimumDelay?: number;
+	paddingDelay?: number;
+	randomDelayMax?: number;
+	backoffMultiplier?: number;
+	maxParallelRequests?: number;
+	occasionalDelayFrequency?: number;
+	occasionalDelay?: number;
 }
 
 export class RequestExecutor {
-	options: RequestExecutorOptions;
+	maxRetries: number;
+	defaultDelay: number;
+	minimumDelay?: number;
+	paddingDelay: number;
+	randomDelayMax: number;
+	backoffMultiplier: number;
+	maxParallelRequests?: number;
+	occasionalDelayFrequency: number;
+	occasionalDelay: number;
 	
 	private _requestPromises = new Set<Promise<any>>();
 	private _retryingRequestCount: number = 0;
 	private _nextRetryTime: number | null = null;
-	
+	private _requestCounter: number = 0;
+	private _occasionalDelayPromise: Promise<void> | null = null;
+
 	constructor(options?: RequestExecutorOptions) {
-		this.options = options || {
-			maxRetries: 3,
-			defaultDelay: 5
-		};
+		this.maxRetries = options?.maxRetries ?? 3;
+		this.defaultDelay = options?.defaultDelay ?? 5;
+		this.minimumDelay = options?.minimumDelay;
+		this.paddingDelay = options?.paddingDelay ?? 1;
+		this.randomDelayMax = options?.randomDelayMax ?? 6;
+		this.backoffMultiplier = options?.backoffMultiplier ?? 3;
+		this.maxParallelRequests = options?.maxParallelRequests;
+		this.occasionalDelayFrequency = options?.occasionalDelayFrequency ?? options?.maxParallelRequests ?? 10;
+		this.occasionalDelay = options?.occasionalDelay ?? 5;
+	}
+
+	getDelaySeconds(): number {
+		return this._nextRetryTime ? Math.max(0, this._nextRetryTime - process.uptime()) : 0;
 	}
 	
 	async do<T>(work: () => Promise<T>, abortSignal?: AbortSignal): Promise<T> {
-		const delaySeconds = (this._nextRetryTime ? (this._nextRetryTime - process.uptime()) : 0);
-		return await this._delayAndThenDoWork(delaySeconds, this.options.maxRetries, abortSignal, work, true);
+		const delaySeconds = this.getDelaySeconds();
+		return await this._delayAndThenDoWork(delaySeconds, this.maxRetries, abortSignal, work, true);
 	}
 	
 	private async _delayAndThenDoWork<T>(
@@ -34,30 +60,56 @@ export class RequestExecutor {
 		firstAttempt: boolean,
 	) {
 		abortSignal?.throwIfAborted();
-		// check if request should be delayed
-		if(delaySeconds > 0 || this._retryingRequestCount > 0) {
-			if(delaySeconds > 0) {
-				console.warn(`Waiting ${delaySeconds} seconds to send request`);
-				await delay(delaySeconds * 1000, abortSignal);
+		this._requestCounter++;
+		// wait for occasional delay if needed
+		if (this._requestCounter > 0 && (this._requestCounter % this.occasionalDelayFrequency) === 0) {
+			this._occasionalDelayPromise = delay(this.occasionalDelay * 1000).finally(() => {
+				this._occasionalDelayPromise = null;
+			});
+		}
+		if(this._occasionalDelayPromise) {
+			await waitForPromise(this._occasionalDelayPromise, abortSignal);
+		}
+		do {
+			// check if request should be delayed
+			if(delaySeconds > 0 || this._retryingRequestCount > 0) {
+				if(delaySeconds > 0) {
+					console.warn(`Waiting ${delaySeconds} seconds to send request`);
+					await delay(delaySeconds * 1000, abortSignal);
+				}
+				abortSignal?.throwIfAborted();
+				// wait for all pending requests to finish while any requests are being retried
+				if(this._requestPromises.size > 0 && this._retryingRequestCount > 0) {
+					console.warn(`Waiting for pending requests to finish`);
+					while(this._requestPromises.size > 0 && this._retryingRequestCount > 0) {
+						try {
+							await Promise.allSettled(this._requestPromises);
+						} catch {}
+						abortSignal?.throwIfAborted();
+					}
+				}
 			}
-			abortSignal?.throwIfAborted();
-			// wait until no request is being sent
-			if(this._requestPromises.size > 0) {
-				console.warn(`Waiting for pending requests to finish`);
-				while(this._requestPromises.size > 0) {
+			// ensure a maximum number of parallel requests
+			if(this.maxParallelRequests) {
+				while(this._requestPromises.size >= this.maxParallelRequests) {
 					try {
-						await Promise.allSettled(this._requestPromises);
+						await Promise.race(this._requestPromises);
 					} catch {}
 					abortSignal?.throwIfAborted();
 				}
 			}
-		}
+			// check if request still needs to be delayed
+			delaySeconds = this.getDelaySeconds();
+			if(delaySeconds > 0) {
+				delaySeconds += (Math.random() * this.randomDelayMax);
+			}
+		} while(delaySeconds > 0);
 		// do the request
 		if(remainingRetries <= 0) {
-			return await this._performRequestWork(work);
+			return await this._doRequestWork(work, abortSignal);
 		}
 		try {
-			return await this._performRequestWork(work);
+			return await this._doRequestWork(work, abortSignal);
 		} catch(error) {
 			if(abortSignal?.aborted) {
 				throw error;
@@ -66,11 +118,18 @@ export class RequestExecutor {
 			if (res && res.status == 429) {
 				console.error(`Got 429 response from ${res.url}`);
 				// Got 429, which means we need to wait before retrying
-				const retryAfterSeconds = this._getRetryAfterSeconds(res);
+				let retryAfterSeconds = this._getRetryAfterSeconds(res);
 				const nextRetryTime = process.uptime() + retryAfterSeconds;
 				if(!this._nextRetryTime || nextRetryTime > this._nextRetryTime) {
 					this._nextRetryTime = nextRetryTime;
 				}
+				// pad retry seconds a bit
+				if(this.minimumDelay && retryAfterSeconds < this.minimumDelay) {
+					retryAfterSeconds = this.minimumDelay;
+				}
+				retryAfterSeconds += this.paddingDelay;
+				retryAfterSeconds += (Math.random() * this.randomDelayMax);
+				retryAfterSeconds += (this._retryingRequestCount * this.backoffMultiplier);
 				if(firstAttempt) {
 					// on the first attempt, we should count the retry
 					this._retryingRequestCount++;
@@ -88,7 +147,7 @@ export class RequestExecutor {
 		}
 	}
 
-	private _performRequestWork<T>(work: () => Promise<T>): Promise<T> {
+	private _doRequestWork<T>(work: () => Promise<T>, abortSignal: AbortSignal | null): Promise<T> {
 		let promise = work();
 		if(!promise) {
 			return promise;
@@ -100,7 +159,6 @@ export class RequestExecutor {
 	}
 
 	private _getRetryAfterSeconds(res: Response): number {
-		const { options } = this;
 		const retryAfter = res.headers.get('Retry-After');
 		let retryAfterSeconds: number;
 		if(retryAfter) {
@@ -117,10 +175,7 @@ export class RequestExecutor {
 			}
 		}
 		if(!retryAfterSeconds) {
-			retryAfterSeconds = options.defaultDelay;
-		}
-		if(options.minimumDelay && retryAfterSeconds < options.minimumDelay) {
-			retryAfterSeconds = options.minimumDelay;
+			retryAfterSeconds = this.defaultDelay;
 		}
 		return retryAfterSeconds;
 	}

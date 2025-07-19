@@ -121,7 +121,9 @@ const readPlexPrefsIfNeeded = async () => {
 				},
 				verbose: args.logOutgoingRequests,
 			},
-			requestExecutor: new RequestExecutor(),
+			requestExecutor: new RequestExecutor({
+				maxParallelRequests: 5,
+			}),
 		}),
 		serverOptions: {
 			...sslCertData

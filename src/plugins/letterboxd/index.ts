@@ -62,7 +62,9 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 	constructor(app: PseuplexApp) {
 		this.app = app;
 		const self = this;
-		const requestExecutor = new RequestExecutor();
+		const requestExecutor = new RequestExecutor({
+			maxParallelRequests: 10
+		});
 		this.requestExecutor = requestExecutor;
 
 		// create section
