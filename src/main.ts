@@ -162,7 +162,7 @@ const readPlexPrefsIfNeeded = async () => {
 				console.log("\nUpdating SSL certificate");
 				(pseuplex.server as https.Server).setSecureContext(sslCertData);
 			} catch(error) {
-				console.error("\nFailed to set secure context:");
+				console.error("Failed to set secure context:");
 				console.error(error);
 			}
 		});
