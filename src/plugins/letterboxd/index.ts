@@ -37,6 +37,7 @@ import {
 	createListHub,
 } from './hubs'
 import * as lbTransform from './transform';
+import { RequestExecutor } from '../../fetching/RequestExecutor';
 import { httpError } from '../../utils/error';
 import {
 	forArrayOrSingleAsyncParallel,
@@ -55,11 +56,14 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		readonly list: PseuplexHubProvider & {readonly basePath: string};
 	};
 	//readonly section?: PseuplexSection;
+	readonly requestExecutor: RequestExecutor;
 
 
 	constructor(app: PseuplexApp) {
 		this.app = app;
 		const self = this;
+		const requestExecutor = new RequestExecutor();
+		this.requestExecutor = requestExecutor;
 
 		// create section
 		/*const section = new PseuplexSection({
@@ -93,6 +97,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						//section: section,
 						//matchToPlexServerMetadata: true
 						loggingOptions: app.loggingOptions,
+						requestExecutor,
 					});
 				}
 			}(),
@@ -122,6 +127,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						} : undefined),
 						defaultCount: 12,
 						loggingOptions: app.loggingOptions,
+						requestExecutor,
 					});
 				}
 			}(),
@@ -137,7 +143,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					try {
 						hrefParts = letterboxd.parseHref(id) as letterboxd.ListHrefParts;
 					} catch(error) {
-						console.error(`Failed to parse href ${id} :`);
+						console.error(`Failed to parse letterboxd href ${id} :`);
 						console.error(error);
 						return id;
 					}
@@ -180,6 +186,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						} : undefined),
 						defaultCount: 12,
 						loggingOptions: app.loggingOptions,
+						requestExecutor,
 					});
 				}
 			}()
@@ -192,6 +199,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			plexMetadataClient: this.app.plexMetadataClient,
 			similarItemsHubProvider: this.hubs.similar,
 			plexGuidToInfoCache: this.app.plexGuidToInfoCache,
+			requestExecutor,
 		});
 	}
 

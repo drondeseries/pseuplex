@@ -8,11 +8,12 @@ import {
 	PseuplexHubSectionInfo,
 	PseuplexFeedHubLoggingOptions,
 } from '../../pseuplex';
+import { ListFetchInterval } from '../../fetching/LoadableList';
+import { RequestExecutor } from '../../fetching/RequestExecutor';
 import * as lbtransform from './transform';
 import { LetterboxdMetadataProvider } from './metadata';
 import { LetterboxdActivityFeedHub } from './activityfeedhub';
 import { LetterboxdFilmsHub } from './filmshub';
-import { ListFetchInterval } from '../../fetching/LoadableList';
 import { LetterboxdFilmListHub } from './filmlisthub';
 
 
@@ -26,7 +27,9 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 	section?: PseuplexHubSectionInfo,
 	matchToPlexServerMetadata?: boolean,
 	loggingOptions?: PseuplexFeedHubLoggingOptions,
+	requestExecutor?: RequestExecutor,
 }): LetterboxdActivityFeedHub => {
+	const { requestExecutor } = options;
 	return new LetterboxdActivityFeedHub({
 		hubPath: options.hubPath,
 		title: `Friends Activity on Letterboxd (${letterboxdUsername})`,
@@ -46,11 +49,18 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 		matchToPlexServerMetadata: options.matchToPlexServerMetadata,
 		loggingOptions: options.loggingOptions,
 	}, async (pageToken) => {
-		console.log(`Fetching user following feed for ${letterboxdUsername} (pageToken=${JSON.stringify(pageToken)})`);
-		return await letterboxd.getUserFollowingFeed(letterboxdUsername, {
+		const reqOpts: letterboxd.GetUserFollowingFeedOptions = {
 			after: pageToken?.token ?? undefined,
 			csrf: pageToken?.csrf ?? undefined
-		});
+		};
+		console.log(`Fetching user following feed for ${letterboxdUsername} (pageToken=${JSON.stringify(pageToken)})`);
+		if(requestExecutor) {
+			return await requestExecutor.do(async () => {
+				return await letterboxd.getUserFollowingFeed(letterboxdUsername, reqOpts);
+			});
+		} else {
+			return await letterboxd.getUserFollowingFeed(letterboxdUsername, reqOpts);
+		}
 	});
 };
 
@@ -66,7 +76,9 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 	section?: PseuplexHubSectionInfo,
 	matchToPlexServerMetadata?: boolean,
 	loggingOptions?: PseuplexFeedHubLoggingOptions,
+	requestExecutor?: RequestExecutor,
 }) => {
+	const { requestExecutor } = options;
 	const metadataTransformOpts: PseuplexMetadataTransformOptions = options.metadataTransformOptions ?? {
 		metadataBasePath: options.letterboxdMetadataProvider.basePath,
 		qualifiedMetadataId: false
@@ -100,7 +112,13 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 			opts = filmOpts;
 		}
 		console.log(`Fetching letterboxd similar items hub for ${metadataId} (pageToken=${JSON.stringify(pageHref)})`);
-		return await letterboxd.getSimilarFilms(opts);
+		if(requestExecutor) {
+			return await requestExecutor.do(async () => {
+				return await letterboxd.getSimilarFilms(opts);
+			});
+		} else {
+			return await letterboxd.getSimilarFilms(opts);
+		}
 	});
 };
 
@@ -116,7 +134,9 @@ export const createListHub = async (listId: lbtransform.PseuplexLetterboxdListID
 	section?: PseuplexHubSectionInfo,
 	matchToPlexServerMetadata?: boolean,
 	loggingOptions?: PseuplexFeedHubLoggingOptions,
+	requestExecutor?: RequestExecutor,
 }) => {
+	const { requestExecutor } = options;
 	const metadataTransformOpts: PseuplexMetadataTransformOptions = options.metadataTransformOptions ?? {
 		metadataBasePath: options.letterboxdMetadataProvider.basePath,
 		qualifiedMetadataId: false
@@ -146,6 +166,12 @@ export const createListHub = async (listId: lbtransform.PseuplexLetterboxdListID
 			opts = listOpts;
 		}
 		console.log(`Fetching letterboxd list ${listId} (pageToken=${JSON.stringify(pageHref)})`);
-		return await letterboxd.getFilmList(opts);
+		if(requestExecutor) {
+			return requestExecutor.do(async () => {
+				return await letterboxd.getFilmList(opts);
+			});
+		} else {
+			return await letterboxd.getFilmList(opts);
+		}
 	});
 };

@@ -21,8 +21,13 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 	override async fetchMetadataItem(id: PseuplexPartialMetadataIDString): Promise<LetterboxdMetadataItem> {
 		console.log(`Fetching letterboxd info for ${id}`);
 		const getFilmOpts = lbTransform.getFilmOptsFromPartialMetadataId(id);
-		const filmInfo = await letterboxd.getFilm(getFilmOpts);
-		return filmInfo;
+		if(this.requestExecutor) {
+			return this.requestExecutor.do(async () => {
+				return await letterboxd.getFilm(getFilmOpts);
+			});
+		} else {
+			return await letterboxd.getFilm(getFilmOpts);
+		}
 	}
 
 	override transformMetadataItem(metadataItem: LetterboxdMetadataItem, transformOpts: PseuplexMetadataTransformOptions): PseuplexMetadataItem {
@@ -89,13 +94,20 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 		}
 		// get metadata
 		console.log(`Fetching letterboxd film from ${JSON.stringify(getFilmOpts)}`);
-		const filmInfoTask = letterboxd.getFilm(getFilmOpts)
-			.catch((error: letterboxd.LetterboxdError) => {
-				if(error.httpResponse?.status == 404 || error.message.search(/[nN]ot [fF]ound/) != -1) {
-					return null;
-				}
-				throw error;
-			});
+		const filmInfoTask = (async () => {
+			if(this.requestExecutor) {
+				return this.requestExecutor.do(async () => {
+					return await letterboxd.getFilm(getFilmOpts);
+				});
+			} else {
+				return await letterboxd.getFilm(getFilmOpts);
+			}
+		})().catch((error: letterboxd.LetterboxdError) => {
+			if(error.httpResponse?.status == 404 || error.message.search(/[nN]ot [fF]ound/) != -1) {
+				return null;
+			}
+			throw error;
+		});
 		if(plexGuid) {
 			this.plexGuidToIDCache.setSync(plexGuid, filmInfoTask.then((filmInfo) => {
 				if(!filmInfo) {

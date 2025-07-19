@@ -1,5 +1,6 @@
 
 import { CachedFetcher } from '../fetching/CachedFetcher';
+import { RequestExecutor } from '../fetching/RequestExecutor';
 import * as plexTypes from '../plex/types';
 import * as plexServerAPI from '../plex/api';
 import { removeFileParamsFromMetadataParams } from '../plex/api/serialization';
@@ -91,6 +92,7 @@ export type PseuplexMetadataProviderOptions = {
 	similarItemsHubProvider?: PseuplexSimilarItemsHubProvider;
 	plexGuidToInfoCache?: PlexGuidToInfoCache;
 	loggingOptions?: PseuplexMetadataProviderLoggingOptions;
+	requestExecutor?: RequestExecutor;
 };
 
 export type PseuplexMetadataProviderLoggingOptions = {
@@ -116,6 +118,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 	readonly section?: PseuplexSection;
 	readonly plexMetadataClient: PlexClient;
 	readonly loggingOptions: PseuplexMetadataProviderLoggingOptions;
+	readonly requestExecutor?: RequestExecutor;
 	readonly similarItemsHubProvider?: PseuplexSimilarItemsHubProvider | undefined;
 
 	readonly idToPlexGuidCache: CachedFetcher<string | null>;
@@ -127,6 +130,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		this.section = options.section;
 		this.plexMetadataClient = options.plexMetadataClient;
 		this.loggingOptions = options.loggingOptions || {};
+		this.requestExecutor = options.requestExecutor;
 		this.similarItemsHubProvider = options.similarItemsHubProvider;
 		this.idToPlexGuidCache = new CachedFetcher(async (id: string) => {
 			throw new Error("Cannot fetch guid from cache");
