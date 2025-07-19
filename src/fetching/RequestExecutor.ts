@@ -64,7 +64,7 @@ export class RequestExecutor {
 			}
 			const res = (error as HttpResponseError)?.httpResponse;
 			if (res && res.status == 429) {
-				console.error(error);
+				console.error(`Got 429 response from ${res.url}`);
 				// Got 429, which means we need to wait before retrying
 				const retryAfterSeconds = this._getRetryAfterSeconds(res);
 				const nextRetryTime = process.uptime() + retryAfterSeconds;
