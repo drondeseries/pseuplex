@@ -20,7 +20,7 @@ import { LetterboxdFilmListHub } from './filmlisthub';
 export const createUserFollowingFeedHub = (letterboxdUsername: string, options: {
 	hubPath: string,
 	style: plexTypes.PlexHubStyle,
-	promoted: boolean,
+	promoted?: boolean,
 	uniqueItemsOnly: boolean,
 	metadataTransformOptions?: PseuplexMetadataTransformOptions,
 	letterboxdMetadataProvider: LetterboxdMetadataProvider,
@@ -69,7 +69,7 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 	relativePath: string,
 	title: string,
 	style: plexTypes.PlexHubStyle,
-	promoted: boolean,
+	promoted?: boolean,
 	metadataTransformOptions?: PseuplexMetadataTransformOptions,
 	letterboxdMetadataProvider: LetterboxdMetadataProvider,
 	defaultCount?: number,
@@ -126,7 +126,7 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 export const createListHub = async (listId: lbtransform.PseuplexLetterboxdListID, options: {
 	path: string,
 	style: plexTypes.PlexHubStyle,
-	promoted: boolean,
+	promoted?: boolean,
 	metadataTransformOptions?: PseuplexMetadataTransformOptions,
 	letterboxdMetadataProvider: LetterboxdMetadataProvider,
 	defaultCount?: number,
