@@ -102,7 +102,7 @@ export type CreateRequestItem = {
 	userId?: number;
 };
 
-export const request = async (options: {
+export const createRequest = async (options: {
 	params: CreateRequestItem,
 	serverURL: string,
 	apiKey?: string

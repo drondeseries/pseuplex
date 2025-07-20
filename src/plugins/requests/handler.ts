@@ -16,9 +16,9 @@ import {
 import * as extPlexTransform from '../../pseuplex/externalplex/transform';
 import {
 	RequestsProviders,
-	RequestInfo,
 	RequestsProvider,
 } from './provider';
+import { requestedMediaStatusDisplayText, RequestInfo, RequestStatus, requestStatusDisplayText } from './types';
 import * as reqsTransform from './transform';
 import {
 	RequestPartialMetadataIDParts,
@@ -317,7 +317,6 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 					seasons: id.season != null ? [id.season] : undefined,
 					context: options.context,
 				});
-				// TODO add request state to the output metadata somehow
 			}
 		}
 		// transform response data
@@ -350,8 +349,18 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				if(itemType == plexTypes.PlexMediaItemType.TVShow) {
 					metadataItem.title = `Request • ${metadataItem.title}`;
 				} else {
+					let requestState;
+					if(reqInfo) {
+						requestState = `Request: ${requestStatusDisplayText(reqInfo.requestStatus)}`;
+						if(reqInfo.requestStatus == RequestStatus.Approved) {
+							requestState += `, ${requestedMediaStatusDisplayText(reqInfo.mediaStatus)}`;
+						}
+						requestState += '\n';
+					} else {
+						requestState = '⬇️ 𝐑𝐞𝐪𝐮𝐞𝐬𝐭𝐞𝐝\n';
+					}
 					metadataItem.title = `Requested • ${metadataItem.title}`
-					metadataItem.summary = `⬇️ 𝐑𝐞𝐪𝐮𝐞𝐬𝐭𝐞𝐝\n${metadataItem.summary ?? ''}`;
+					metadataItem.summary = `${requestState}${metadataItem.summary ?? ''}`;
 				}
 				reqsTransform.setMetadataItemKeyToRequestKey(metadataItem, {
 					...transformOpts,
@@ -372,7 +381,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				context: options.context,
 				plexParams: options.plexParams
 			});
-			return metadataPage.MediaContainer.Metadata
+			return metadataPage.MediaContainer.Metadata;
 		}))).flatMap((item) => {
 			if(item instanceof Array) {
 				return item;

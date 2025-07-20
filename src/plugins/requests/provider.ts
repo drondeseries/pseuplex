@@ -2,10 +2,7 @@
 import * as plexTypes from '../../plex/types';
 import { PlexServerAccountInfo } from '../../plex/accounts';
 import { PseuplexRequestContext } from '../../pseuplex';
-
-export type RequestInfo = {
-	requestId: string | number;
-};
+import { RequestInfo } from './types';
 
 export type PlexMediaRequestOptions = {
 	seasons?: number[];

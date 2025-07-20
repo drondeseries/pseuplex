@@ -28,7 +28,6 @@ import {
 	transformArrayOrSingle
 } from '../../utils/misc';
 import {
-	RequestInfo,
 	RequestsProvider,
 	RequestsProviders,
 } from './provider';

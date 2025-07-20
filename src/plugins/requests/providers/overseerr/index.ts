@@ -8,12 +8,13 @@ import {
 } from '../../../../pseuplex';
 import {
 	PlexMediaRequestOptions,
-	RequestInfo,
 	RequestsProvider
 } from '../../provider';
+import { RequestInfo } from '../../types';
 import { OverseerrRequestsPluginConfig } from './config';
 import * as overseerrAPI from './api';
 import * as overseerrTypes from './apitypes'
+import * as ovrsrTransform from './transform';
 import { httpError } from '../../../../utils/error';
 import { firstOrSingle } from '../../../../utils/misc';
 
@@ -218,10 +219,10 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 		});
 		if(matchingRequest) {
 			// already requested by this user
-			return this._transformRequestInfo(matchingRequest);
+			return ovrsrTransform.transformOverseerrRequestItem(matchingRequest, mediaItemInfo.mediaInfo);
 		}
 		// send request to overseerr
-		const resData = await overseerrAPI.request({
+		const resData = await overseerrAPI.createRequest({
 			serverURL: cfg.host,
 			apiKey: cfg.apiKey,
 			params: {
@@ -231,13 +232,6 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				seasons: options?.seasons
 			}
 		});
-		return this._transformRequestInfo(resData);
-	}
-
-
-	_transformRequestInfo(request: overseerrTypes.MediaRequestItem | overseerrTypes.MediaRequestInfo): RequestInfo {
-		return {
-			requestId: request.id
-		};
+		return ovrsrTransform.transformOverseerrRequestItem(resData, resData.media);
 	}
 }

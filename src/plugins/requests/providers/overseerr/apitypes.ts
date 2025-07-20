@@ -71,15 +71,9 @@ export enum MediaRequestStatus {
 export type MediaRequestItem = {
 	id: number;
 	status: MediaRequestStatus;
-	media: {
-		id: number;
-		tmdbId?: number;
-		tvdbId?: number;
-		status: MediaStatus;
+	media: (MediaItemInfo & {
 		requests: string[];
-		createdAt: string; // "2020-09-12T10:00:27.000Z"
-		updatedAt: string; // "2020-09-12T10:00:27.000Z"
-	},
+	}),
 	createdAt: string; // "2020-09-12T10:00:27.000Z"
 	updatedAt: string; // "2020-09-12T10:00:27.000Z"
 	requestedBy: User;
@@ -151,6 +145,15 @@ export enum MediaStatus {
 	PartiallyAvailable = 4,
 	Available = 5
 };
+
+export type MediaItemInfo = {
+	id: number;
+	tmdbId: number;
+	tvdbId: number;
+	status: MediaStatus;
+	createdAt: string; // "2020-09-12T10:00:27.000Z"
+	updatedAt: string; // "2020-09-12T10:00:27.000Z"
+}
 
 
 
@@ -236,15 +239,9 @@ export type Movie = {
 		tvrageId: number;
 		twitterId: string;
 	};
-	mediaInfo: {
-		id: number;
-		tmdbId: number;
-		tvdbId: number;
-		status: number;
+	mediaInfo: (MediaItemInfo & {
 		requests: MediaRequestInfo[];
-		createdAt: string;
-		updatedAt: string;
-	};
+	});
 	watchProviders: WatchProvider[][];
 };
 
@@ -317,15 +314,9 @@ export type TVShow = {
 		id: number;
 		name: string
 	}[];
-	mediaInfo: {
-		id: number;
-		tmdbId: number;
-		tvdbId: number;
-		status: number;
+	mediaInfo: (MediaItemInfo & {
 		requests: MediaRequestInfo[];
-		createdAt: string;
-		updatedAt: string;
-	};
+	});
 	watchProviders: WatchProvider[][];
 };
 
