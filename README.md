@@ -145,7 +145,7 @@ If you are using your plex server's default certificate (ie `ssl.autoP12Path` an
 
 ![Plex Server Default URLs](docs/images/plex_server_urls_default.png)
 
-You may also want to disable *Enable Relay*, *Enable local network discovery (GDM)*, and *Enable server support for IPv6*, to prevent the proxy from being circumvented.
+You may also want to disable *Enable Relay* and *Enable local network discovery (GDM)* to prevent the proxy from being circumvented.
 
 At this point, your plex server might not show up on *app.plex.tv* until you start the proxy server, but you should still be able to access it via its local ip.
 
