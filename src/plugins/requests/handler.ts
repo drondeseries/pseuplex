@@ -140,6 +140,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			librarySectionTitle: requestActionTitle,
 			librarySectionID,
 			librarySectionKey: `/library/sections/${librarySectionID}`,
+			childCount: metadataItem.childCount,
 			Media: [{
 				id: 1,
 				videoResolution: requestActionTitle,

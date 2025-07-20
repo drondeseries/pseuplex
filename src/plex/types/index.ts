@@ -4,6 +4,7 @@ export * from './auth';
 export * from './HubContext';
 export * from './Hub';
 export * from './Library';
+export * from './Media';
 export * from './MediaContainer';
 export * from './MediaProvider';
 export * from './Meta';

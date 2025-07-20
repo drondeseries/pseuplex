@@ -96,7 +96,19 @@ export const filmInfoToPlexMetadata = (filmInfo: letterboxd.FilmPage, options: P
 			}) ?? undefined,
 		Review: filmInfo.pageData.popularReviews?.map((viewing) => {
 			return viewingToPlexReview(viewing);
-		})
+		}),
+		Media: [
+			{
+				id: 'nonexistant' as any,
+				Part: [
+					{
+						id: 'nonexistant' as any,
+						accessible: false,
+						exists: false,
+					} as plexTypes.PlexMediaPart
+				]
+			} as plexTypes.PlexMedia
+		]
 	};
 };
 

@@ -25,5 +25,7 @@ export type PlexMediaPart = {
 	container: string; // "mkv"
 	indexes: string; // "sd"
 	videoProfile: string; // "main 10"
+	accessible?: boolean,
+	exists?: boolean,
 	// TODO add stream info
 };

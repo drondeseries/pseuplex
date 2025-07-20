@@ -85,6 +85,7 @@ export type PlexMetadataItem = {
 	availabilityId?: string;
 	streamingMediaId?: string;
 	userState?: boolean;
+	childCount?: number;
 
 	Guid?: PlexGuid[];
 	Genre?: PlexGenre[];
