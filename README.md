@@ -147,10 +147,6 @@ If you are using your plex server's default certificate (ie `ssl.autoP12Path` an
 
 You may also want to disable *Enable Relay* and *Enable local network discovery (GDM)* to prevent the proxy from being circumvented.
 
-If you're having issues with remote streams showing up as local streams, try manually specifying your LAN networks.
-
-![Plex Local Network Settings](docs/images/plex_lan_network.png)
-
 At this point, your plex server might not show up on *app.plex.tv* until you start the proxy server, but you should still be able to access it via its local ip.
 
 ### Local Access
@@ -162,6 +158,12 @@ If you're having issues getting clients to connect through the proxy, try settin
 ### Remote Access
 
 If you want to enable the proxy for remote access, you'll just need to port forward your proxy server instead of your plex server.
+
+If you're having issues with remote streams showing up as local streams, try manually specifying your LAN networks.
+
+![Plex Local Network Settings](docs/images/plex_lan_network.png)
+
+If remote streams are still showing as local streams, add `"ipv4ForwardingMode": "ToIPv4"` to your `config.json`. This will normalize any ipv4 addresses in your forwarding headers that may be being sent as ipv6 addresses.
 
 ### Running
 
