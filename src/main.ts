@@ -123,6 +123,7 @@ const readPlexPrefsIfNeeded = async () => {
 			},
 			requestExecutor: new RequestExecutor({
 				maxParallelRequests: 5,
+				occasionalDelayFrequency: 10,
 			}),
 		}),
 		serverOptions: {

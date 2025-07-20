@@ -22,12 +22,13 @@ export class RequestExecutor {
 	randomDelayMax: number;
 	backoffMultiplier: number;
 	maxParallelRequests?: number;
-	occasionalDelayFrequency: number;
+	occasionalDelayFrequency?: number;
 	occasionalDelay: number;
 	
 	private _requestPromises = new Set<Promise<any>>();
 	private _retryingRequestCount: number = 0;
 	private _nextRetryTime: number | null = null;
+	private _lastRequestEndTime: number | null = null;
 	private _occasionalDelayCounter: number = 0;
 	private _occasionalDelayPromise: Promise<void> | null = null;
 
@@ -39,7 +40,7 @@ export class RequestExecutor {
 		this.randomDelayMax = options?.randomDelayMax ?? 6;
 		this.backoffMultiplier = options?.backoffMultiplier ?? 3;
 		this.maxParallelRequests = options?.maxParallelRequests;
-		this.occasionalDelayFrequency = options?.occasionalDelayFrequency ?? options?.maxParallelRequests ?? 10;
+		this.occasionalDelayFrequency = options?.occasionalDelayFrequency;
 		this.occasionalDelay = options?.occasionalDelay ?? 5;
 	}
 
@@ -60,17 +61,26 @@ export class RequestExecutor {
 		firstAttempt: boolean,
 	) {
 		abortSignal?.throwIfAborted();
+		// clear occasional delay counter if its been long enough
+		if(this.occasionalDelayFrequency && this._lastRequestEndTime
+			&& this._requestPromises.size == 0
+			&& (process.uptime() - this._lastRequestEndTime) > this.occasionalDelay
+		) {
+			this._occasionalDelayCounter = 0;
+		}
 		// wait for occasional delay if needed
 		if(this._occasionalDelayPromise) {
 			await waitForPromise(this._occasionalDelayPromise, abortSignal);
 		}
 		// set next occasional delay if needed
-		this._occasionalDelayCounter++;
-		if (this._occasionalDelayCounter >= this.occasionalDelayFrequency) {
-			this._occasionalDelayCounter = 0;
-			this._occasionalDelayPromise = delay(this.occasionalDelay * 1000).finally(() => {
-				this._occasionalDelayPromise = null;
-			});
+		if (this.occasionalDelayFrequency) {
+			this._occasionalDelayCounter++;
+			if (this._occasionalDelayCounter >= this.occasionalDelayFrequency) {
+				this._occasionalDelayCounter = 0;
+				this._occasionalDelayPromise = delay(this.occasionalDelay * 1000).finally(() => {
+					this._occasionalDelayPromise = null;
+				});
+			}
 		}
 		do {
 			// check if request should be delayed
@@ -157,6 +167,7 @@ export class RequestExecutor {
 		this._requestPromises.add(promise);
 		return promise.finally(() => {
 			this._requestPromises.delete(promise);
+			this._lastRequestEndTime = process.uptime();
 		});
 	}
 
