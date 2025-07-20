@@ -14,7 +14,7 @@ This project is still very much a WIP. While I've tried to do my due diligence i
 
 	![Dashboard Section](docs/images/dashboard_section.png)
 
-	A list of hubs that can be configured is available [here](docs/Dashboard#hubs).
+	A list of hubs that can be configured is available [here](docs/Dashboard.md#hubs).
 
 	For movies that aren't available on your server, the "unavailable" status will appear on the details page.
 
@@ -113,7 +113,7 @@ Create a `config.json` file with the following structure, and fill in the config
 - **dashboard**:
 	- **enabled**: Controls whether to show a pseudo "Dashboard" section for all users, which will show custom hubs
 	- **title**: The title to display for the section
-	- **hubs**: An array of hubs to show on the dashboard section for all users. For a list of hubs that can be configured, see [here](docs/Dashboard#hubs).
+	- **hubs**: An array of hubs to show on the dashboard section for all users. For a list of hubs that can be configured, see [here](docs/Dashboard.md#hubs).
 		- **plugin**: The name of the plugin that this hub comes from (for example, `letterboxd` for letterboxd hubs)
 		- **hub**: The name of the hub within the plugin (for example, `userFollowingActivity` the activity feed of users that a given user is following)
 		- **arg**: The argument to pass to the hub provider for this hub. (for `letterboxd`.`userFollowingActivity` hub, this would be a letterboxd username slug, for example `crew`)
@@ -126,7 +126,7 @@ Create a `config.json` file with the following structure, and fill in the config
 	- **dashboard**:
 		- **enabled**: Controls whether to show a pseudo "Dashboard" section for this user, which will show custom hubs
 		- **title**: The title to display for the section for this user
-		- **hubs**: An array of hubs to show on the dashboard section for this user. For a list of hubs that can be configured, see [here](docs/Dashboard#hubs).
+		- **hubs**: An array of hubs to show on the dashboard section for this user. For a list of hubs that can be configured, see [here](docs/Dashboard.md#hubs).
 			- **plugin**: The name of the plugin that this hub comes from (for example, `letterboxd` for letterboxd hubs)
 			- **hub**: The name of the hub within the plugin
 			- **arg**: The argument to pass to the hub provider
