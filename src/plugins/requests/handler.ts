@@ -355,7 +355,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				}
 				reqsTransform.setMetadataItemKeyToRequestKey(metadataItem, {
 					...transformOpts,
-					children: (itemType == plexTypes.PlexMediaItemType.TVShow || itemType == plexTypes.PlexMediaItemType.Season)
+					children: (itemType == plexTypes.PlexMediaItemType.TVShow)
 				});
 			});
 		}
