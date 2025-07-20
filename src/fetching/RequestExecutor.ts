@@ -64,9 +64,9 @@ export class RequestExecutor {
 		if(this._occasionalDelayPromise) {
 			await waitForPromise(this._occasionalDelayPromise, abortSignal);
 		}
+		// set next occasional delay if needed
 		this._occasionalDelayCounter++;
-		if (this._occasionalDelayCounter > this.occasionalDelayFrequency) {
-			// set next occasional delay if needed
+		if (this._occasionalDelayCounter >= this.occasionalDelayFrequency) {
 			this._occasionalDelayCounter = 0;
 			this._occasionalDelayPromise = delay(this.occasionalDelay * 1000).finally(() => {
 				this._occasionalDelayPromise = null;
