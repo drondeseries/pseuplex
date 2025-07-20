@@ -193,7 +193,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				}
 			}()
 		};
-
+		
 		// create metadata provider
 		this.metadata = new LetterboxdMetadataProvider({
 			basePath: `${this.basePath}/metadata`,
@@ -257,8 +257,6 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexMetadataPage> => {
 				console.log(`\ngot request for letterboxd item ${req.params.id}`);
 				const context = this.app.contextForRequest(req);
-				const reqAuthContext = req.plex.authContext;
-				const reqUserInfo = req.plex.userInfo;
 				const params = req.plex.requestParams;
 				const itemIdsStr = req.params.id?.trim();
 				if(!itemIdsStr) {
@@ -287,11 +285,19 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						const metadataIdParts = parsePartialMetadataID(metadataId);
 						// add similar items hub
 						const metadataProvider = this.metadata;
-						const resData = await metadataProvider.getRelatedHubs(metadataId, {
+						const relHubsData = await metadataProvider.getRelatedHubs(metadataId, {
 							context
 						});
+						const existingRelatedItemCount = (metadataItem.Related?.Hub?.length ?? 0);
+						if(existingRelatedItemCount > 0) {
+							const relatedItemsOgCount = relHubsData.MediaContainer.size ?? relHubsData.MediaContainer.Hub?.length ?? 0;
+							relHubsData.MediaContainer.Hub = metadataItem.Related.Hub.concat(relHubsData.MediaContainer.Hub);
+							relHubsData.MediaContainer.size = relatedItemsOgCount + existingRelatedItemCount;
+						}
 						// filter response
-						await this.app.filterResponse('metadataRelatedHubsFromProvider', resData, { userReq:req, userRes:res, metadataId:metadataIdParts, metadataProvider });
+						await this.app.filterResponse('metadataRelatedHubsFromProvider', relHubsData, { userReq:req, userRes:res, metadataId:metadataIdParts, metadataProvider });
+						// apply items hub
+						metadataItem.Related = relHubsData.MediaContainer;
 					});
 				}
 				// filter page
@@ -451,8 +457,10 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			let letterboxdId: string | null = null;
 			// get plex guid from metadata id
 			if(metadataId.source == this.metadata.sourceSlug) {
+				// id is already a letterboxd id
 				letterboxdId = stringifyPartialMetadataID(metadataId);
 			} else {
+				// get plex guid
 				let plexGuid: string | null = null;
 				if(metadataId.source == PseuplexMetadataSource.Plex) {
 					plexGuid = stringifyMetadataID({
