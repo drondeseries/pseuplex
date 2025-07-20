@@ -60,16 +60,17 @@ export class RequestExecutor {
 		firstAttempt: boolean,
 	) {
 		abortSignal?.throwIfAborted();
-		this._occasionalDelayCounter++;
 		// wait for occasional delay if needed
+		if(this._occasionalDelayPromise) {
+			await waitForPromise(this._occasionalDelayPromise, abortSignal);
+		}
+		this._occasionalDelayCounter++;
 		if (this._occasionalDelayCounter > this.occasionalDelayFrequency) {
+			// set next occasional delay if needed
 			this._occasionalDelayCounter = 0;
 			this._occasionalDelayPromise = delay(this.occasionalDelay * 1000).finally(() => {
 				this._occasionalDelayPromise = null;
 			});
-		}
-		if(this._occasionalDelayPromise) {
-			await waitForPromise(this._occasionalDelayPromise, abortSignal);
 		}
 		do {
 			// check if request should be delayed
