@@ -60,7 +60,7 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 			title: filmInfo.pageData.name,
 			year: filmInfo.pageData.year,
 			types: types,
-			guids: guids
+			guids: guids,
 		};
 	}
 

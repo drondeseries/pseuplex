@@ -167,6 +167,27 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 			if(!matchParams) {
 				return null;
 			}
+			if(!matchParams.includeFields) {
+				matchParams.includeFields = [];
+			}
+			matchParams.includeFields.push('guid','slug');
+			if(!matchParams.excludeElements) {
+				matchParams.excludeElements = [];
+			}
+			matchParams.excludeElements.push(
+				'Image',
+				'Genre',
+				'Rating',
+				'Country',
+				'Role',
+				'Similar',
+				'Producer',
+				'Director',
+				'Summary',
+				'Writer',
+				'Studio',
+				'CommonSenseMedia'
+			);
 			const matchingMetadata = await findMatchingPlexMediaItem(this.plexMetadataClient, matchParams, context);
 			const plexGuid = matchingMetadata?.guid;
 			if(!plexGuid) {

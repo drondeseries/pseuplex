@@ -15,7 +15,9 @@ export type PlexGetLibraryMatchesParams = {
 	title?: string,
 	year?: number,
 	agent?: PlexLibraryAgent,
-	language?: PlexLanguage
+	language?: PlexLanguage,
+	includeFields?: string | string[],
+	excludeElements?: string | string[],
 };
 
 export type PlexLibrarySectionsPageParams = {

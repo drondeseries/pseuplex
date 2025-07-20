@@ -22,7 +22,9 @@ export type PlexMediaItemMatchParams = {
 	title: string,
 	year?: number | string,
 	types: plexTypes.PlexMediaItemTypeNumeric | plexTypes.PlexMediaItemTypeNumeric[],
-	guids: `${string}://${string}`[]
+	guids: `${string}://${string}`[],
+	includeFields?: string[],
+	excludeElements?: string[],
 };
 
 export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, params: PlexMediaItemMatchParams, context: PseuplexRequestContext): Promise<plexTypes.PlexMetadataItem | null> => {
@@ -31,7 +33,9 @@ export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, para
 		for(const guid of params.guids) {
 			const matchesPage = await metadataClient.getMatches({
 				type: params.types,
-				guid
+				guid,
+				includeFields: params.includeFields,
+				excludeElements: params.excludeElements,
 			}, {
 				authContext: context.plexAuthContext
 			});

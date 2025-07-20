@@ -68,7 +68,7 @@ const readPlexPrefsIfNeeded = async () => {
 	if(plexServerURL.indexOf('://') === -1) {
 		plexServerURL = 'http://'+plexServerURL;
 	}
-
+	
 	// initialize server SSL
 	const sslConfig: SSLConfig = {
 		p12Path: cfg.ssl?.p12Path,
