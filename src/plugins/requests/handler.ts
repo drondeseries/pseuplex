@@ -124,7 +124,9 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				mediaType: guidParts.type as plexTypes.PlexMediaItemType,
 				plexId: guidParts.id,
 				season: options.season,
-				children: false
+				children:
+					(options.mediaType == plexTypes.PlexMediaItemTypeNumeric.Show
+					|| options.mediaType == plexTypes.PlexMediaItemTypeNumeric.Season)
 			}),
 			ratingKey: reqsTransform.createRequestFullMetadataId({
 				requestProviderSlug: options.requestProvider.slug,
@@ -351,7 +353,10 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 					metadataItem.title = `Requested • ${metadataItem.title}`
 					metadataItem.summary = `⬇️ 𝐑𝐞𝐪𝐮𝐞𝐬𝐭𝐞𝐝\n${metadataItem.summary ?? ''}`;
 				}
-				reqsTransform.setMetadataItemKeyToRequestKey(metadataItem, transformOpts);
+				reqsTransform.setMetadataItemKeyToRequestKey(metadataItem, {
+					...transformOpts,
+					children: (itemType == plexTypes.PlexMediaItemType.TVShow || itemType == plexTypes.PlexMediaItemType.Season)
+				});
 			});
 		}
 		return resData as PseuplexMetadataPage;

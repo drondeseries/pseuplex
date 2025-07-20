@@ -131,5 +131,5 @@ export const setMetadataItemKeyToRequestKey = (metadataItem: plexTypes.PlexMetad
 
 export const transformRequestableSeasonMetadata = (metadataItem: plexTypes.PlexMetadataItem, opts: TransformRequestMetadataOptions) => {
 	setMetadataItemKeyToRequestKey(metadataItem, opts);
-	metadataItem.title = `Request ${metadataItem.title}`;
+	metadataItem.title = `Request: ${metadataItem.title}`;
 };
