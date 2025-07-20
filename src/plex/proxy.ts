@@ -342,39 +342,37 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 		//changeOrigin: false,
 		//autoRewrite: true,
 	});
-	if(args.logProxyRequests) {
-		plexGeneralProxy.on('proxyReq', (proxyReq, userReq, userRes) => {
-			const ipv4Mode = ((args.ipv4Mode instanceof Function) ? args.ipv4Mode() : args.ipv4Mode)
-				?? IPv4NormalizeMode.DontChange;
-			// add x-real-ip to proxy headers
-			if (!userReq.headers['x-real-ip']) {
-				const realIP = userReq.connection?.remoteAddress || userReq.socket?.remoteAddress;
-				const normalizedIP = normalizeIPAddress(realIP, ipv4Mode);
-				proxyReq.setHeader('X-Real-IP', normalizedIP);
-				// fix forwarded header if needed
-				if(normalizedIP != realIP) {
-					const forwardedFor = proxyReq.getHeader('X-Forwarded-For');
-					if(forwardedFor && typeof forwardedFor === 'string') {
-						const newForwardedFor = forwardedFor.split(',').map((part) => {
-							const trimmedPart = part.trim();
-							return normalizeIPAddress(trimmedPart, ipv4Mode);
-						}).join(',');
-						proxyReq.setHeader('X-Forwarded-For', newForwardedFor);
-					}
+	plexGeneralProxy.on('proxyReq', (proxyReq, userReq, userRes) => {
+		const ipv4Mode = ((args.ipv4Mode instanceof Function) ? args.ipv4Mode() : args.ipv4Mode)
+			?? IPv4NormalizeMode.DontChange;
+		// add x-real-ip to proxy headers
+		if (!userReq.headers['x-real-ip']) {
+			const realIP = userReq.connection?.remoteAddress || userReq.socket?.remoteAddress;
+			const normalizedIP = normalizeIPAddress(realIP, ipv4Mode);
+			proxyReq.setHeader('X-Real-IP', normalizedIP);
+			// fix forwarded header if needed
+			if(normalizedIP != realIP) {
+				const forwardedFor = proxyReq.getHeader('X-Forwarded-For');
+				if(forwardedFor && typeof forwardedFor === 'string') {
+					const newForwardedFor = forwardedFor.split(',').map((part) => {
+						const trimmedPart = part.trim();
+						return normalizeIPAddress(trimmedPart, ipv4Mode);
+					}).join(',');
+					proxyReq.setHeader('X-Forwarded-For', newForwardedFor);
 				}
 			}
-			// log proxy request if needed
-			if(args.logProxyRequests) {
-				console.log(`\nProxy ${proxyReq.method} ${urlLogString(args, proxyReq.path)}`);
-				if(args.logProxyRequestHeaders) {
-					const proxyReqHeaders = proxyReq.getHeaders();
-					for(const headerKey in proxyReqHeaders) {
-						console.log(`\t${headerKey}: ${proxyReqHeaders[headerKey]}`);
-					}
+		}
+		// log proxy request if needed
+		if(args.logProxyRequests) {
+			console.log(`\nProxy ${proxyReq.method} ${urlLogString(args, proxyReq.path)}`);
+			if(args.logProxyRequestHeaders) {
+				const proxyReqHeaders = proxyReq.getHeaders();
+				for(const headerKey in proxyReqHeaders) {
+					console.log(`\t${headerKey}: ${proxyReqHeaders[headerKey]}`);
 				}
 			}
-		});
-	}
+		}
+	});
 	if(args.logProxyResponses || args.logUserResponses || args.logProxyErrorResponseBody) {
 		plexGeneralProxy.on('proxyRes', (proxyRes, userReq, userRes) => {
 			const logHeaders = args.logProxyResponseHeaders || args.logUserResponseHeaders;
