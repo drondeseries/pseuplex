@@ -148,7 +148,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 					const plexParams = req.plex.requestParams;
 					const context = this.app.contextForRequest(req);
 					// handle request
-					return this.requestsHandler.handlePlexRequest({
+					const resData = await this.requestsHandler.handlePlexRequest({
 						requestProviderSlug: providerSlug,
 						mediaType: mediaType as plexTypes.PlexMediaItemType,
 						plexId,
@@ -158,6 +158,9 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 						plexParams,
 						context,
 					});
+					// send unavailable notification(s) if needed
+					this.app.sendMetadataUnavailableNotificationsIfNeeded(resData, plexParams, context);
+					return resData;
 				})
 			]);
 

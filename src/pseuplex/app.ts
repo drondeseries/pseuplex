@@ -63,6 +63,7 @@ import {
 } from './requesthandling';
 import { IDMappings } from './idmappings';
 import { PseuplexSection } from './section';
+import { sendMediaUnavailableNotifications } from './notifications';
 import { CachedFetcher } from '../fetching/CachedFetcher';
 import { urlLogString } from '../utils/logging';
 import { httpError } from '../utils/error';
@@ -1116,5 +1117,35 @@ export class PseuplexApp {
 			}
 		}
 		return false;
+	}
+
+	sendMetadataUnavailableNotificationsIfNeeded(resData: PseuplexMetadataPage, params: plexTypes.PlexMetadataPageParams, context: PseuplexRequestContext) {
+		if(resData?.MediaContainer?.Metadata) {
+			let metadataItems = resData.MediaContainer.Metadata;
+			if(!(metadataItems instanceof Array)) {
+				metadataItems = [metadataItems];
+			}
+			const metadataItemsNotOnServer = metadataItems.filter((item) => !item.Pseuplex.isOnServer);
+			if(metadataItemsNotOnServer.length > 0
+				&& (params.checkFiles == 1 || params.asyncCheckFiles == 1
+					|| params.refreshLocalMediaAgent == 1 || params.asyncRefreshLocalMediaAgent == 1
+					|| params.refreshAnalysis == 1 || params.asyncRefreshAnalysis)) {
+				setTimeout(() => {
+					const userToken = context.plexAuthContext['X-Plex-Token'];
+					const sockets = userToken ? this.clientWebSockets[userToken] : null;
+					if(sockets && sockets.length > 0) {
+						for(const metadataItem of metadataItemsNotOnServer) {
+							if(!metadataItem.Pseuplex.isOnServer) {
+								console.log(`Sending unavailable notifications for ${metadataItem.key} on ${sockets.length} sockets`);
+								sendMediaUnavailableNotifications(sockets, {
+									userID: context.plexUserInfo.serverUserID,
+									metadataKey: metadataItem.key
+								});
+							}
+						}
+					}
+				}, 100);
+			}
+		}
 	}
 }

@@ -297,33 +297,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				// filter page
 				await this.app.filterResponse('metadataFromProvider', resData, { userReq:req, userRes:res, metadataProvider });
 				// send unavailable notification(s) if needed
-				if(resData?.MediaContainer?.Metadata) {
-					let metadataItems = resData.MediaContainer.Metadata;
-					if(!(metadataItems instanceof Array)) {
-						metadataItems = [metadataItems];
-					}
-					const metadataItemsNotOnServer = metadataItems.filter((item) => !item.Pseuplex.isOnServer);
-					if(metadataItemsNotOnServer.length > 0
-						&& (params.checkFiles == 1 || params.asyncCheckFiles == 1
-							|| params.refreshLocalMediaAgent == 1 || params.asyncRefreshLocalMediaAgent == 1
-							|| params.refreshAnalysis == 1 || params.asyncRefreshAnalysis)) {
-						setTimeout(() => {
-							const userToken = reqAuthContext['X-Plex-Token'];
-							const sockets = userToken ? this.app.clientWebSockets[userToken] : null;
-							if(sockets && sockets.length > 0) {
-								for(const metadataItem of metadataItemsNotOnServer) {
-									if(!metadataItem.Pseuplex.isOnServer) {
-										console.log(`Sending unavailable notifications for ${metadataItem.key} on ${sockets.length} sockets`);
-										sendMediaUnavailableNotifications(sockets, {
-											userID: reqUserInfo.serverUserID,
-											metadataKey: metadataItem.key
-										});
-									}
-								}
-							}
-						}, 100);
-					}
-				}
+				this.app.sendMetadataUnavailableNotificationsIfNeeded(resData, params, context);
 				return resData;
 			})
 		]);
