@@ -20,12 +20,13 @@ import {
 	PseuplexMetadataIDParts,
 	PseuplexMetadataSource,
 	PseuplexSimilarItemsHubProvider,
-	sendMediaUnavailableNotifications,
 	stringifyMetadataID,
 	parsePartialMetadataID,
 	stringifyPartialMetadataID,
 	PseuplexMetadataProvider,
-	PseuplexSection
+	PseuplexSection,
+	PseuplexRelatedHubsSource,
+	plexRelatedHubsEndpoints
 } from '../../pseuplex';
 import { LetterboxdPluginConfig } from './config';
 import {
@@ -257,7 +258,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexMetadataPage> => {
 				console.log(`\ngot request for letterboxd item ${req.params.id}`);
 				const context = this.app.contextForRequest(req);
-				const params = req.plex.requestParams;
+				const params: plexTypes.PlexMetadataPageParams = req.plex.requestParams;
 				const itemIdsStr = req.params.id?.trim();
 				if(!itemIdsStr) {
 					throw httpError(400, "No slug was provided");
@@ -275,7 +276,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					plexParams: params
 				});
 				// add related hubs if included
-				if(params['includeRelated'] == 1) {
+				if(params.includeRelated == 1) {
 					// filter related hubs
 					await forArrayOrSingleAsyncParallel(resData.MediaContainer.Metadata, async (metadataItem) => {
 						const metadataId = metadataItem.Pseuplex.metadataIds[this.metadata.sourceSlug];
@@ -286,7 +287,8 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						// add similar items hub
 						const metadataProvider = this.metadata;
 						const relHubsData = await metadataProvider.getRelatedHubs(metadataId, {
-							context
+							context,
+							from: PseuplexRelatedHubsSource.Library,
 						});
 						const existingRelatedItemCount = (metadataItem.Related?.Hub?.length ?? 0);
 						if(existingRelatedItemCount > 0) {
@@ -295,13 +297,23 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 							relHubsData.MediaContainer.size = relatedItemsOgCount + existingRelatedItemCount;
 						}
 						// filter response
-						await this.app.filterResponse('metadataRelatedHubsFromProvider', relHubsData, { userReq:req, userRes:res, metadataId:metadataIdParts, metadataProvider });
+						await this.app.filterResponse('metadataRelatedHubsFromProvider', relHubsData, {
+							userReq:req,
+							userRes:res,
+							metadataId:metadataIdParts,
+							metadataProvider,
+							from: PseuplexRelatedHubsSource.Library,
+						});
 						// apply items hub
 						metadataItem.Related = relHubsData.MediaContainer;
 					});
 				}
 				// filter page
-				await this.app.filterResponse('metadataFromProvider', resData, { userReq:req, userRes:res, metadataProvider });
+				await this.app.filterResponse('metadataFromProvider', resData, {
+					userReq:req,
+					userRes:res,
+					metadataProvider
+				});
 				// send unavailable notification(s) if needed
 				this.app.sendMetadataUnavailableNotificationsIfNeeded(resData, params, context);
 				return resData;
@@ -309,25 +321,34 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		]);
 		
 		// get hubs related to metadata item
-		router.get(`${this.metadata.basePath}/:id/related`, [
-			this.app.middlewares.plexAuthentication,
-			this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
-				const id = req.params.id;
-				const context = this.app.contextForRequest(req);
-				const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:true});
-				// add similar items hub
-				const metadataProvider = this.metadata;
-				const resData = await metadataProvider.getRelatedHubs(id, {
-					plexParams: params,
-					context,
-				});
-				// filter response
-				const metadataId = parsePartialMetadataID(id);
-				await this.app.filterResponse('metadataRelatedHubsFromProvider', resData, { userReq:req, userRes:res, metadataId, metadataProvider });
-				// return response
-				return resData;
-			})
-		]);
+		for(const {endpoint, hubsSource} of plexRelatedHubsEndpoints(`${this.metadata.basePath}/:id`)) {
+			router.get(endpoint, [
+				this.app.middlewares.plexAuthentication,
+				this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
+					const id = req.params.id;
+					const context = this.app.contextForRequest(req);
+					const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:true});
+					// add similar items hub
+					const metadataProvider = this.metadata;
+					const resData = await metadataProvider.getRelatedHubs(id, {
+						plexParams: params,
+						context,
+						from: hubsSource,
+					});
+					// filter response
+					const metadataId = parsePartialMetadataID(id);
+					await this.app.filterResponse('metadataRelatedHubsFromProvider', resData, {
+						userReq:req,
+						userRes:res,
+						metadataId,
+						metadataProvider,
+						from: hubsSource,
+					});
+					// return response
+					return resData;
+				})
+			]);
+		}
 		
 		// get similar films on letterboxd as a hub
 		router.get(`${this.metadata.basePath}/:id/${this.hubs.similar.relativePath}`, [
@@ -358,7 +379,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				}, context);
 			})
 		]);
-
+		
 		// get letterboxd list as a hub
 		router.get(`${this.hubs.list.basePath}/:listId`, [
 			this.app.middlewares.plexAuthentication,

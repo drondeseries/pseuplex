@@ -3,10 +3,9 @@ import http from 'http';
 import express from 'express';
 import * as plexTypes from '../plex/types';
 import { IncomingPlexAPIRequest } from '../plex/requesthandling';
-import { PlexServerAccountInfo } from '../plex/accounts';
 import { PseuplexMetadataPage, PseuplexRequestContext } from './types';
 import { PseuplexHubProvider } from './hub';
-import { PseuplexMetadataProvider } from './metadata';
+import { PseuplexMetadataProvider, PseuplexRelatedHubsSource } from './metadata';
 import { PseuplexMetadataIDParts, PseuplexPartialMetadataIDParts } from './metadataidentifier';
 import { PseuplexSection } from './section';
 
@@ -25,16 +24,18 @@ export type PseuplexResponseFilters = {
 	promotedHubs?: PseuplexResponseFilter<plexTypes.PlexLibraryHubsPage>;
 	metadata?: PseuplexResponseFilter<PseuplexMetadataPage>;
 	metadataRelatedHubs?: PseuplexResponseFilter<plexTypes.PlexHubsPage, (PseuplexResponseFilterContext & {
-		metadataId: PseuplexMetadataIDParts
+		metadataId: PseuplexMetadataIDParts,
+		from: PseuplexRelatedHubsSource,
 	})>;
 	findGuidInLibrary?: PseuplexResponseFilter<plexTypes.PlexMetadataPage, PseuplexResponseFilterContext>;
 
 	metadataFromProvider?: PseuplexResponseFilter<PseuplexMetadataPage, (PseuplexResponseFilterContext & {
-		metadataProvider: PseuplexMetadataProvider
+		metadataProvider: PseuplexMetadataProvider,
 	})>;
 	metadataRelatedHubsFromProvider?: PseuplexResponseFilter<plexTypes.PlexHubsPage, (PseuplexResponseFilterContext & {
 		metadataId: PseuplexPartialMetadataIDParts,
-		metadataProvider: PseuplexMetadataProvider
+		metadataProvider: PseuplexMetadataProvider,
+		from: PseuplexRelatedHubsSource,
 	})>;
 };
 export type PseuplexResponseFilterName = keyof PseuplexResponseFilters;

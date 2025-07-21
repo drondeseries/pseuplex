@@ -5,13 +5,13 @@ import { PlexServerAccountInfo } from '../../plex/accounts';
 import { parsePlexMetadataGuid } from '../../plex/metadataidentifier';
 import {
 	PseuplexMetadataPage,
-	PseuplexHubListParams,
 	PseuplexMetadataChildrenProviderParams,
 	PseuplexMetadataProvider,
 	PseuplexMetadataProviderParams,
 	PseuplexMetadataSource,
 	PseuplexMetadataItem,
-	PseuplexRequestContext
+	PseuplexRelatedHubsParams,
+	PseuplexRequestContext,
 } from '../../pseuplex';
 import * as extPlexTransform from '../../pseuplex/externalplex/transform';
 import {
@@ -426,7 +426,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		}
 	}
 
-	async getRelatedHubs(id: string, options: PseuplexHubListParams): Promise<plexTypes.PlexHubsPage> {
+	async getRelatedHubs(id: string, options: PseuplexRelatedHubsParams): Promise<plexTypes.PlexHubsPage> {
 		return {
 			MediaContainer: {
 				offset: 0,

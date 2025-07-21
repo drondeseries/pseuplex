@@ -84,3 +84,19 @@ export const parsePlexExternalGuids = (guids: plexTypes.PlexGuid[]): {[source: s
 	}
 	return ids;
 };
+
+const libraryPathSegment = '/library';
+
+export const plexLibraryMetadataPathToHubsMetadataPath = (metadataPath: string) => {
+	const metadataIndex = metadataPath.search(/\/metadata(\/|$)/);
+	if(metadataIndex == -1) {
+		return metadataPath;
+	}
+	const libraryStartIndex = metadataIndex - libraryPathSegment.length;
+	if(libraryStartIndex >= 0 && metadataPath.slice(libraryStartIndex, libraryStartIndex+libraryPathSegment.length) == libraryPathSegment) {
+		metadataPath = `${metadataPath.slice(0, libraryStartIndex)}/hubs${metadataPath.slice(metadataIndex)}`;
+	} else {
+		metadataPath = `${metadataPath.slice(0, metadataIndex)}/hubs${metadataPath.slice(metadataIndex)}`;
+	}
+	return metadataPath;
+};

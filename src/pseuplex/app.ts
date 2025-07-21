@@ -44,11 +44,12 @@ import {
 	parseMetadataID,
 } from './metadataidentifier';
 import {
-	PseuplexHubListParams,
 	PseuplexMetadataChildrenProviderParams,
 	PseuplexMetadataProvider,
 	PseuplexMetadataProviderParams,
 	PseuplexMetadataTransformOptions,
+	PseuplexRelatedHubsParams,
+	PseuplexRelatedHubsSource,
 } from './metadata';
 import {
 	PseuplexPlugin,
@@ -78,7 +79,6 @@ import {
 	intParam,
 } from '../utils/misc';
 import { IPv4NormalizeMode } from '../utils/ip';
-
 
 
 // plugins
@@ -439,7 +439,7 @@ export class PseuplexApp {
 				}
 			})
 		]);
-		
+
 		router.get(`/library/metadata/:metadataId`, [
 			this.middlewares.plexAuthentication,
 			pseuplexMetadataIdsRequestMiddleware({
@@ -447,6 +447,7 @@ export class PseuplexApp {
 				metadataIdMappings: this.metadataIdMappings,
 			}, async (req: IncomingPlexAPIRequest, res, metadataIds, keysToIdsMap): Promise<PseuplexMetadataPage> => {
 				const context = this.contextForRequest(req);
+				const params: plexTypes.PlexMetadataPageParams = req.plex.requestParams;
 				// get metadatas
 				const resData = await this.getMetadata(metadataIds, {
 					plexParams: req.plex.requestParams,
@@ -462,7 +463,7 @@ export class PseuplexApp {
 						}
 					}
 					// filter related hubs if included
-					if(req.plex.requestParams['includeRelated'] == 1) {
+					if(params.includeRelated == 1) {
 						// get metadata id
 						let metadataIdString = parseMetadataIDFromKey(metadataItem.key, '/library/metadata/')?.id;
 						if(!metadataIdString) {
@@ -477,7 +478,12 @@ export class PseuplexApp {
 									size: (metadataItem.Related?.Hub?.length ?? 0),
 								}
 							};
-							await this.filterResponse('metadataRelatedHubs', relatedHubsResponse, { userReq:req, userRes:res, metadataId });
+							await this.filterResponse('metadataRelatedHubs', relatedHubsResponse, {
+								userReq:req,
+								userRes:res,
+								metadataId,
+								from: PseuplexRelatedHubsSource.Library,
+							});
 							metadataItem.Related = relatedHubsResponse.MediaContainer;
 						} else {
 							console.error("Failed to determine metadataId from metadata item");
@@ -496,6 +502,7 @@ export class PseuplexApp {
 			}),
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexMetadataPage, userReq: IncomingPlexAPIRequest, userRes) => {
+					const params: plexTypes.PlexMetadataPageParams = userReq.plex.requestParams;
 					// process metadata items
 					await forArrayOrSingleAsyncParallel(resData.MediaContainer.Metadata, async (metadataItem: PseuplexMetadataItem) => {
 						const metadataId = parseMetadataIDFromKey(metadataItem.key, '/library/metadata/')?.id;
@@ -511,7 +518,7 @@ export class PseuplexApp {
 							this.plexServerIdToGuidCache.setSync(metadataId, metadataItem.guid);
 						}
 						// filter related hubs if included
-						if(metadataId && userReq.plex.requestParams['includeRelated'] == 1) {
+						if(metadataId && params.includeRelated == 1) {
 							// filter related hubs
 							const metadataIdParts = parseMetadataID(metadataId);
 							const relatedHubsResponse: plexTypes.PlexHubsPage = {
@@ -520,7 +527,13 @@ export class PseuplexApp {
 									size: (metadataItem.Related?.Hub?.length ?? 0),
 								}
 							};
-							await this.filterResponse('metadataRelatedHubs', relatedHubsResponse, { proxyRes, userReq, userRes, metadataId:metadataIdParts });
+							await this.filterResponse('metadataRelatedHubs', relatedHubsResponse, {
+								proxyRes,
+								userReq,
+								userRes,
+								metadataId:metadataIdParts,
+								from: PseuplexRelatedHubsSource.Library,
+							});
 							metadataItem.Related = relatedHubsResponse.MediaContainer;
 						}
 					});
@@ -560,44 +573,58 @@ export class PseuplexApp {
 			// no need to modify proxied response here (for now)
 		]);
 
-		router.get(`/library/metadata/:metadataId/related`, [
-			this.middlewares.plexAuthentication,
-			pseuplexMetadataIdRequestMiddleware({
-				...plexReqHandlerOpts,
-				metadataIdMappings: this.metadataIdMappings,
-			}, async (req: IncomingPlexAPIRequest, res, metadataId, keysToIdsMap): Promise<plexTypes.PlexHubsPage> => {
-				const context = this.contextForRequest(req);
-				// get metadata
-				const resData = await this.getMetadataRelatedHubs(metadataId, {
-					plexParams: req.plex.requestParams,
-					context,
-				});
-				// filter hub list page
-				await this.filterResponse('metadataRelatedHubs', resData, { userReq:req, userRes:res, metadataId });
-				// remap IDs if needed
-				if(this.metadataIdMappings && resData.MediaContainer.Hub) {
-					for(const hub of resData.MediaContainer.Hub) {
-						this.remapHubMetadataIdsIfNeeded(hub, keysToIdsMap);
-					}
-				}
-				return resData;
-			}),
-			plexApiProxy(this.plexServerURL, plexProxyArgs, {
-				responseModifier: async (proxyRes, resData: plexTypes.PlexHubsPage, userReq: IncomingPlexAPIRequest, userRes) => {
-					// get request info
-					const metadataId = parseMetadataIdFromPathParam(userReq.params.metadataId);
+		for(const hubsSource of Object.values(PseuplexRelatedHubsSource)) {
+			router.get(`/${hubsSource}/metadata/:metadataId/related`, [
+				this.middlewares.plexAuthentication,
+				pseuplexMetadataIdRequestMiddleware({
+					...plexReqHandlerOpts,
+					metadataIdMappings: this.metadataIdMappings,
+				}, async (req: IncomingPlexAPIRequest, res, metadataId, keysToIdsMap): Promise<plexTypes.PlexHubsPage> => {
+					const context = this.contextForRequest(req);
+					// get metadata
+					const resData = await this.getMetadataRelatedHubs(metadataId, {
+						plexParams: req.plex.requestParams,
+						context,
+						from: hubsSource,
+					});
 					// filter hub list page
-					await this.filterResponse('metadataRelatedHubs', resData, { proxyRes, userReq, userRes, metadataId });
-					// remap IDs if needed (since filters may add hubs)
+					await this.filterResponse('metadataRelatedHubs', resData, {
+						userReq:req,
+						userRes:res,
+						metadataId,
+						from: hubsSource,
+					});
+					// remap IDs if needed
 					if(this.metadataIdMappings && resData.MediaContainer.Hub) {
 						for(const hub of resData.MediaContainer.Hub) {
-							this.remapHubMetadataIdsIfNeeded(hub);
+							this.remapHubMetadataIdsIfNeeded(hub, keysToIdsMap);
 						}
 					}
 					return resData;
-				}
-			})
-		]);
+				}),
+				plexApiProxy(this.plexServerURL, plexProxyArgs, {
+					responseModifier: async (proxyRes, resData: plexTypes.PlexHubsPage, userReq: IncomingPlexAPIRequest, userRes) => {
+						// get request info
+						const metadataId = parseMetadataIdFromPathParam(userReq.params.metadataId);
+						// filter hub list page
+						await this.filterResponse('metadataRelatedHubs', resData, {
+							proxyRes,
+							userReq,
+							userRes,
+							metadataId,
+							from: hubsSource,
+						});
+						// remap IDs if needed (since filters may add hubs)
+						if(this.metadataIdMappings && resData.MediaContainer.Hub) {
+							for(const hub of resData.MediaContainer.Hub) {
+								this.remapHubMetadataIdsIfNeeded(hub);
+							}
+						}
+						return resData;
+					}
+				})
+			]);
+		}
 
 		router.get(`/library/all`, [
 			this.middlewares.plexAuthentication,
@@ -937,18 +964,26 @@ export class PseuplexApp {
 		return await metadataProvider.getChildren(partialId, providerParams);
 	}
 
-	async getMetadataRelatedHubs(metadataId: PseuplexMetadataIDParts, options: PseuplexHubListParams): Promise<plexTypes.PlexHubsPage> {
+	async getMetadataRelatedHubs(metadataId: PseuplexMetadataIDParts, options: PseuplexRelatedHubsParams): Promise<plexTypes.PlexHubsPage> {
 		// determine where each ID comes from
 		if(metadataId.source == null || metadataId.source == PseuplexMetadataSource.Plex) {
 			// get related hubs from pms
 			const metadataIdString = stringifyMetadataID(metadataId);
-			return await plexServerAPI.getLibraryMetadataRelatedHubs(metadataIdString, {
+			const relatedHubsOpts: plexServerAPI.GetRelatedHubsOptions = {
 				params: options.plexParams,
 				// TODO include forwarded request headers
 				serverURL: options.context.plexServerURL,
 				authContext: options.context.plexAuthContext,
 				verbose: this.loggingOptions.logOutgoingRequests,
-			});
+			};
+			switch(options.from) {
+				case PseuplexRelatedHubsSource.Library:
+					return await plexServerAPI.getLibraryMetadataRelatedHubs(metadataIdString, relatedHubsOpts);
+				case PseuplexRelatedHubsSource.Hubs:
+					return await plexServerAPI.getMetadataRelatedHubs(metadataIdString, relatedHubsOpts);
+				default:
+					throw new Error(`Unknown related hubs source ${options.from}`);
+			}
 		} else if(metadataId.source == PseuplexMetadataSource.PlexServer) {
 			// TODO get related hubs from external server?
 			/*const itemPlexServerURL = metadataId.directory;

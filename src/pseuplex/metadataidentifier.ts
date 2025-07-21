@@ -1,5 +1,7 @@
 
 import qs from 'querystring';
+import { plexLibraryMetadataPathToHubsMetadataPath } from '../plex/metadataidentifier';
+import { PseuplexRelatedHubsSource } from './metadata';
 
 export type PseuplexMetadataIDParts = {
 	isURL?: boolean;
@@ -171,4 +173,25 @@ export const stringifyPartialMetadataID = (idParts: PseuplexPartialMetadataIDPar
 
 export const qualifyPartialMetadataID = (metadataId: PseuplexPartialMetadataIDString, source: string) => {
 	return `${source}:${metadataId}`;
+};
+
+export const plexRelatedHubsEndpoints = (metadataEndpoint: string): {
+	endpoint: string,
+	hubsSource: PseuplexRelatedHubsSource,
+}[] => {
+	if(!metadataEndpoint.endsWith('/')) {
+		metadataEndpoint += '/';
+	}
+	const endpoints = [{
+		endpoint: metadataEndpoint + 'related',
+		hubsSource: PseuplexRelatedHubsSource.Library,
+	}];
+	const hubsMetadataEndpoint = plexLibraryMetadataPathToHubsMetadataPath(metadataEndpoint);
+	if(hubsMetadataEndpoint != metadataEndpoint) {
+		endpoints.push({
+			endpoint: hubsMetadataEndpoint + 'related',
+			hubsSource: PseuplexRelatedHubsSource.Hubs,
+		});
+	}
+	return endpoints;
 };

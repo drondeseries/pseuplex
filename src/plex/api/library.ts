@@ -45,13 +45,31 @@ export const findLibraryMetadata = async (args: FindLibraryMetadataArgs, options
 	});
 };
 
-export const getLibraryMetadataRelatedHubs = async (id: string | string[], options: (PlexAPIRequestOptions & {
+export type GetRelatedHubsOptions = (PlexAPIRequestOptions & {
 	params?: plexTypes.PlexHubListPageParams,
-})): Promise<plexTypes.PlexHubsPage> => {
+});
+
+export const getLibraryMetadataRelatedHubs = async (id: string | string[], options: GetRelatedHubsOptions): Promise<plexTypes.PlexHubsPage> => {
 	return await plexServerFetch({
 		...options,
 		method: 'GET',
-		endpoint: `/library/metadata/${(id instanceof Array) ? id.map((idVal) => qs.escape(idVal)).join(',') : qs.escape(id)}/related`,
+		endpoint: `/library/metadata/${
+			(id instanceof Array) ?
+				id.map((idVal) => qs.escape(idVal)).join(',')
+				: qs.escape(id)
+		}/related`,
+	});
+};
+
+export const getMetadataRelatedHubs = async (id: string | string[], options: GetRelatedHubsOptions): Promise<plexTypes.PlexHubsPage> => {
+	return await plexServerFetch({
+		...options,
+		method: 'GET',
+		endpoint: `/hubs/metadata/${
+			(id instanceof Array) ?
+				id.map((idVal) => qs.escape(idVal)).join(',')
+				: qs.escape(id)
+		}/related`,
 	});
 };
 

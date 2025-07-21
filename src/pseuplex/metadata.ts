@@ -66,9 +66,15 @@ export type PseuplexMetadataChildrenParams = {
 	plexParams?: plexTypes.PlexMetadataChildrenPageParams;
 };
 
-export type PseuplexHubListParams = {
+export enum PseuplexRelatedHubsSource {
+	Library = 'library',
+	Hubs = 'hubs',
+};
+
+export type PseuplexRelatedHubsParams = {
 	plexParams?: plexTypes.PlexHubListPageParams;
 	context: PseuplexRequestContext;
+	from: PseuplexRelatedHubsSource;
 };
 
 export type PseuplexMetadataProviderParams = PseuplexMetadataParams;
@@ -78,7 +84,7 @@ export interface PseuplexMetadataProvider {
 	readonly sourceSlug: string;
 	get(ids: string[], options: PseuplexMetadataProviderParams): Promise<PseuplexMetadataPage>;
 	getChildren(id: string, options: PseuplexMetadataChildrenProviderParams): Promise<PseuplexMetadataPage>;
-	getRelatedHubs(id: string, options: PseuplexHubListParams): Promise<plexTypes.PlexHubsPage>;
+	getRelatedHubs(id: string, options: PseuplexRelatedHubsParams): Promise<plexTypes.PlexHubsPage>;
 }
 
 export type PseuplexSimilarItemsHubProvider = PseuplexHubProvider & {
@@ -284,7 +290,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		const providerItems: {[id: PseuplexPartialMetadataIDString]: TMetadataItem | Promise<TMetadataItem>} = {};
 		const transformOpts: PseuplexMetadataTransformOptions = {
 			qualifiedMetadataId: options.qualifiedMetadataIds ?? false,
-			metadataBasePath: options.metadataBasePath ?? this.basePath
+			metadataBasePath: options.metadataBasePath ?? this.basePath,
 		};
 		const externalPlexTransformOpts: PseuplexMetadataTransformOptions = {
 			qualifiedMetadataId: true,
@@ -538,7 +544,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		// we have the fetchMetadataItemChildren method, so we can call it
 		const transformOpts: PseuplexMetadataTransformOptions = {
 			qualifiedMetadataId: false,
-			metadataBasePath: this.basePath
+			metadataBasePath: this.basePath,
 		};
 		const childItemsPage = await this.fetchMetadataItemChildren(id, {
 			plexParams: options.plexParams,
@@ -557,7 +563,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		};
 	}
 
-	async getRelatedHubs(id: string, options: PseuplexHubListParams): Promise<plexTypes.PlexHubsPage> {
+	async getRelatedHubs(id: string, options: PseuplexRelatedHubsParams): Promise<plexTypes.PlexHubsPage> {
 		const hubEntries: plexTypes.PlexHubWithItems[] = [];
 		if(this.similarItemsHubProvider) {
 			const hub = await this.similarItemsHubProvider.get(id);

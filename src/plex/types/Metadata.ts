@@ -30,6 +30,7 @@ export type PlexMetadataPageParams = {
 	refreshLocalMediaAgent?: PlexXMLBoolean;
 	asyncRefreshLocalMediaAgent?: PlexXMLBoolean;
 	includeUserState?: PlexXMLBoolean;
+	includeRelated?: PlexXMLBoolean;
 };
 
 export type PlexMetadataChildrenPageParams = {
