@@ -27,7 +27,7 @@ export type PlexMediaItemMatchParams = {
 	excludeElements?: string[],
 };
 
-export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, params: PlexMediaItemMatchParams, context: PseuplexRequestContext): Promise<plexTypes.PlexMetadataItem | null> => {
+export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, params: PlexMediaItemMatchParams): Promise<plexTypes.PlexMetadataItem | null> => {
 	// match against guids
 	if(params.guids) {
 		for(const guid of params.guids) {

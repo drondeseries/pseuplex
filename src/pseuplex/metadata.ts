@@ -194,7 +194,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 				'Studio',
 				'CommonSenseMedia'
 			);
-			const matchingMetadata = await findMatchingPlexMediaItem(this.plexMetadataClient, matchParams, context);
+			const matchingMetadata = await findMatchingPlexMediaItem(this.plexMetadataClient, matchParams);
 			const plexGuid = matchingMetadata?.guid;
 			if(!plexGuid) {
 				return null;
@@ -326,7 +326,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 					if(!matchParams) {
 						return null;
 					}
-					const metadataItem = await findMatchingPlexMediaItem(this.plexMetadataClient, matchParams, options.context);
+					const metadataItem = await findMatchingPlexMediaItem(this.plexMetadataClient, matchParams);
 					if(!metadataItem?.ratingKey) {
 						return metadataItem;
 					}
