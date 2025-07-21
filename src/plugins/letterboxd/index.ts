@@ -120,7 +120,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						relativePath: this.relativePath,
 						title: "Similar Films on Letterboxd",
 						style: plexTypes.PlexHubStyle.Shelf,
-						promoted: true,
+						//promoted: true,
 						letterboxdMetadataProvider: self.metadata,
 						...(app.metadataIdMappings ? {
 							metadataTransformOptions: {
