@@ -36,8 +36,6 @@ export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, para
 				guid,
 				includeFields: params.includeFields,
 				excludeElements: params.excludeElements,
-			}, {
-				authContext: context.plexAuthContext
 			});
 			const metadataItem = firstOrSingle(matchesPage.MediaContainer.Metadata);
 			if(metadataItem) {
