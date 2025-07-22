@@ -95,6 +95,7 @@ Create a `config.json` file with the following structure, and fill in the config
 	- **host**: The url of your plex server.
 	- **token**: The plex API token of the server owner.
 	- **appDataPath**: (*optional*) Manually specify the path of your plex server's appdata folder if it's in an unconventional place. On Linux, this is typically `/var/lib/plexmediaserver/Library/Application Support/Plex Media Server` unless you're running via docker. This will be used to determine the path of the SSL certificate if `ssl.autoP12Path` is `true`. This will also be used to determine the path of `Preferences.xml` if `ssl.autoP12Password` is `true`.
+	- **assumedTopSectionId**: (*optional*) Because of a bug in Plex for Mobile, it isn't possible to determine which section is the first "pinned" section. To fix this, you can manually specify the top pinned section ID here.
 - **ssl**
 	- **p12Path**: The path to your SSL p12 file.
 	- **p12Password**: The password to decrypt your SSL p12 file.
