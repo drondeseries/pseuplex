@@ -20,8 +20,6 @@ This project is still very much a WIP. While I've tried to do my due diligence i
 
 	![Unavailable](docs/images/unavailable.png)
 
-	**Note**: The unavailable status will not show on the Roku client or any other client that doesn't subscribe to the plex server websocket.
-
 - ### Similar Films on Letterboxd
 
 	Instead of only showing related movies from your server, you can show the list of similar movies from letterboxd
