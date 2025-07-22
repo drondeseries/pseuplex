@@ -131,7 +131,6 @@ export const doesRequestIncludeFirstPinnedContentDirectory = (params: {
 			if(!pinnedContentDirIds || pinnedContentDirIds.length == 0
 				|| (pinnedContentDirIds.length == 1 && contentDirIds[0] == pinnedContentDirIds[0])) {
 				// the newer plex for mobile doesn't properly specify the pinnedContentDirectoryID array, so we need to figured out what the first section is
-				// TODO only match for the first section
 				return contentDirIds[0] == options.assumedTopSectionID;
 			}
 		}
