@@ -128,15 +128,13 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 			startFragment = await this._newFragmentTask;
 		}
 		// attempt to load atleast 1 item into the list
-		await startFragment.getOrFetchItems(0, Math.max(1, count), options);
+		const chunk = await startFragment.getOrFetchItems(0, Math.max(1, count), options);
 		// merge fragments after a delay
 		if(this._fragment?._nextFragment) {
 			this._queueFragmentMerge();
 		}
 		// return the items from the start of the list
-		return options.unique ?
-			startFragment.getUniqueItems(0, count)
-			: startFragment.getItems(0, count);
+		return chunk;
 	}
 	
 	async getOrFetchItems(startToken: ItemTokenType | null, offset: number, count: number, options: GetLoadableListItemsOptions): Promise<LoadableListChunk<ItemType,ItemTokenType>> {
@@ -161,17 +159,17 @@ export class LoadableList<ItemType,ItemTokenType,PageTokenType> {
 		}
 		// fetch the items
 		const startIndex = options.unique ? (tokenPoint.uniqueIndex+offset) : (tokenPoint.index+offset);
-		const page = await tokenPoint.fragment.getOrFetchItems(startIndex, count, options);
+		const chunk = await tokenPoint.fragment.getOrFetchItems(startIndex, count, options);
 		if(options.unique) {
-			page.totalItemCount -= tokenPoint.uniqueIndex;
+			chunk.totalItemCount -= tokenPoint.uniqueIndex;
 		} else {
-			page.totalItemCount -= tokenPoint.index;
+			chunk.totalItemCount -= tokenPoint.index;
 		}
 		// merge fragments after a delay
 		if(this._fragment?._nextFragment) {
 			this._queueFragmentMerge();
 		}
 		// done
-		return page;
+		return chunk;
 	}
 }

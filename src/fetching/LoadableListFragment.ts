@@ -244,7 +244,9 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 			hasMore = true;
 		} else { // endOffset == items.length
 			hasMore = this.hasMoreItems;
-			itemsCount++;
+			if(hasMore) {
+				itemsCount++;
+			}
 		}
 		return {
 			items: slicedItems ?? [],
@@ -283,7 +285,9 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 			hasMore = true;
 		} else { // endOffset == items.length
 			hasMore = this.hasMoreUniqueItems;
-			itemsCount++;
+			if(hasMore) {
+				itemsCount++;
+			}
 		}
 		return {
 			items: slicedItems ?? [],
@@ -371,12 +375,18 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 				};
 			}
 			hasMore = this._contents.nextPageToken != null;
+			if(hasMore) {
+				itemsCount++;
+			}
 		} else if(endOffset < itemsCount) {
 			hasMore = true;
 		} else { // endOffset == items.length
 			hasMore = options.unique ?
 				this.hasMoreUniqueItems
 				: this.hasMoreItems;
+			if(hasMore) {
+				itemsCount++;
+			}
 		}
 		return {
 			items: slicedItems ?? [],
