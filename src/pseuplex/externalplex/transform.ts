@@ -81,7 +81,7 @@ export const transformExternalPlexMetadata = (metadataItem: plexTypes.PlexMetada
 	} else {
 		console.error("Failed to parse metadataId from external plex metadata item");
 	}
-	/*pseuMetadataItem.Media = [
+	pseuMetadataItem.Media = [
 		{
 			id: 'nonexistant' as any,
 			Part: [
@@ -92,6 +92,6 @@ export const transformExternalPlexMetadata = (metadataItem: plexTypes.PlexMetada
 				} as plexTypes.PlexMediaPart
 			]
 		} as plexTypes.PlexMedia
-	];*/
+	];
 	return pseuMetadataItem;
 };
