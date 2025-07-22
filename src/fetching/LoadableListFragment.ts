@@ -219,72 +219,76 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 	getItems(offset: number, maxCount: number): LoadableListChunk<ItemType,ItemTokenType> {
 		const endOffset = offset + maxCount;
 		const items = this._contents.items;
+		let itemsCount = items.length;
 		const slicedItems = (offset < items.length) ?
 				items.slice(offset, offset+maxCount)
 				: null;
 		let hasMore: boolean;
-		if(endOffset > items.length) {
+		if(endOffset > itemsCount) {
 			if(this._nextFragment != null && this._nextFragmentConnected) {
-				const nextChunk = this._nextFragment.getItems((offset - items.length), (endOffset - items.length));
+				const nextChunk = this._nextFragment.getItems((offset - itemsCount), (endOffset - itemsCount));
 				if(slicedItems == null) {
 					return nextChunk;
 				}
 				return {
 					items: slicedItems.concat(nextChunk.items),
 					hasMore: nextChunk.hasMore,
-					totalItemCount: (items.length + nextChunk.totalItemCount)
+					totalItemCount: (itemsCount + nextChunk.totalItemCount)
 				};
 			}
 			hasMore = this._contents.nextPageToken != null;
+			if(hasMore) {
+				itemsCount++;
+			}
 		} else if(endOffset < items.length) {
 			hasMore = true;
 		} else { // endOffset == items.length
 			hasMore = this.hasMoreItems;
+			itemsCount++;
 		}
 		return {
 			items: slicedItems ?? [],
 			hasMore: hasMore,
-			totalItemCount: this.uniqueItemCount
+			totalItemCount: itemsCount
 		};
 	}
 
 	getUniqueItems(offset: number, maxCount: number): LoadableListChunk<ItemType,ItemTokenType> {
 		const endOffset = offset + maxCount;
-		const uniqueItemsCount = this._uniqueItemIds.length;
-		const slicedItems = (offset < uniqueItemsCount ? 
+		let itemsCount = this._uniqueItemIds.length;
+		const slicedItems = (offset < itemsCount ? 
 			this._uniqueItemIds.slice(offset, offset+maxCount).map((id) => {
 				const index = this._itemIdsMap[id];
 				return this._contents.items[index];
 			})
 			: null);
 		let hasMore: boolean;
-		let padCount = 0;
-		if(endOffset > uniqueItemsCount) {
+		if(endOffset > itemsCount) {
 			if(this._nextFragment != null && this._nextFragmentConnected) {
-				const nextChunk = this._nextFragment.getUniqueItems((offset - uniqueItemsCount), (endOffset - uniqueItemsCount));
+				const nextChunk = this._nextFragment.getUniqueItems((offset - itemsCount), (endOffset - itemsCount));
 				if(slicedItems == null) {
 					return nextChunk;
 				}
 				return {
 					items: slicedItems.concat(nextChunk.items),
 					hasMore: nextChunk.hasMore,
-					totalItemCount: (uniqueItemsCount + nextChunk.totalItemCount)
+					totalItemCount: (itemsCount + nextChunk.totalItemCount)
 				};
 			}
 			hasMore = this._contents.nextPageToken != null;
 			if(hasMore) {
-				padCount = 1;
+				itemsCount++;
 			}
-		} else if(endOffset < uniqueItemsCount) {
+		} else if(endOffset < itemsCount) {
 			hasMore = true;
 		} else { // endOffset == items.length
 			hasMore = this.hasMoreUniqueItems;
-			padCount = 1;
+			itemsCount++;
 		}
 		return {
 			items: slicedItems ?? [],
 			hasMore: hasMore,
-			totalItemCount: uniqueItemsCount + padCount,
+			totalItemCount: itemsCount,
 		};
 	}
 
