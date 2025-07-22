@@ -85,3 +85,17 @@ export const plexUserIsNativeAndroidMobileAppPre2025 = (authContext: PlexAuthCon
 	}
 	return false;
 };
+
+const plexForMobileRegex = /^Plex [fF]or (Android|iOS|tvOS|Mobile)($|\s+)/;
+
+export const plexUserIsReactNativeMobileAppPost2025 = (authContext: PlexAuthContext) => {
+	const product = authContext['X-Plex-Product'];
+	if(plexForMobileRegex.test(product)) {
+		const version = authContext['X-Plex-Version'];
+		const majorVersion = Number.parseInt(version.split('.', 1)[0] || '');
+		if(majorVersion && majorVersion >= 2025) {
+			return true;
+		}
+	}
+	return false;
+};

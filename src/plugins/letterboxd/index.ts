@@ -3,6 +3,7 @@ import express from 'express';
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
 import {
+	doesRequestIncludeFirstPinnedContentDirectory,
 	IncomingPlexAPIRequest,
 } from '../../plex/requesthandling';
 import { parseMetadataIDFromKey } from '../../plex/metadataidentifier';
@@ -215,7 +216,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 	}
 
 	get config(): LetterboxdPluginConfig {
-		return this.app.config;
+		return this.app.config as LetterboxdPluginConfig;
 	}
 	
 	responseFilters?: PseuplexReadOnlyResponseFilters = {
@@ -224,15 +225,10 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		},
 
 		promotedHubs: async (resData, context) => {
-			const pinnedContentDirectoryID = context.userReq.query['pinnedContentDirectoryID'];
-			const pinnedContentDirIds = (typeof pinnedContentDirectoryID == 'string') ?
-				pinnedContentDirectoryID.split(',')
-				: (pinnedContentDirectoryID instanceof Array) ?
-					pinnedContentDirectoryID?.flatMap((dir) => (typeof dir === 'string' ? dir.split(',') : dir))
-					: pinnedContentDirectoryID;
-			const contentDirectoryID = context.userReq.query['contentDirectoryID'];
-			const contentDirIds = (typeof contentDirectoryID == 'string') ? contentDirectoryID.split(',') : contentDirectoryID;
-			if(!pinnedContentDirIds || pinnedContentDirIds.length == 0 || !contentDirIds || contentDirIds.length == 0 || contentDirIds[0] == pinnedContentDirIds[0]) {
+			if (doesRequestIncludeFirstPinnedContentDirectory(context.userReq.query, {
+				plexAuthContext: context.userReq.plex.authContext,
+				assumedTopSectionID: this.config.plex?.assumedTopSectionId,
+			})) {
 				// this is the first pinned content directory
 				await this._addFriendsActivityHubIfNeeded(resData, context);
 			}

@@ -103,3 +103,39 @@ export const createPlexAuthenticationMiddleware = (accountsStore: PlexServerAcco
 export type PlexAuthedRequestHandler =
 	((req: IncomingPlexAPIRequest, res: express.Response) => (void | Promise<void>))
 	| ((req: IncomingPlexAPIRequest, res: express.Response, next: (error?: Error) => void) => (void | Promise<void>));
+
+
+
+export const doesRequestIncludeFirstPinnedContentDirectory = (params: {
+	contentDirectoryID?: string | string[],
+	pinnedContentDirectoryID?: string | string[],
+}, options: {
+	plexAuthContext: plexTypes.PlexAuthContext,
+	assumedTopSectionID: string | number,
+}): boolean => {
+	// parse pinned content dir ids
+	const pinnedContentDirectoryID = params.pinnedContentDirectoryID;
+	const pinnedContentDirIds = (typeof pinnedContentDirectoryID == 'string') ?
+		pinnedContentDirectoryID.split(',')
+		: (pinnedContentDirectoryID instanceof Array) ?
+			pinnedContentDirectoryID?.flatMap((dir) => (typeof dir === 'string' ? dir.split(',') : dir))
+			: pinnedContentDirectoryID;
+	// parse content dir ids
+	const contentDirectoryID = params.contentDirectoryID;
+	const contentDirIds = (typeof contentDirectoryID == 'string') ? contentDirectoryID.split(',') : contentDirectoryID;
+	// make sure we're not on plex for mobile, otherwise we'll need special behavior
+	if (plexTypes.plexUserIsReactNativeMobileAppPost2025(options.plexAuthContext)) {
+		if(!contentDirIds || contentDirIds.length == 0) {
+			return true;
+		} else if(contentDirIds.length == 1) {
+			if(!pinnedContentDirIds || pinnedContentDirIds.length == 0
+				|| (pinnedContentDirIds.length == 1 && contentDirIds[0] == pinnedContentDirIds[0])) {
+				// the newer plex for mobile doesn't properly specify the pinnedContentDirectoryID array, so we need to figured out what the first section is
+				// TODO only match for the first section
+				return contentDirIds[0] == options.assumedTopSectionID;
+			}
+		}
+	}
+	return (!pinnedContentDirIds || pinnedContentDirIds.length == 0 || !contentDirIds || contentDirIds.length == 0
+		|| contentDirIds[0] == pinnedContentDirIds[0]);
+}

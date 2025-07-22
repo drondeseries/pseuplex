@@ -12,4 +12,8 @@ type LetterboxdPerUserPluginConfig = {
 		username?: string;
 	},
 } & LetterboxdFlags;
-export type LetterboxdPluginConfig = (PseuplexConfigBase<LetterboxdPerUserPluginConfig> & LetterboxdFlags);
+export type LetterboxdPluginConfig = PseuplexConfigBase<LetterboxdPerUserPluginConfig> & LetterboxdFlags & {
+	plex: {
+		assumedTopSectionId?: string | number;
+	}
+};
