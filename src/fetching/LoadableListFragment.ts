@@ -20,7 +20,7 @@ export type LoadableListChunkLoader<ItemType,ItemTokenType,PageTokenType> = (pag
 export type LoadableListItemTokenComparer<TokenType> = (token1: TokenType, token2: TokenType) => number;
 
 
-const checkAndAdjustChunkForFragmentMerge = <ItemType,ItemTokenType,PageTokenType>(
+const checkAndAdjustChunkForFragmentConnection = <ItemType,ItemTokenType,PageTokenType>(
 	chunk: LoadableListFetchedChunk<ItemType,ItemTokenType,PageTokenType>,
 	nextFragmentStartToken: ItemTokenType,
 	tokenComparer: LoadableListItemTokenComparer<ItemTokenType>
@@ -60,7 +60,7 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 
 	// when loading from the beginning of the list again, the previous list will become a detached fragment if the new list start chunk doesn't fully connect to the beginning of the previous list
 	_nextFragment: LoadableListFragment<ItemType,ItemTokenType,PageTokenType> | null;
-	_nextFragmentMerged: boolean;
+	_nextFragmentConnected: boolean;
 
 	constructor(chunk: LoadableListFetchedChunk<ItemType,ItemTokenType,PageTokenType>, options: LoadableListFragmentOptions<ItemType,ItemTokenType,PageTokenType>, nextFragment: LoadableListFragment<ItemType,ItemTokenType,PageTokenType> | null) {
 		this._options = options;
@@ -70,12 +70,12 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 		}
 		// merge next fragment if needed
 		if(nextFragment != null && (nextFragment._contents.items.length > 0 || nextFragment.isLoading || nextFragment.hasMoreItems)) {
-			const merged = checkAndAdjustChunkForFragmentMerge(chunk, nextFragment.startItemToken, options.tokenComparer);
-			this._nextFragmentMerged = merged;
+			const connected = checkAndAdjustChunkForFragmentConnection(chunk, nextFragment.startItemToken, options.tokenComparer);
+			this._nextFragmentConnected = connected;
 			this._nextFragment = nextFragment;
 		} else {
 			this._nextFragment = null;
-			this._nextFragmentMerged = false;
+			this._nextFragmentConnected = false;
 		}
 		this._contents = chunk;
 		this._uniqueItemIds = [];
@@ -92,7 +92,7 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 			// if both fragments start at the same item, ignore the new chunk and just return the old fragment
 			const startToken = nextFragment.startItemToken;
 			if(startToken != null && startToken == chunk.items[0]?.token) {
-				if(chunk.items.length <= nextFragment.itemCount) {
+				if(chunk.items.length <= nextFragment.itemCount) { // in the future, we'll want to merge differences
 					return nextFragment;
 				}
 			}
@@ -124,13 +124,13 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 	}
 
 	get hasMoreItems(): boolean {
-		return (this._nextFragment != null && this._nextFragmentMerged) ?
+		return (this._nextFragment != null && this._nextFragmentConnected) ?
 			(this._nextFragment._contents.items.length > 0 || this._nextFragment.hasMoreItems)
 			: (this._contents.nextPageToken != null);
 	}
 
 	get hasMoreUniqueItems(): boolean {
-		return (this._nextFragment != null && this._nextFragmentMerged) ?
+		return (this._nextFragment != null && this._nextFragmentConnected) ?
 			(this._nextFragment._uniqueItemIds.length > 0 || this._nextFragment.hasMoreUniqueItems)
 			: (this._contents.nextPageToken != null);
 	}
@@ -156,7 +156,7 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 			return;
 		}
 		// merge fragments
-		while(this._nextFragment != null && this._nextFragmentMerged && !this._nextFragment.isLoading) {
+		while(this._nextFragment != null && this._nextFragmentConnected && !this._nextFragment.isLoading) {
 			const nextFragment = this._nextFragment;
 			const nextChunk = nextFragment._contents;
 			const prevCount = this._contents.items.length;
@@ -170,7 +170,7 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 				}
 			}
 			this._nextFragment = nextFragment._nextFragment;
-			this._nextFragmentMerged = nextFragment._nextFragmentMerged;
+			this._nextFragmentConnected = nextFragment._nextFragmentConnected;
 		}
 	}
 	
@@ -224,7 +224,7 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 				: null;
 		let hasMore: boolean;
 		if(endOffset > items.length) {
-			if(this._nextFragment != null && this._nextFragmentMerged) {
+			if(this._nextFragment != null && this._nextFragmentConnected) {
 				const nextChunk = this._nextFragment.getItems((offset - items.length), (endOffset - items.length));
 				if(slicedItems == null) {
 					return nextChunk;
@@ -258,8 +258,9 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 			})
 			: null);
 		let hasMore: boolean;
+		let padCount = 0;
 		if(endOffset > uniqueItemsCount) {
-			if(this._nextFragment != null && this._nextFragmentMerged) {
+			if(this._nextFragment != null && this._nextFragmentConnected) {
 				const nextChunk = this._nextFragment.getUniqueItems((offset - uniqueItemsCount), (endOffset - uniqueItemsCount));
 				if(slicedItems == null) {
 					return nextChunk;
@@ -271,15 +272,19 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 				};
 			}
 			hasMore = this._contents.nextPageToken != null;
+			if(hasMore) {
+				padCount = 1;
+			}
 		} else if(endOffset < uniqueItemsCount) {
 			hasMore = true;
 		} else { // endOffset == items.length
 			hasMore = this.hasMoreUniqueItems;
+			padCount = 1;
 		}
 		return {
 			items: slicedItems ?? [],
 			hasMore: hasMore,
-			totalItemCount: uniqueItemsCount
+			totalItemCount: uniqueItemsCount + padCount,
 		};
 	}
 
@@ -295,7 +300,7 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 		const loadEndOffset = endOffset + loadAheadCount;
 		// load the next chunk if needed
 		while(loadEndOffset > itemsCount
-			&& (this._nextFragment == null || !this._nextFragmentMerged)
+			&& (this._nextFragment == null || !this._nextFragmentConnected)
 			&& this._contents.nextPageToken != null) {
 			if(this._nextChunkTask == null) {
 				// load the next chunk
@@ -305,9 +310,9 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 					nextChunk = await this._nextChunkTask;
 					// check if chunk has merged with the next fragment
 					if(this._nextFragment != null) {
-						const merged = checkAndAdjustChunkForFragmentMerge(nextChunk, this._nextFragment.startItemToken, this._options.tokenComparer);
-						if(merged) {
-							this._nextFragmentMerged = true;
+						const connected = checkAndAdjustChunkForFragmentConnection(nextChunk, this._nextFragment.startItemToken, this._options.tokenComparer);
+						if(connected) {
+							this._nextFragmentConnected = true;
 						}
 					}
 					// append chunk
@@ -337,7 +342,7 @@ export class LoadableListFragment<ItemType,ItemTokenType,PageTokenType> {
 				: null);
 		let hasMore: boolean;
 		if(loadEndOffset > itemsCount) {
-			if(this._nextFragment != null && this._nextFragmentMerged) {
+			if(this._nextFragment != null && this._nextFragmentConnected) {
 				let nextChunkOptions = options;
 				let remainingItemCount = (endOffset - itemsCount);
 				if(remainingItemCount < 0) {
