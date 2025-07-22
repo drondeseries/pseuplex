@@ -162,6 +162,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		plexParams?: plexTypes.PlexMetadataPageParams | plexTypes.PlexMetadataChildrenPageParams,
 		context: PseuplexRequestContext,
 	}): Promise<PseuplexMetadataPage> {
+		const { context } = options;
 		// find requests provider
 		const providerSlug = id.requestProviderSlug;
 		const reqProvider = this.requestProviders[providerSlug];
@@ -171,8 +172,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			throw httpError(418, `Requests provider with ID ${providerSlug} is not configured`);
 		}
 		// ensure user is allowed to make requests to this request provider
-		const userToken = options.context.plexAuthContext['X-Plex-Token'];
-		if(!userToken || !(await reqProvider.canPlexUserMakeRequests(userToken, options.context.plexUserInfo))) {
+		const userToken = context.plexAuthContext['X-Plex-Token'];
+		if(!userToken || !(await reqProvider.canPlexUserMakeRequests(userToken, context.plexUserInfo))) {
 			throw httpError(401, `User is not allowed to make ${reqProvider.slug} requests`);
 		}
 		// get numeric media type
@@ -198,8 +199,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				guid: guid
 			}
 		), {
-			serverURL: options.context.plexServerURL,
-			authContext: options.context.plexAuthContext,
+			serverURL: context.plexServerURL,
+			authContext: context.plexAuthContext,
 			verbose: this.loggingOptions.logOutgoingRequests,
 		});
 		const libraryMetadataItem = firstOrSingle(libraryMetadataPage.MediaContainer.Metadata);
@@ -216,8 +217,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				}
 			}
 			const plexDisplayedPage: plexTypes.PlexMetadataPage = await plexServerAPI.fetch({
-				serverURL: options.context.plexServerURL,
-				authContext: options.context.plexAuthContext,
+				serverURL: context.plexServerURL,
+				authContext: context.plexAuthContext,
 				method: 'GET',
 				endpoint: itemKey,
 				params: options.plexParams,
@@ -315,7 +316,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			if(requestedPlexItem) {
 				reqInfo = await reqProvider.requestPlexItem(requestedPlexItem, {
 					seasons: id.season != null ? [id.season] : undefined,
-					context: options.context,
+					context,
 				});
 			}
 		}
@@ -325,7 +326,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		delete resData.MediaContainer.librarySectionUUID;
 		resData.MediaContainer.identifier = plexTypes.PlexPluginIdentifier.PlexAppLibrary;
 		resData.MediaContainer.Metadata = transformArrayOrSingle(resData.MediaContainer.Metadata, (metadataItem) => {
-			return extPlexTransform.transformExternalPlexMetadata(metadataItem, this.plexMetadataClient.serverURL, {
+			return extPlexTransform.transformExternalPlexMetadata(metadataItem, this.plexMetadataClient.serverURL, context, {
 				metadataBasePath: `/library/metadata/`,
 				qualifiedMetadataId: true,
 			});

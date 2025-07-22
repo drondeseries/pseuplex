@@ -5,6 +5,7 @@ import {
 	PseuplexMetadataSource,
 	PseuplexMetadataTransformOptions,
 	PseuplexPartialMetadataIDString,
+	PseuplexRequestContext,
 	stringifyMetadataID,
 	stringifyPartialMetadataID
 } from '../../pseuplex';
@@ -28,7 +29,7 @@ export const fullMetadataIdFromTemplateItem = (item: any, opts?: {asUrl?: boolea
 	});
 };
 
-export const templateItemToPlexMetadata = (item: any, options: PseuplexMetadataTransformOptions): PseuplexMetadataItem => {
+export const templateItemToPlexMetadata = (item: any, context: PseuplexRequestContext, options: PseuplexMetadataTransformOptions): PseuplexMetadataItem => {
 	// TODO convert your source's metadata to plex metadata
 	const partialMetadataId = partialMetadataIdFromTemplateItem(item);
 	const fullMetadataId = fullMetadataIdFromTemplateItem(item, {asUrl:false});

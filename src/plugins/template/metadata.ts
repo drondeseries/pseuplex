@@ -7,6 +7,7 @@ import {
 	PseuplexMetadataProviderBase,
 	PseuplexMetadataTransformOptions,
 	PseuplexPartialMetadataIDString,
+	PseuplexRequestContext,
 } from '../../pseuplex';
 import * as tmplTransform from './transform';
 
@@ -34,8 +35,8 @@ export class TemplateMetadataProvider extends PseuplexMetadataProviderBase<Templ
 		};
 	}
 
-	override transformMetadataItem(metadataItem: TemplateMetadataItem, transformOpts: PseuplexMetadataTransformOptions): PseuplexMetadataItem {
-		return tmplTransform.templateItemToPlexMetadata(metadataItem, transformOpts);
+	override transformMetadataItem(metadataItem: TemplateMetadataItem, context: PseuplexRequestContext, transformOpts: PseuplexMetadataTransformOptions): PseuplexMetadataItem {
+		return tmplTransform.templateItemToPlexMetadata(metadataItem, context, transformOpts);
 	}
 
 	override idFromMetadataItem(metadataItem: TemplateMetadataItem): PseuplexPartialMetadataIDString {

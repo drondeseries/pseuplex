@@ -74,3 +74,14 @@ export const parsePlexTokenFromRequest = (req: (http.IncomingMessage | express.R
 	}
 	return plexToken;
 };
+
+export const plexUserIsNativeAndroidMobileAppPre2025 = (authContext: PlexAuthContext) => {
+	if(authContext['X-Plex-Product'] === 'Plex for Android (Mobile)') {
+		const version = authContext['X-Plex-Version'];
+		const majorVersion = Number.parseInt(version.split('.', 1)[0] || '');
+		if(majorVersion && majorVersion < 2025) {
+			return true;
+		}
+	}
+	return false;
+};

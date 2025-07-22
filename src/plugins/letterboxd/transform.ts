@@ -50,7 +50,7 @@ export const fullMetadataIdFromFilmInfo = (filmInfo: letterboxd.FilmPage, opts?:
 	});
 };
 
-export const filmInfoToPlexMetadata = (filmInfo: letterboxd.FilmPage, options: PseuplexMetadataTransformOptions): PseuplexMetadataItem => {
+export const filmInfoToPlexMetadata = (filmInfo: letterboxd.FilmPage, context: PseuplexRequestContext, options: PseuplexMetadataTransformOptions): PseuplexMetadataItem => {
 	const releasedEvent = filmInfo.ldJson.releasedEvent;
 	const partialMetadataId = partialMetadataIdFromFilmInfo(filmInfo);
 	const fullMetadataId = fullMetadataIdFromFilmInfo(filmInfo,{asUrl:false});
@@ -97,7 +97,8 @@ export const filmInfoToPlexMetadata = (filmInfo: letterboxd.FilmPage, options: P
 		Review: filmInfo.pageData.popularReviews?.map((viewing) => {
 			return viewingToPlexReview(viewing);
 		}),
-		Media: [
+		// dont include this for the older (non react native) Android app
+		Media: (!plexTypes.plexUserIsNativeAndroidMobileAppPre2025(context.plexAuthContext)) ? [
 			{
 				id: 'nonexistant' as any,
 				Part: [
@@ -108,7 +109,7 @@ export const filmInfoToPlexMetadata = (filmInfo: letterboxd.FilmPage, options: P
 					} as plexTypes.PlexMediaPart
 				]
 			} as plexTypes.PlexMedia
-		]
+		] : undefined,
 	};
 };
 

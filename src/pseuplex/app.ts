@@ -820,7 +820,8 @@ export class PseuplexApp {
 	}
 
 
-	async getMetadata(metadataIds: PseuplexMetadataIDParts[], params: PseuplexAppMetadataParams): Promise<PseuplexMetadataPage> {
+	async getMetadata(metadataIds: PseuplexMetadataIDParts[], options: PseuplexAppMetadataParams): Promise<PseuplexMetadataPage> {
+		const { context } = options;
 		let caughtError: Error | undefined = undefined;
 		// create provider params
 		const transformOpts: PseuplexMetadataTransformOptions = {
@@ -828,7 +829,7 @@ export class PseuplexApp {
 			qualifiedMetadataId: true
 		};
 		const providerParams: PseuplexMetadataProviderParams = {
-			...params,
+			...options,
 			includePlexDiscoverMatches: true,
 			includeUnmatched: true,
 			transformMatchKeys: true,
@@ -844,9 +845,9 @@ export class PseuplexApp {
 					// fetch from plex
 					const fullMetadataId = stringifyMetadataID(metadataId);
 					const metadatas = (await plexServerAPI.getLibraryMetadata(fullMetadataId, {
-						params: params.plexParams,
-						serverURL: params.context.plexServerURL,
-						authContext: params.context.plexAuthContext,
+						params: options.plexParams,
+						serverURL: context.plexServerURL,
+						authContext: context.plexAuthContext,
 						verbose: this.loggingOptions.logOutgoingRequests,
 					})).MediaContainer?.Metadata;
 					// transform metadata
@@ -855,7 +856,7 @@ export class PseuplexApp {
 							isOnServer: true,
 							metadataIds: {},
 							plexMetadataIds: {
-								[params.context.plexServerURL]: metadataItem.ratingKey
+								[context.plexServerURL]: metadataItem.ratingKey
 							}
 						};
 						return metadataItem;
@@ -868,13 +869,13 @@ export class PseuplexApp {
 					}
 					const metadatas = (await plexServerAPI.getLibraryMetadata(metadataId.id, {
 						serverURL: itemPlexServerURL,
-						authContext: params.context.plexAuthContext,
-						params: params.plexParams,
+						authContext: context.plexAuthContext,
+						params: options.plexParams,
 						verbose: this.loggingOptions.logOutgoingRequests,
 					})).MediaContainer?.Metadata;
 					// transform metadata
 					return transformArrayOrSingle(metadatas, (metadataItem: PseuplexMetadataItem) => {
-						return extPlexTransform.transformExternalPlexMetadata(metadataItem, itemPlexServerURL, transformOpts);
+						return extPlexTransform.transformExternalPlexMetadata(metadataItem, itemPlexServerURL, context, transformOpts);
 					});
 				}
 				// find matching provider from source
@@ -912,14 +913,15 @@ export class PseuplexApp {
 		};
 	}
 
-	async getMetadataChildren(metadataId: PseuplexMetadataIDParts, params: PseuplexAppMetadataChildrenParams): Promise<plexTypes.PlexMetadataPage | PseuplexMetadataPage> {
+	async getMetadataChildren(metadataId: PseuplexMetadataIDParts, options: PseuplexAppMetadataChildrenParams): Promise<plexTypes.PlexMetadataPage | PseuplexMetadataPage> {
+		const { context } = options;
 		// create provider params
 		const transformOpts: PseuplexMetadataTransformOptions = {
 			metadataBasePath: '/library/metadata',
 			qualifiedMetadataId: true
 		};
 		const providerParams: PseuplexMetadataChildrenProviderParams = {
-			...params,
+			...options,
 			includePlexDiscoverMatches: true
 		};
 		// get metadata for each id
@@ -929,9 +931,9 @@ export class PseuplexApp {
 			// fetch from plex
 			const fullMetadataId = stringifyMetadataID(metadataId);
 			const metadataPage = await plexServerAPI.getLibraryMetadataChildren(fullMetadataId, {
-				params: params.plexParams,
-				serverURL: params.context.plexServerURL,
-				authContext: params.context.plexAuthContext,
+				params: options.plexParams,
+				serverURL: context.plexServerURL,
+				authContext: context.plexAuthContext,
 				verbose: this.loggingOptions.logOutgoingRequests,
 			});
 			// TODO transform metadata children
@@ -944,13 +946,13 @@ export class PseuplexApp {
 			}
 			const metadataPage = await plexServerAPI.getLibraryMetadataChildren(metadataId.id, {
 				serverURL: itemPlexServerURL,
-				authContext: params.context.plexAuthContext,
-				params: params.plexParams,
+				authContext: context.plexAuthContext,
+				params: options.plexParams,
 				verbose: this.loggingOptions.logOutgoingRequests,
 			});
 			// transform metadata
 			metadataPage.MediaContainer.Metadata = transformArrayOrSingle(metadataPage.MediaContainer.Metadata, (metadataItem: PseuplexMetadataItem) => {
-				return extPlexTransform.transformExternalPlexMetadata(metadataItem, itemPlexServerURL, transformOpts);
+				return extPlexTransform.transformExternalPlexMetadata(metadataItem, itemPlexServerURL, context, transformOpts);
 			});
 			return metadataPage;
 		}

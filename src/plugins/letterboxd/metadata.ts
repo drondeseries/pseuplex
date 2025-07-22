@@ -9,6 +9,7 @@ import {
 	PseuplexMetadataTransformOptions,
 	PseuplexPartialMetadataIDString,
 	PseuplexMetadataSource,
+	PseuplexRequestContext,
 } from '../../pseuplex';
 import * as lbTransform from './transform';
 
@@ -30,8 +31,8 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 		}
 	}
 
-	override transformMetadataItem(metadataItem: LetterboxdMetadataItem, transformOpts: PseuplexMetadataTransformOptions): PseuplexMetadataItem {
-		return lbTransform.filmInfoToPlexMetadata(metadataItem, transformOpts);
+	override transformMetadataItem(metadataItem: LetterboxdMetadataItem, context: PseuplexRequestContext, transformOpts: PseuplexMetadataTransformOptions): PseuplexMetadataItem {
+		return lbTransform.filmInfoToPlexMetadata(metadataItem, context, transformOpts);
 	}
 
 	override idFromMetadataItem(metadataItem: LetterboxdMetadataItem): PseuplexPartialMetadataIDString {

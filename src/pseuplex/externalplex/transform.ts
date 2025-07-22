@@ -3,7 +3,8 @@ import * as plexTypes from '../../plex/types';
 import { parseMetadataIDFromKey } from '../../plex/metadataidentifier';
 import {
 	PseuplexMetadataItem,
-	PseuplexMetadataSource
+	PseuplexMetadataSource,
+	PseuplexRequestContext
 } from '../types';
 import { PseuplexMetadataTransformOptions } from '../metadata';
 import {
@@ -32,7 +33,7 @@ export const createFullExternalPlexMetadataId = (opts:{serverURL: string, metada
 	});
 };
 
-export const transformExternalPlexMetadata = (metadataItem: plexTypes.PlexMetadataItem, serverURL: string, transformOpts: PseuplexMetadataTransformOptions): PseuplexMetadataItem => {
+export const transformExternalPlexMetadata = (metadataItem: plexTypes.PlexMetadataItem, serverURL: string, context: PseuplexRequestContext, transformOpts: PseuplexMetadataTransformOptions): PseuplexMetadataItem => {
 	const pseuMetadataItem = metadataItem as PseuplexMetadataItem;
 	delete pseuMetadataItem.Media;
 	delete pseuMetadataItem.userState;
@@ -81,17 +82,20 @@ export const transformExternalPlexMetadata = (metadataItem: plexTypes.PlexMetada
 	} else {
 		console.error("Failed to parse metadataId from external plex metadata item");
 	}
-	pseuMetadataItem.Media = [
-		{
-			id: 'nonexistant' as any,
-			Part: [
-				{
-					id: 'nonexistant' as any,
-					accessible: false,
-					exists: false,
-				} as plexTypes.PlexMediaPart
-			]
-		} as plexTypes.PlexMedia
-	];
+	// dont include this for the older (non react native) Android app
+	if (!plexTypes.plexUserIsNativeAndroidMobileAppPre2025(context.plexAuthContext)) {
+		pseuMetadataItem.Media = [
+			{
+				id: 'nonexistant' as any,
+				Part: [
+					{
+						id: 'nonexistant' as any,
+						accessible: false,
+						exists: false,
+					} as plexTypes.PlexMediaPart
+				]
+			} as plexTypes.PlexMedia
+		];
+	}
 	return pseuMetadataItem;
 };
