@@ -24,10 +24,13 @@ export const expressErrorHandler = (error: Error, req: express.Request, res: exp
 		console.error(`url: ${req.originalUrl}`);
 		console.error(`headers: ${JSON.stringify(req.rawHeaders, null, '\t')}`);
 		console.error(error);
-		const statusCode =
+		let statusCode =
 			(error as HttpError).statusCode
 			|| (error as HttpResponseError).httpResponse?.status
 			|| 500;
+		if (statusCode >= 200 && statusCode < 300) {
+			statusCode = 500;
+		}
 		res.status(statusCode).send(error.message);
 		console.log(`Sent error ${error.message}`);
 	} else {
