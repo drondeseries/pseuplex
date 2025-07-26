@@ -1,7 +1,7 @@
 
 import * as letterboxd from 'letterboxd-retriever';
 import * as plexTypes from '../../plex/types';
-import { parsePlexExternalGuids } from '../../plex/metadataidentifier';
+import { parsePlexExternalGuids, parsePlexMetadataGuid } from '../../plex/metadataidentifier';
 import {
 	PseuplexMetadataItem,
 	PlexMediaItemMatchParams,
@@ -73,6 +73,11 @@ export class LetterboxdMetadataProvider extends PseuplexMetadataProviderBase<Let
 			if(id) {
 				return this.fetchMetadataItem(id);
 			} else if(id === null) {
+				return null;
+			}
+			// ensure guid is a movie
+			const plexGuidParts = parsePlexMetadataGuid(plexGuid);
+			if (plexGuidParts.type != plexTypes.PlexMediaItemType.Movie) {
 				return null;
 			}
 		}
