@@ -84,6 +84,8 @@ export const createPlexAuthenticationMiddleware = (accountsStore: PlexServerAcco
 			const authContext = plexTypes.parseAuthContextFromRequest(req);
 			const userInfo = await accountsStore.getUserInfoOrNull(authContext);
 			if(!userInfo) {
+				console.error(`Got unauthorized request:`);
+				console.error(req);
 				throw httpError(401, "Not Authorized");
 			}
 			const plexReq = req as IncomingPlexAPIRequest;
