@@ -850,6 +850,7 @@ export class PseuplexApp {
 	async getMetadata(metadataIds: PseuplexMetadataIDParts[], options: PseuplexAppMetadataParams): Promise<PseuplexMetadataPage> {
 		const { context } = options;
 		let caughtError: Error | undefined = undefined;
+		let caughtNon404Error: Error | undefined = undefined;
 		// create provider params
 		const transformOpts: PseuplexMetadataTransformOptions = {
 			metadataBasePath: '/library/metadata',
@@ -918,6 +919,9 @@ export class PseuplexApp {
 				if((caughtError as HttpResponseError)?.httpResponse?.status != 404) {
 					console.error(`Error fetching metadata for metadata id ${metadataId} :`);
 					console.error(error);
+					if(!caughtNon404Error) {
+						caughtNon404Error = error;
+					}
 				}
 				if(!caughtError) {
 					caughtError = error;
@@ -930,8 +934,9 @@ export class PseuplexApp {
 			return accumulator;
 		}, []);
 		if(metadataItems.length == 0) {
-			if(caughtError) {
-				throw caughtError;
+			const error = caughtNon404Error ?? caughtError;
+			if(error) {
+				throw error;
 			}
 			throw httpError(404, "Not Found");
 		}
