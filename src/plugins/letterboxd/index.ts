@@ -28,7 +28,8 @@ import {
 	PseuplexSection,
 	PseuplexRelatedHubsSource,
 	getPlexRelatedHubsEndpoints,
-	PseuplexMetadataRelatedHubsResponseFilterContext
+	PseuplexMetadataRelatedHubsResponseFilterContext,
+	PseuplexMetadataItem
 } from '../../pseuplex';
 import { LetterboxdPluginConfig } from './config';
 import {
@@ -272,6 +273,10 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					qualifiedMetadataIds: false,
 					plexParams: params
 				});
+				// cache metadata access if needed
+				if(ids.length == 1) {
+					this.app.pluginMetadataAccessCache.cachePluginMetadataAccessIfNeeded(metadataProvider, ids[0], req.path, resData.MediaContainer.Metadata, context);
+				}
 				// add related hubs if included
 				if(params.includeRelated == 1) {
 					// filter related hubs

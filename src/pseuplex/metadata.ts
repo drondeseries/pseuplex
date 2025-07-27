@@ -525,7 +525,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 					const mappedMetadataPage: PseuplexMetadataPage = await this.plexMetadataClient.getMetadataChildren(plexGuidParts.id, plexParams) as PseuplexMetadataPage;
 					mappedMetadataPage.MediaContainer.Metadata = (await transformArrayOrSingleAsyncParallel(mappedMetadataPage.MediaContainer.Metadata, async (metadataItem) => {
 						return extPlexTransform.transformExternalPlexMetadata(metadataItem, this.plexMetadataClient.serverURL, context, extPlexTransformOpts);
-					}))!;
+					}));
 					return mappedMetadataPage;
 				}
 			}

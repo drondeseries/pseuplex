@@ -13,6 +13,7 @@ import {
 	createPlexServerIdToGuidCache,
 } from '../plex/metadata';
 import { parseMetadataIDFromKey } from '../plex/metadataidentifier';
+import { PseuplexMetadataAccessCache, PseuplexMetadataAccessCacheOptions } from './metadataAccessCache';
 import {
 	plexApiProxy,
 	plexHttpProxy,
@@ -105,11 +106,13 @@ export type PseuplexPluginClass = {
 type PseuplexAppMetadataParams = {
 	plexParams?: plexTypes.PlexMetadataPageParams;
 	context: PseuplexRequestContext;
+	cachePluginMetadataAccess?: boolean;
 };
 
 type PseuplexAppMetadataChildrenParams = {
 	plexParams?: plexTypes.PlexMetadataChildrenPageParams;
 	context: PseuplexRequestContext;
+	cachePluginMetadataAccess?: boolean;
 };
 
 type PseuplexAppConfig = PseuplexConfigBase<{[key: string]: any}> & {[key: string]: any};
@@ -129,6 +132,7 @@ export type PseuplexAppOptions = {
 	plexServerURL: string;
 	plexAdminAuthContext: plexTypes.PlexAuthContext;
 	plexMetadataClient: PlexClient;
+	pluginMetadataAccessCacheOptions?: PseuplexMetadataAccessCacheOptions;
 	loggingOptions: PseuplexLoggingOptions,
 	responseFilterOrders?: PseuplexResponseFilterOrders;
 	plugins: PseuplexPluginClass[];
@@ -155,6 +159,7 @@ export class PseuplexApp {
 	} = {};
 	readonly plexServerIdToGuidCache: CachedFetcher<string | null>;
 	readonly plexGuidToInfoCache?: PlexGuidToInfoCache;
+	readonly pluginMetadataAccessCache: PseuplexMetadataAccessCache;
 	readonly plexMetadataClient: PlexClient;
 
 	readonly middlewares: {
@@ -193,6 +198,7 @@ export class PseuplexApp {
 		this.plexGuidToInfoCache = new PlexGuidToInfoCache({
 			plexMetadataClient: this.plexMetadataClient
 		});
+		this.pluginMetadataAccessCache = new PseuplexMetadataAccessCache(options.pluginMetadataAccessCacheOptions);
 
 		// define middlewares
 		const plexReqHandlerOpts: PlexAPIRequestHandlerOptions = {
@@ -459,6 +465,7 @@ export class PseuplexApp {
 				const resData = await this.getMetadata(metadataIds, {
 					plexParams: req.plex.requestParams,
 					context,
+					cachePluginMetadataAccess: true,
 				});
 				// process metadata items
 				await forArrayOrSingleAsyncParallel(resData.MediaContainer.Metadata, async (metadataItem) => {
@@ -569,6 +576,7 @@ export class PseuplexApp {
 				const resData = await this.getMetadataChildren(metadataId, {
 					plexParams: plexParams,
 					context,
+					cachePluginMetadataAccess: true,
 				});
 				// remap IDs if needed
 				if(this.metadataIdMappings) {
@@ -906,15 +914,37 @@ export class PseuplexApp {
 					return transformArrayOrSingle(metadatas, (metadataItem: PseuplexMetadataItem) => {
 						return extPlexTransform.transformExternalPlexMetadata(metadataItem, itemPlexServerURL, context, transformOpts);
 					});
+				} else {
+					// find matching provider from source
+					const metadataProvider = this.getMetadataProvider(source);
+					if(!metadataProvider) {
+						throw httpError(400, `Unknown metadata source ${source}`);
+					}
+					// fetch from provider
+					const partialId = stringifyPartialMetadataID(metadataId);
+					const metadatas = (await metadataProvider.get([partialId], providerParams)).MediaContainer.Metadata;
+					// cache plugin metadata access if needed
+					// only cache if fetching a single metadata id and receiving a single result
+					if(options.cachePluginMetadataAccess && metadataIds.length == 1 && metadatas) {
+						let metadataItem: PseuplexMetadataItem | undefined;
+						if(metadatas instanceof Array) {
+							if(metadatas.length == 1) {
+								metadataItem = metadatas[0];
+							}
+						} else {
+							metadataItem = metadatas;
+						}
+						const plexGuid = metadataItem?.guid;
+						if(plexGuid) {
+							const fullMetadataId = stringifyMetadataID(metadataId);
+							this.pluginMetadataAccessCache.addMetadataAccessEntry(plexGuid, {
+								metadataId: fullMetadataId,
+								//metadataKey: `${transformOpts.metadataBasePath}/${fullMetadataId}`
+							}, context);
+						}
+					}
+					return metadatas;
 				}
-				// find matching provider from source
-				const metadataProvider = this.getMetadataProvider(source);
-				if(!metadataProvider) {
-					throw httpError(400, `Unknown metadata source ${source}`);
-				}
-				// fetch from provider
-				const partialId = stringifyPartialMetadataID(metadataId);
-				return (await metadataProvider.get([partialId], providerParams)).MediaContainer.Metadata;
 			} catch(error) {
 				if((caughtError as HttpResponseError)?.httpResponse?.status != 404) {
 					console.error(`Error fetching metadata for metadata id ${metadataId} :`);
@@ -992,15 +1022,34 @@ export class PseuplexApp {
 				return extPlexTransform.transformExternalPlexMetadata(metadataItem, itemPlexServerURL, context, transformOpts);
 			});
 			return metadataPage;
+		} else {
+			// find matching provider from source
+			const metadataProvider = this.getMetadataProvider(source);
+			if(!metadataProvider) {
+				throw httpError(404, `Unknown metadata source ${source}`);
+			}
+			// fetch from provider
+			const partialId = stringifyPartialMetadataID(metadataId);
+			const page = await metadataProvider.getChildren(partialId, providerParams);
+			// cache metadata access if needed
+			if(options.cachePluginMetadataAccess) {
+				let metadatas = page.MediaContainer.Metadata;
+				if(metadatas) {
+					if(!(metadatas instanceof Array)) {
+						metadatas = [metadatas];
+					}
+					const plexGuid = metadatas[0]?.parentGuid;
+					if(plexGuid) {
+						const fullMetadataId = stringifyMetadataID(metadataId);
+						this.pluginMetadataAccessCache.addMetadataAccessEntry(plexGuid, {
+							metadataId: fullMetadataId,
+							// metadataKey: `${transformOpts.metadataBasePath}/${fullMetadataId}`,
+						}, context);
+					}
+				}
+			}
+			return page;
 		}
-		// find matching provider from source
-		const metadataProvider = this.getMetadataProvider(source);
-		if(!metadataProvider) {
-			throw httpError(404, `Unknown metadata source ${source}`);
-		}
-		// fetch from provider
-		const partialId = stringifyPartialMetadataID(metadataId);
-		return await metadataProvider.getChildren(partialId, providerParams);
 	}
 
 	async getMetadataRelatedHubs(metadataId: PseuplexMetadataIDParts, options: PseuplexRelatedHubsParams): Promise<plexTypes.PlexHubsPage> {

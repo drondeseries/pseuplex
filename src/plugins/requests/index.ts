@@ -157,6 +157,23 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 						plexParams,
 						context,
 					});
+					// cache metadata access if needed
+					const metadataId = reqsTransform.createRequestPartialMetadataId({
+						mediaType: mediaType as plexTypes.PlexMediaItemType,
+						plexId,
+						requestProviderSlug: providerSlug,
+						season,
+					});
+					let metadataKey = req.path;
+					if(children) {
+						if(metadataKey.endsWith('/')) {
+							metadataKey = metadataKey.slice(0, metadataKey.length-1);
+						}
+						if(metadataKey.endsWith(reqsTransform.ChildrenRelativePath)) {
+							metadataKey = metadataKey.slice(0, metadataKey.length - reqsTransform.ChildrenRelativePath.length);
+						}
+					}
+					this.app.pluginMetadataAccessCache.cachePluginMetadataAccessIfNeeded(this.requestsHandler, metadataId, metadataKey, resData.MediaContainer.Metadata, context);
 					// send unavailable notification(s) if needed
 					this.app.sendMetadataUnavailableNotificationsIfNeeded(resData, plexParams, context);
 					return resData;
