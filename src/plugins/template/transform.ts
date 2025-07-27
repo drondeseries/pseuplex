@@ -47,6 +47,7 @@ export const templateItemToPlexMetadata = (item: any, context: PseuplexRequestCo
 		year: item.year,
 		Pseuplex: {
 			isOnServer: false,
+			unavailable: true,
 			metadataIds: {
 				['template'/*PseuplexMetadataSource.Template*/]: partialMetadataId
 			}

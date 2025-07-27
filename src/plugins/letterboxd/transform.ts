@@ -67,6 +67,7 @@ export const filmInfoToPlexMetadata = (filmInfo: letterboxd.FilmPage, context: P
 		year: intParam(releasedEvent?.[0]?.startDate),
 		Pseuplex: {
 			isOnServer: false,
+			unavailable: true,
 			metadataIds: {
 				[PseuplexMetadataSource.Letterboxd]: partialMetadataId
 			}

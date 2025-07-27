@@ -370,6 +370,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 						const pseuMetadata = metadata as PseuplexMetadataItem;
 						pseuMetadata.Pseuplex = {
 							isOnServer: true,
+							unavailable: false,
 							metadataIds: {},
 							plexMetadataIds: {}
 						};

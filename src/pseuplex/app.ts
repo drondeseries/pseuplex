@@ -508,6 +508,7 @@ export class PseuplexApp {
 						const metadataId = parseMetadataIDFromKey(metadataItem.key, '/library/metadata/')?.id;
 						metadataItem.Pseuplex = {
 							isOnServer: true,
+							unavailable: false,
 							metadataIds: {},
 							plexMetadataIds: {
 								[this.plexServerURL]: metadataId
@@ -854,6 +855,7 @@ export class PseuplexApp {
 					return transformArrayOrSingle(metadatas, (metadataItem: PseuplexMetadataItem) => {
 						metadataItem.Pseuplex = {
 							isOnServer: true,
+							unavailable: false,
 							metadataIds: {},
 							plexMetadataIds: {
 								[context.plexServerURL]: metadataItem.ratingKey
@@ -1162,8 +1164,8 @@ export class PseuplexApp {
 			if(!(metadataItems instanceof Array)) {
 				metadataItems = [metadataItems];
 			}
-			const metadataItemsNotOnServer = metadataItems.filter((item) => !item.Pseuplex.isOnServer);
-			if(metadataItemsNotOnServer.length > 0
+			const unavailableItems = metadataItems.filter((item) => item.Pseuplex.unavailable);
+			if(unavailableItems.length > 0
 				&& (params.checkFiles == 1 || params.asyncCheckFiles == 1
 					|| params.refreshLocalMediaAgent == 1 || params.asyncRefreshLocalMediaAgent == 1
 					|| params.refreshAnalysis == 1 || params.asyncRefreshAnalysis)) {
@@ -1171,8 +1173,8 @@ export class PseuplexApp {
 					const userToken = context.plexAuthContext['X-Plex-Token'];
 					const sockets = userToken ? this.clientWebSockets[userToken] : null;
 					if(sockets && sockets.length > 0) {
-						for(const metadataItem of metadataItemsNotOnServer) {
-							if(!metadataItem.Pseuplex.isOnServer) {
+						for(const metadataItem of unavailableItems) {
+							if(metadataItem.Pseuplex.unavailable) {
 								console.log(`Sending unavailable notifications for ${metadataItem.key} on ${sockets.length} sockets`);
 								sendMediaUnavailableNotifications(sockets, {
 									userID: context.plexUserInfo.serverUserID,

@@ -74,6 +74,7 @@ export const transformExternalPlexMetadata = (metadataItem: plexTypes.PlexMetada
 		pseuMetadataItem.key = `${transformOpts.metadataBasePath}/${transformOpts.qualifiedMetadataId ? fullMetadataId : partialMetadataId}`;
 		pseuMetadataItem.Pseuplex = {
 			isOnServer: false,
+			unavailable: true,
 			metadataIds: {},
 			plexMetadataIds: {
 				[serverURL]: metadataId

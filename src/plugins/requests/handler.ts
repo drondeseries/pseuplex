@@ -243,6 +243,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 						const pseuMatchingItem = matchingItem as PseuplexMetadataItem;
 						pseuMatchingItem.Pseuplex = {
 							isOnServer: true,
+							unavailable: false,
 							metadataIds: {},
 						};
 						return pseuMatchingItem;
@@ -250,8 +251,9 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 					// season doesn't exist on the server
 					metadataItem.Pseuplex = {
 						isOnServer: false,
+						unavailable: true,
 						metadataIds: {},
-					}
+					};
 					reqsTransform.transformRequestableSeasonMetadata(metadataItem, transformOpts);
 					return metadataItem;
 				});
@@ -263,6 +265,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				forArrayOrSingle(plexDisplayedPage.MediaContainer.Metadata, (metadataItem: PseuplexMetadataItem) => {
 					metadataItem.Pseuplex = {
 						isOnServer: true,
+						unavailable: false,
 						metadataIds: {
 							[this.sourceSlug]: reqsTransform.createRequestPartialMetadataId(id)
 						},
