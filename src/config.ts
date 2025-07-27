@@ -12,6 +12,7 @@ export type Config = {
 	protocol?: PseuplexServerProtocol,
 	port: number;
 	ipv4ForwardingMode?: IPv4NormalizeModeKey;
+	forwardMetadataRefreshToPluginMetadata?: boolean;
 	plex: {
 		host?: string;
 		port?: number;

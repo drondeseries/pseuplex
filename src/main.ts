@@ -109,6 +109,7 @@ const readPlexPrefsIfNeeded = async () => {
 		protocol: cfg.protocol,
 		port: cfg.port,
 		ipv4ForwardingMode: cfg.ipv4ForwardingMode ? IPv4NormalizeMode[cfg.ipv4ForwardingMode] : undefined,
+		forwardMetadataRefreshToPluginMetadata: cfg.forwardMetadataRefreshToPluginMetadata,
 		plexServerURL,
 		plexAdminAuthContext: {
 			'X-Plex-Token': cfg.plex.token

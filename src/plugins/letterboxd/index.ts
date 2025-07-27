@@ -275,7 +275,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				});
 				// cache metadata access if needed
 				if(ids.length == 1) {
-					this.app.pluginMetadataAccessCache.cachePluginMetadataAccessIfNeeded(metadataProvider, ids[0], req.path, resData.MediaContainer.Metadata, context);
+					this.app.pluginMetadataAccessCache?.cachePluginMetadataAccessIfNeeded(metadataProvider, ids[0], req.path, resData.MediaContainer.Metadata, context);
 				}
 				// add related hubs if included
 				if(params.includeRelated == 1) {

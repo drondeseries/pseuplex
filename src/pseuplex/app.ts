@@ -128,6 +128,7 @@ export type PseuplexAppOptions = {
 	protocol?: PseuplexServerProtocol;
 	port: number;
 	ipv4ForwardingMode?: IPv4NormalizeMode;
+	forwardMetadataRefreshToPluginMetadata?: boolean;
 	serverOptions: https.ServerOptions;
 	plexServerURL: string;
 	plexAdminAuthContext: plexTypes.PlexAuthContext;
@@ -159,7 +160,7 @@ export class PseuplexApp {
 	} = {};
 	readonly plexServerIdToGuidCache: CachedFetcher<string | null>;
 	readonly plexGuidToInfoCache?: PlexGuidToInfoCache;
-	readonly pluginMetadataAccessCache: PseuplexMetadataAccessCache;
+	readonly pluginMetadataAccessCache?: PseuplexMetadataAccessCache;
 	readonly plexMetadataClient: PlexClient;
 
 	readonly middlewares: {
@@ -198,7 +199,9 @@ export class PseuplexApp {
 		this.plexGuidToInfoCache = new PlexGuidToInfoCache({
 			plexMetadataClient: this.plexMetadataClient
 		});
-		this.pluginMetadataAccessCache = new PseuplexMetadataAccessCache(options.pluginMetadataAccessCacheOptions);
+		this.pluginMetadataAccessCache = options.forwardMetadataRefreshToPluginMetadata
+			? new PseuplexMetadataAccessCache(options.pluginMetadataAccessCacheOptions)
+			: undefined;
 
 		// define middlewares
 		const plexReqHandlerOpts: PlexAPIRequestHandlerOptions = {
@@ -925,7 +928,7 @@ export class PseuplexApp {
 					const metadatas = (await metadataProvider.get([partialId], providerParams)).MediaContainer.Metadata;
 					// cache plugin metadata access if needed
 					// only cache if fetching a single metadata id and receiving a single result
-					if(options.cachePluginMetadataAccess && metadataIds.length == 1 && metadatas) {
+					if(options.cachePluginMetadataAccess && this.pluginMetadataAccessCache && metadataIds.length == 1 && metadatas) {
 						let metadataItem: PseuplexMetadataItem | undefined;
 						if(metadatas instanceof Array) {
 							if(metadatas.length == 1) {
@@ -1032,7 +1035,7 @@ export class PseuplexApp {
 			const partialId = stringifyPartialMetadataID(metadataId);
 			const page = await metadataProvider.getChildren(partialId, providerParams);
 			// cache metadata access if needed
-			if(options.cachePluginMetadataAccess) {
+			if(options.cachePluginMetadataAccess && this.pluginMetadataAccessCache) {
 				let metadatas = page.MediaContainer.Metadata;
 				if(metadatas) {
 					if(!(metadatas instanceof Array)) {
