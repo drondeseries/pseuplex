@@ -37,6 +37,17 @@ export class PlexServerAccountsStore {
 		this.sharedServersMinLifetime = options.sharedServersMinLifetime ?? 60;
 	}
 
+	get lastSharedServersFetchTime() {
+		return this._lastSharedServersFetchTime;
+	}
+
+	isTokenMapped(token: string): boolean {
+		if(this._tokensToPlexOwnersMap[token] || this._tokensToPlexUsersMap[token]) {
+			return true;
+		}
+		return false;
+	}
+
 	/// Returns the account info if the token belongs to the server owner, otherwise returns null
 	private async _fetchTokenServerOwnerAccount(token: string): Promise<PlexServerAccountInfo | null> {
 		let task = this._serverOwnerTokenCheckTasks[token];
