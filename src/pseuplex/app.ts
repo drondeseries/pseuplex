@@ -311,12 +311,12 @@ export class PseuplexApp {
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				filter: async (req: IncomingPlexAPIRequest, res) => {
 					const context = this.contextForRequest(req);
-					return ((await this.hasSections(context)) || (this.responseFilters?.mediaProviders?.length ?? 0) > 0);
+					return ((await this.hasPluginSections(context)) || (this.responseFilters?.mediaProviders?.length ?? 0) > 0);
 				},
 				responseModifier: async (proxyRes, resData: plexTypes.PlexServerMediaProvidersPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					const context = this.contextForRequest(userReq);
 					// add sections
-					const allSections = await this.getSections(context);
+					const allSections = await this.getPluginSections(context);
 					const sectionsFeature = resData.MediaContainer.MediaProvider[0].Feature.find((f) => f.type == plexTypes.PlexFeatureType.Content) as plexTypes.PlexContentFeature;
 					if(sectionsFeature) {
 						sectionsFeature.Directory.push(...await Promise.all(Array.from(allSections).map(async (section) => {
@@ -335,13 +335,13 @@ export class PseuplexApp {
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				filter: async (req: IncomingPlexAPIRequest, res) => {
 					const context = this.contextForRequest(req);
-					return await this.hasSections(context);
+					return await this.hasPluginSections(context);
 				},
 				responseModifier: async (proxyRes, resData: plexTypes.PlexLibrarySectionsPage, userReq: IncomingPlexAPIRequest, userRes) => {
 					const context = this.contextForRequest(userReq);
 					const reqParams = userReq.plex.requestParams;
 					// add sections
-					const allSections = await this.getSections(context);
+					const allSections = await this.getPluginSections(context);
 					const existingSections = resData.MediaContainer.Directory ?? [];
 					const newSections = await Promise.all(Array.from(allSections).map(async (section) => {
 						return await section.getLibrarySectionsEntry(reqParams,context);
@@ -362,7 +362,7 @@ export class PseuplexApp {
 					const reqParams = userReq.plex.requestParams;
 					// get hubs for each section
 					// TODO maybe add some sort of sorting?
-					const hubsPromisesForSections = (await this.getSections(context)).map((section) => {
+					const hubsPromisesForSections = (await this.getPluginSections(context)).map((section) => {
 						return section.getHubsPage(reqParams, context);
 					});
 					// add hubs from sections
@@ -404,7 +404,7 @@ export class PseuplexApp {
 					const contentDirIds = ((typeof contentDirectoryID == 'string') ? contentDirectoryID.split(',') : contentDirectoryID) as (string[] | undefined);
 					// get promoted hubs for included sections
 					// TODO maybe add some sort of sorting?
-					const hubsPromisesForSections = (await this.getSections(context)).map((section) => {
+					const hubsPromisesForSections = (await this.getPluginSections(context)).map((section) => {
 						// ensure we're including this section
 						if(contentDirIds.findIndex((id) => (id == section.id)) == -1) {
 							return null;
@@ -1134,7 +1134,7 @@ export class PseuplexApp {
 
 	
 
-	async getSections(context: PseuplexRequestContext): Promise<PseuplexSection[]> {
+	async getPluginSections(context: PseuplexRequestContext): Promise<PseuplexSection[]> {
 		const sections: PseuplexSection[] = [];
 		for(const pluginSlug in this.plugins) {
 			const plugin = this.plugins[pluginSlug];
@@ -1148,7 +1148,7 @@ export class PseuplexApp {
 		return sections;
 	}
 
-	async hasSections(context: PseuplexRequestContext): Promise<boolean> {
+	async hasPluginSections(context: PseuplexRequestContext): Promise<boolean> {
 		for(const pluginSlug in this.plugins) {
 			const plugin = this.plugins[pluginSlug];
 			if(await plugin.hasSections?.(context)) {
