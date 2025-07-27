@@ -350,21 +350,17 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		} else {
 			// update metadata item for page
 			forArrayOrSingle(resData.MediaContainer.Metadata, (metadataItem) => {
-				if(itemType == plexTypes.PlexMediaItemType.TVShow) {
-					metadataItem.title = `Request • ${metadataItem.title}`;
-				} else {
-					let requestState;
-					if(reqInfo) {
-						requestState = `Request: ${requestStatusDisplayText(reqInfo.requestStatus)}`;
-						if(reqInfo.requestStatus == RequestStatus.Approved) {
-							requestState += `, ${requestedMediaStatusDisplayText(reqInfo.mediaStatus)}`;
-						}
-						requestState += '\n';
-					} else {
-						requestState = '⬇️ 𝐑𝐞𝐪𝐮𝐞𝐬𝐭𝐞𝐝\n';
+				if(reqInfo) {
+					let requestState = `Request: ${requestStatusDisplayText(reqInfo.requestStatus)}`;
+					if(reqInfo.requestStatus == RequestStatus.Approved) {
+						requestState += `, ${requestedMediaStatusDisplayText(reqInfo.mediaStatus)}`;
 					}
-					metadataItem.title = `Requested • ${metadataItem.title}`
+					requestState += '\n';
+					metadataItem.title = `Requesting... • ${metadataItem.title}`
 					metadataItem.summary = `${requestState}${metadataItem.summary ?? ''}`;
+				}
+				else if(itemType == plexTypes.PlexMediaItemType.TVShow) {
+					metadataItem.title = `Request • ${metadataItem.title}`;
 				}
 				reqsTransform.setMetadataItemKeyToRequestKey(metadataItem, {
 					...transformOpts,
@@ -408,7 +404,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 	async getChildren(id: string, options: PseuplexMetadataChildrenProviderParams): Promise<PseuplexMetadataPage> {
 		const idParts = reqsTransform.parsePartialRequestMetadataId(id);
 		const metadataPage = await this.handlePlexRequest(idParts, {
-			children: false,
+			children: true,
 			plexParams: options.plexParams,
 			context: options.context,
 		});
