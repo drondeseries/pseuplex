@@ -55,7 +55,6 @@ import {
 import {
 	PseuplexClientWebSocketInfo,
 	PseuplexPossiblyConfirmedClientWebSocketInfo,
-	PseuplexUnconfirmedClientWebSocketInfo,
 } from './types/sockets';
 import {
 	PseuplexPlugin,
@@ -83,6 +82,7 @@ import {
 	transformArrayOrSingle,
 	transformArrayOrSingleAsyncParallel,
 	intParam,
+	parseURLPathParts,
 } from '../utils/misc';
 import { IPv4NormalizeMode } from '../utils/ip';
 
@@ -793,6 +793,7 @@ export class PseuplexApp {
 				// save socket info per plex token
 				let sockets = this.clientWebSockets[plexToken];
 				const socketInfo: PseuplexPossiblyConfirmedClientWebSocketInfo = {
+					endpoint: (req as express.Request).path || parseURLPathParts(req.url).path,
 					socket,
 					proxySocket: undefined,
 				};
