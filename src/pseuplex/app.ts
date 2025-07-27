@@ -52,6 +52,11 @@ import {
 	PseuplexRelatedHubsSource,
 } from './metadata';
 import {
+	PseuplexClientWebSocketInfo,
+	PseuplexPossiblyConfirmedClientWebSocketInfo,
+	PseuplexUnconfirmedClientWebSocketInfo,
+} from './types/sockets';
+import {
 	PseuplexPlugin,
 	PseuplexResponseFilterName,
 	PseuplexResponseFilters,
@@ -67,7 +72,7 @@ import { PseuplexSection } from './section';
 import { sendMediaUnavailableNotifications } from './notifications';
 import { CachedFetcher } from '../fetching/CachedFetcher';
 import { urlLogString } from '../utils/logging';
-import { httpError } from '../utils/error';
+import { httpError, HttpResponseError } from '../utils/error';
 import { expressErrorHandler } from '../utils/requesthandling';
 import {
 	parseURLPath,
@@ -145,7 +150,9 @@ export class PseuplexApp {
 	readonly plexAdminAuthContext: plexTypes.PlexAuthContext;
 	readonly plexServerProperties: PlexServerPropertiesStore;
 	readonly plexServerAccounts: PlexServerAccountsStore;
-	readonly clientWebSockets: {[plexToken: string]: stream.Duplex[]} = {};
+	readonly clientWebSockets: {
+		[plexToken: string]: PseuplexPossiblyConfirmedClientWebSocketInfo[]
+	} = {};
 	readonly plexServerIdToGuidCache: CachedFetcher<string | null>;
 	readonly plexGuidToInfoCache?: PlexGuidToInfoCache;
 	readonly plexMetadataClient: PlexClient;
@@ -769,18 +776,37 @@ export class PseuplexApp {
 			if(this.loggingOptions.logUserRequests) {
 				console.log(`\nupgrade ws ${req.url}`);
 			}
+			// socket endpoints seem to only get passed the token
 			const plexToken = plexTypes.parsePlexTokenFromRequest(req);
 			if(plexToken) {
-				// save socket per plex token
-				// TODO wait until response from plex before adding to socket list
+				// save socket info per plex token
 				let sockets = this.clientWebSockets[plexToken];
-				if(!sockets) {
-					sockets = [];
+				const socketInfo: PseuplexPossiblyConfirmedClientWebSocketInfo = {
+					socket,
+					proxySocket: undefined,
+				};
+				if(sockets) {
+					sockets.push(socketInfo);
+				} else {
+					sockets = [socketInfo];
 					this.clientWebSockets[plexToken] = sockets;
 				}
-				sockets.push(socket);
+				// `pipe` is called on this socket once the proxy socket succeeds
+				const innerSocketPipe = socket.pipe;
+				let piped = false;
+				socket.pipe = function(...args) {
+					if(!piped) {
+						piped = true;
+						const proxySocket = args[0];
+						if(proxySocket instanceof stream.Duplex) {
+							socketInfo.proxySocket = proxySocket;
+						}
+					}
+					return innerSocketPipe.call(this, ...args);
+				};
+				// remove on close
 				socket.on('close', () => {
-					const socketIndex = sockets.indexOf(socket);
+					const socketIndex = sockets.indexOf(socketInfo);
 					if(socketIndex != -1) {
 						sockets.splice(socketIndex, 1);
 						if(sockets.length == 0) {
@@ -883,12 +909,16 @@ export class PseuplexApp {
 				// find matching provider from source
 				const metadataProvider = this.getMetadataProvider(source);
 				if(!metadataProvider) {
-					throw httpError(404, `Unknown metadata source ${source}`);
+					throw httpError(400, `Unknown metadata source ${source}`);
 				}
 				// fetch from provider
 				const partialId = stringifyPartialMetadataID(metadataId);
 				return (await metadataProvider.get([partialId], providerParams)).MediaContainer.Metadata;
 			} catch(error) {
+				if((caughtError as HttpResponseError)?.httpResponse?.status != 404) {
+					console.error(`Error fetching metadata for metadata id ${metadataId} :`);
+					console.error(error);
+				}
 				if(!caughtError) {
 					caughtError = error;
 				}
@@ -1158,32 +1188,49 @@ export class PseuplexApp {
 		return false;
 	}
 
+
+
+	getClientWebSockets(token: string): PseuplexClientWebSocketInfo[] | undefined {
+		const sockets = this.clientWebSockets[token];
+		if(!sockets) {
+			return;
+		}
+		return sockets
+			.filter((si) => si.proxySocket);
+	}
+
 	sendMetadataUnavailableNotificationsIfNeeded(resData: PseuplexMetadataPage, params: plexTypes.PlexMetadataPageParams, context: PseuplexRequestContext) {
 		if(resData?.MediaContainer?.Metadata) {
 			let metadataItems = resData.MediaContainer.Metadata;
 			if(!(metadataItems instanceof Array)) {
 				metadataItems = [metadataItems];
 			}
-			const unavailableItems = metadataItems.filter((item) => item.Pseuplex.unavailable);
-			if(unavailableItems.length > 0
-				&& (params.checkFiles == 1 || params.asyncCheckFiles == 1
-					|| params.refreshLocalMediaAgent == 1 || params.asyncRefreshLocalMediaAgent == 1
-					|| params.refreshAnalysis == 1 || params.asyncRefreshAnalysis)) {
-				setTimeout(() => {
-					const userToken = context.plexAuthContext['X-Plex-Token'];
-					const sockets = userToken ? this.clientWebSockets[userToken] : null;
-					if(sockets && sockets.length > 0) {
-						for(const metadataItem of unavailableItems) {
-							if(metadataItem.Pseuplex.unavailable) {
-								console.log(`Sending unavailable notifications for ${metadataItem.key} on ${sockets.length} sockets`);
-								sendMediaUnavailableNotifications(sockets, {
-									userID: context.plexUserInfo.serverUserID,
-									metadataKey: metadataItem.key
-								});
+			// check if we're refreshing file existance
+			if(params.checkFiles == 1 || params.asyncCheckFiles == 1
+				|| params.refreshLocalMediaAgent == 1 || params.asyncRefreshLocalMediaAgent == 1
+				|| params.refreshAnalysis == 1 || params.asyncRefreshAnalysis) {
+				// get any items marked unavailable
+				const unavailableItems = metadataItems.filter((item) => item.Pseuplex.unavailable);
+				if(unavailableItems.length > 0) {
+					// send message after short delay, so that the page is already displayed when the message is received
+					setTimeout(() => {
+						// send unavailable message for all unavailable items, to all sockets for the token
+						const plexToken = context.plexAuthContext['X-Plex-Token'];
+						const socketInfos = plexToken ? this.getClientWebSockets(plexToken) : null;
+						if(socketInfos) {
+							const sockets = socketInfos.map((s) => s.socket);
+							for(const metadataItem of unavailableItems) {
+								if(metadataItem.Pseuplex.unavailable) {
+									console.log(`Sending unavailable notifications for ${metadataItem.key} on ${sockets.length} sockets`);
+									sendMediaUnavailableNotifications(sockets, {
+										userID: context.plexUserInfo.serverUserID,
+										metadataKey: metadataItem.key
+									});
+								}
 							}
 						}
-					}
-				}, 100);
+					}, 100);
+				}
 			}
 		}
 	}
