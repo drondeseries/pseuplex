@@ -175,7 +175,7 @@ export const qualifyPartialMetadataID = (metadataId: PseuplexPartialMetadataIDSt
 	return `${source}:${metadataId}`;
 };
 
-export const plexRelatedHubsEndpoints = (metadataEndpoint: string): {
+export const getPlexRelatedHubsEndpoints = (metadataEndpoint: string): {
 	endpoint: string,
 	hubsSource: PseuplexRelatedHubsSource,
 }[] => {

@@ -399,7 +399,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				allowSync: false,
 				Metadata: metadatas,
 			}
-		}
+		};
 	}
 	
 	async getChildren(id: string, options: PseuplexMetadataChildrenProviderParams): Promise<PseuplexMetadataPage> {
@@ -424,7 +424,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				allowSync: false,
 				Metadata: metadatas,
 			}
-		}
+		};
 	}
 
 	async getRelatedHubs(id: string, options: PseuplexRelatedHubsParams): Promise<plexTypes.PlexHubsPage> {

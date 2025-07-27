@@ -17,26 +17,32 @@ export type PseuplexResponseFilterContext = {
 	previousFilterPromises?: Promise<void>[];
 };
 
+export type PseuplexMetadataRelatedHubsResponseFilterContext = PseuplexResponseFilterContext & {
+	metadataId: PseuplexMetadataIDParts;
+	from: PseuplexRelatedHubsSource;
+};
+
+export type PseuplexMetadataFromProviderResponseFilterContext = PseuplexResponseFilterContext & {
+	metadataProvider: PseuplexMetadataProvider;
+};
+
+export type PseuplexMetadataRelatedHubsFromProviderResponseFilterContext = PseuplexResponseFilterContext & {
+	metadataId: PseuplexPartialMetadataIDParts;
+	metadataProvider: PseuplexMetadataProvider;
+	from: PseuplexRelatedHubsSource;
+};
+
 export type PseuplexResponseFilter<TResponseData, TContext extends PseuplexResponseFilterContext = PseuplexResponseFilterContext> = (resData: TResponseData, context: TContext) => void | Promise<void>;
 export type PseuplexResponseFilters = {
 	mediaProviders?: PseuplexResponseFilter<plexTypes.PlexServerMediaProvidersPage>;
 	hubs?: PseuplexResponseFilter<plexTypes.PlexLibraryHubsPage>;
 	promotedHubs?: PseuplexResponseFilter<plexTypes.PlexLibraryHubsPage>;
 	metadata?: PseuplexResponseFilter<PseuplexMetadataPage>;
-	metadataRelatedHubs?: PseuplexResponseFilter<plexTypes.PlexHubsPage, (PseuplexResponseFilterContext & {
-		metadataId: PseuplexMetadataIDParts,
-		from: PseuplexRelatedHubsSource,
-	})>;
+	metadataRelatedHubs?: PseuplexResponseFilter<plexTypes.PlexHubsPage, PseuplexMetadataRelatedHubsResponseFilterContext>;
 	findGuidInLibrary?: PseuplexResponseFilter<plexTypes.PlexMetadataPage, PseuplexResponseFilterContext>;
 
-	metadataFromProvider?: PseuplexResponseFilter<PseuplexMetadataPage, (PseuplexResponseFilterContext & {
-		metadataProvider: PseuplexMetadataProvider,
-	})>;
-	metadataRelatedHubsFromProvider?: PseuplexResponseFilter<plexTypes.PlexHubsPage, (PseuplexResponseFilterContext & {
-		metadataId: PseuplexPartialMetadataIDParts,
-		metadataProvider: PseuplexMetadataProvider,
-		from: PseuplexRelatedHubsSource,
-	})>;
+	metadataFromProvider?: PseuplexResponseFilter<PseuplexMetadataPage, PseuplexMetadataFromProviderResponseFilterContext>;
+	metadataRelatedHubsFromProvider?: PseuplexResponseFilter<plexTypes.PlexHubsPage, PseuplexMetadataRelatedHubsFromProviderResponseFilterContext>;
 };
 export type PseuplexResponseFilterName = keyof PseuplexResponseFilters;
 export type PseuplexReadOnlyResponseFilters = {

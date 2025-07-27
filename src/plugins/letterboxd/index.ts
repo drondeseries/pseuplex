@@ -27,7 +27,8 @@ import {
 	PseuplexMetadataProvider,
 	PseuplexSection,
 	PseuplexRelatedHubsSource,
-	plexRelatedHubsEndpoints
+	getPlexRelatedHubsEndpoints,
+	PseuplexMetadataRelatedHubsResponseFilterContext
 } from '../../pseuplex';
 import { LetterboxdPluginConfig } from './config';
 import {
@@ -317,7 +318,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		]);
 		
 		// get hubs related to metadata item
-		for(const {endpoint, hubsSource} of plexRelatedHubsEndpoints(`${this.metadata.basePath}/:id`)) {
+		for(const {endpoint, hubsSource} of getPlexRelatedHubsEndpoints(`${this.metadata.basePath}/:id`)) {
 			router.get(endpoint, [
 				this.app.middlewares.plexAuthentication,
 				this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
@@ -462,7 +463,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		}
 	}
 
-	async _addSimilarItemsHubIfNeeded(resData: plexTypes.PlexHubsPage, context: PseuplexResponseFilterContext & {metadataId: PseuplexMetadataIDParts}) {
+	async _addSimilarItemsHubIfNeeded(resData: plexTypes.PlexHubsPage, context: PseuplexMetadataRelatedHubsResponseFilterContext) {
 		const userInfo = context.userReq.plex.userInfo;
 		const plexAuthContext = context.userReq.plex.authContext;
 		// get prefs
