@@ -36,25 +36,37 @@ const PlexAuthContextKeys: (keyof PlexAuthContext)[] = [
 	'X-Plex-Drm'
 ];
 
-export const parseAuthContextFromRequest = (req: express.Request): PlexAuthContext => {
+export const parseAuthContextFromRequest = (req: express.Request | http.IncomingMessage): PlexAuthContext => {
+	// get query if needed
+	let query: {[key: string]: any} = (req as express.Request).query;
+	if(!query) {
+		const urlParts = parseURLPath(req.url);
+		query = urlParts.queryItems ?? {};
+	}
+	// parse each key
 	const authContext: PlexAuthContext = {};
 	for(const key of PlexAuthContextKeys) {
-		let val = req.query[key];
+		// get value from query
+		let val = query[key];
 		if(val == null || (typeof val === 'string' && val.length === 0)) {
-			const headerVal = req.header(key.toLowerCase());
+			// get value from header
+			const headerVal = req.headers[key.toLowerCase()];
 			if(headerVal != null) {
 				val = headerVal;
 			}
 		}
+		// join with commas if array
 		if(val instanceof Array) {
 			val = val.join(',');
 		} else {
+			// validate that it's not an unsupported value type
 			const valType = typeof val;
 			if((valType == 'object' || valType == 'function') && val) {
 				console.warn(`Ignoring invalid header ${key} value ${JSON.stringify(val)}`);
 				val = undefined;
 			}
 		}
+		// add value to auth context if nonnull
 		if(val != null) {
 			authContext[key] = val as string;
 		}
