@@ -24,6 +24,7 @@ export type PlexMediaItemMatchParams = {
 	types: plexTypes.PlexMediaItemTypeNumeric | plexTypes.PlexMediaItemTypeNumeric[],
 	guids: `${string}://${string}`[],
 	includeFields?: string[],
+	includeElements?: string[],
 	excludeElements?: string[],
 };
 
@@ -35,6 +36,7 @@ export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, para
 				type: params.types,
 				guid,
 				includeFields: params.includeFields,
+				includeElements: params.includeElements,
 				excludeElements: params.excludeElements,
 			});
 			const metadataItem = firstOrSingle(matchesPage.MediaContainer.Metadata);
@@ -45,10 +47,22 @@ export const findMatchingPlexMediaItem = async (metadataClient: PlexClient, para
 	}
 	// no matches against guids, so try finding by title and year if possible
 	if(params.year) {
+		let includedFields = params.includeFields;
+		if(includedFields) {
+			if(includedFields.indexOf('title') == -1) {
+				includedFields.push('title');
+			}
+			if(includedFields.indexOf('year') == -1) {
+				includedFields.push('year');
+			}
+		}
 		const matchesPage = await metadataClient.getMatches({
 			type: params.types,
 			title: params.title,
-			year: params.year as number
+			year: params.year as number,
+			includeFields: includedFields,
+			includeElements: params.includeElements,
+			excludeElements: params.excludeElements,
 		});
 		const lowercaseTitle = params.title.toLowerCase();
 		const metadataItem = findInArrayOrSingle(matchesPage.MediaContainer.Metadata, (metadataItem) => {

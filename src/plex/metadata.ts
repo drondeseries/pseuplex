@@ -24,11 +24,17 @@ export const createPlexServerIdToGuidCache = (options: plexServerAPI.PlexAPIRequ
 };
 
 
-export class PlexGuidToInfoCache extends CachedFetcher<{
+export type PlexGuidCachedInfo = {
 	slug?: string;
 	parentSlug?: string;
 	grandparentSlug?: string;
-} | null> {
+	Guid?: plexTypes.PlexGuid[];
+};
+
+
+export class PlexGuidToInfoCache extends CachedFetcher<PlexGuidCachedInfo | null> {
+	static fields: (keyof PlexGuidCachedInfo)[] = ['slug','parentSlug','grandparentSlug'];
+	static elements: (keyof PlexGuidCachedInfo)[] = ['Guid'];
 	plexMetadataClient: PlexClient;
 
 	constructor(options: {

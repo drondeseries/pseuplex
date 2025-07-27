@@ -176,24 +176,11 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 			if(!matchParams.includeFields) {
 				matchParams.includeFields = [];
 			}
-			matchParams.includeFields.push('guid','slug');
-			if(!matchParams.excludeElements) {
-				matchParams.excludeElements = [];
+			matchParams.includeFields.push('guid',...PlexGuidToInfoCache.fields);
+			if(!matchParams.includeElements) {
+				matchParams.includeElements = [];
 			}
-			matchParams.excludeElements.push(
-				'Image',
-				'Genre',
-				'Rating',
-				'Country',
-				'Role',
-				'Similar',
-				'Producer',
-				'Director',
-				'Summary',
-				'Writer',
-				'Studio',
-				'CommonSenseMedia'
-			);
+			matchParams.includeElements.push(...PlexGuidToInfoCache.elements);
 			const matchingMetadata = await findMatchingPlexMediaItem(this.plexMetadataClient, matchParams);
 			const plexGuid = matchingMetadata?.guid;
 			if(!plexGuid) {
@@ -223,6 +210,11 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 				const plexInfo = await this.plexGuidToInfoCache?.getOrFetch(plexGuid);
 				if(plexInfo) {
 					metadataItem.slug = plexInfo.slug;
+					metadataItem.parentSlug = plexInfo.parentSlug;
+					metadataItem.grandparentSlug = plexInfo.grandparentSlug;
+					if(plexInfo.Guid && plexInfo.Guid.length > 0) {
+						metadataItem.Guid = plexInfo.Guid;
+					}
 				}
 			}
 		} catch(error) {

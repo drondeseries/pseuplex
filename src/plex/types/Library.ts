@@ -17,6 +17,7 @@ export type PlexGetLibraryMatchesParams = {
 	agent?: PlexLibraryAgent,
 	language?: PlexLanguage,
 	includeFields?: string | string[],
+	includeElements?: string | string[],
 	excludeElements?: string | string[],
 };
 
