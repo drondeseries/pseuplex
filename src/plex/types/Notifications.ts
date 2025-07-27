@@ -144,14 +144,19 @@ export enum PlexTimelineEntryNotificationMetadataState {
 	Queued = 'queued',
 }
 
+export enum PlexTimelineEntryNotificationMediaState {
+	Analyzing = 'analyzing',
+}
+
 export type PlexTimelineEntryNotification = {
 	identifier: PlexPluginIdentifier;
 	sectionID: `${number}` | string; // "1", "-1"
 	itemID: `${number}` | string; // "45"
 	type: PlexMediaItemTypeNumeric;
 	title: string;
-	state: PlexTimelineEntryNotificationState; // 0,
-	metadataState?: PlexTimelineEntryNotificationMetadataState; // "created",
+	state: PlexTimelineEntryNotificationState; // 0
+	metadataState?: PlexTimelineEntryNotificationMetadataState; // "created"
+	mediaState?: PlexTimelineEntryNotificationMediaState; // "analyzing"
 	updatedAt: number; // 1753656127
 };
 
@@ -193,10 +198,14 @@ export type PlexPlaySessionStateNotificationContainer = {
 
 // Update State Change
 
+export enum PlexAutoUpdateNotificationState {
+	Done = 'done',
+}
+
 export type PlexAutoUpdateNotification = {
 	key: string;
 	version: string;
-	state: 'done';
+	state: PlexAutoUpdateNotificationState;
 };
 
 export type PlexAutoUpdateNotificationContainer = {
