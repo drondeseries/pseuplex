@@ -1262,7 +1262,7 @@ export class PseuplexApp {
 	getClientWebSockets(token: string): PseuplexClientWebSocketInfo[] | undefined {
 		const sockets = this.clientWebSockets[token];
 		if(!sockets) {
-			return;
+			return undefined;
 		}
 		return sockets
 			.filter((si) => si.proxySocket);
@@ -1271,7 +1271,7 @@ export class PseuplexApp {
 	getClientNotificationWebSockets(token: string): PseuplexClientNotificationWebSocketInfo[] | undefined {
 		const sockets = this.clientWebSockets[token];
 		if(!sockets) {
-			return;
+			return undefined;
 		}
 		const notifSockets: PseuplexClientNotificationWebSocketInfo[] = [];
 		for(const socketInfo of sockets) {

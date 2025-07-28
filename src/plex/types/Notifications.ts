@@ -135,9 +135,10 @@ export enum PlexTimelineEntryNotificationState {
 	Added = 0,
 	State1 = 1,
 	State2 = 2,
-	State3 = 3,
+	State3 = 3, // this is the first state on removal
 	AddingExtras = 4,
-	FinishedAdding = 5,
+	FinishedLoad = 5,
+	Deleted = 9,
 };
 
 export enum PlexTimelineEntryNotificationMetadataState {
@@ -145,6 +146,7 @@ export enum PlexTimelineEntryNotificationMetadataState {
 	Processing = 'processing',
 	Loading = 'loading',
 	Queued = 'queued',
+	Deleted = 'deleted',
 }
 
 export enum PlexTimelineEntryNotificationMediaState {
