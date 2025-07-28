@@ -69,7 +69,13 @@ import {
 } from './requesthandling';
 import { IDMappings } from './idmappings';
 import { PseuplexSection } from './section';
-import { sendMediaUnavailableNotifications } from './notifications';
+import {
+	EventSourceNotificationsSocketEndpoint,
+	NotificationsWebSocketEndpoint,
+	PseuplexClientNotificationWebSocketInfo,
+	PseuplexNotificationSocketType,
+	sendMediaUnavailableNotifications
+} from './notifications';
 import { CachedFetcher } from '../fetching/CachedFetcher';
 import { urlLogString } from '../utils/logging';
 import { httpError, HttpResponseError } from '../utils/error';
@@ -1257,6 +1263,42 @@ export class PseuplexApp {
 			.filter((si) => si.proxySocket);
 	}
 
+	getClientNotificationWebSockets(token: string): PseuplexClientNotificationWebSocketInfo[] | undefined {
+		const sockets = this.clientWebSockets[token];
+		if(!sockets) {
+			return;
+		}
+		const notifSockets: PseuplexClientNotificationWebSocketInfo[] = [];
+		const notifsWithSlashEndpoint = `${NotificationsWebSocketEndpoint}/`;
+		const eventsWithSlashEndpoint = `${EventSourceNotificationsSocketEndpoint}/`;
+		for(const socketInfo of sockets) {
+			if(!socketInfo.proxySocket) {
+				continue;
+			}
+			let type: PseuplexNotificationSocketType | undefined;
+			switch(socketInfo.endpoint) {
+				case NotificationsWebSocketEndpoint:
+				case notifsWithSlashEndpoint:
+					type = PseuplexNotificationSocketType.Notification;
+					break;
+
+				case EventSourceNotificationsSocketEndpoint:
+				case eventsWithSlashEndpoint:
+					type = PseuplexNotificationSocketType.EventSource;
+					break;
+			}
+			if(type == null) {
+				continue;
+			}
+			notifSockets.push({
+				type,
+				socket: socketInfo.socket,
+				proxySocket: socketInfo.proxySocket,
+			});
+		}
+		return notifSockets;
+	}
+
 	sendMetadataUnavailableNotificationsIfNeeded(resData: PseuplexMetadataPage, params: plexTypes.PlexMetadataPageParams, context: PseuplexRequestContext) {
 		if(resData?.MediaContainer?.Metadata) {
 			let metadataItems = resData.MediaContainer.Metadata;
@@ -1274,15 +1316,14 @@ export class PseuplexApp {
 					setTimeout(() => {
 						// send unavailable message for all unavailable items, to all sockets for the token
 						const plexToken = context.plexAuthContext['X-Plex-Token'];
-						const socketInfos = plexToken ? this.getClientWebSockets(plexToken) : null;
-						if(socketInfos) {
-							const sockets = socketInfos.map((s) => s.socket);
+						const notifSockets = plexToken ? this.getClientNotificationWebSockets(plexToken) : null;
+						if(notifSockets) {
 							for(const metadataItem of unavailableItems) {
 								if(metadataItem.Pseuplex.unavailable) {
-									console.log(`Sending unavailable notifications for ${metadataItem.key} on ${sockets.length} sockets`);
-									sendMediaUnavailableNotifications(sockets, {
+									console.log(`Sending unavailable notifications for ${metadataItem.key} on ${notifSockets.length} sockets`);
+									sendMediaUnavailableNotifications(notifSockets, {
 										userID: context.plexUserInfo.serverUserID,
-										metadataKey: metadataItem.key
+										metadataKey: metadataItem.key,
 									});
 								}
 							}

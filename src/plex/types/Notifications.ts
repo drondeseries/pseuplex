@@ -14,15 +14,18 @@ export enum PlexNotificationType {
 	UpdateStateChange = 'update.statechange',
 };
 
-export type PlexNotificationContainer =
+export type PlexNotificationContainer = {
+	type?: PlexNotificationType;
+	size: number;
+} & (
 	PlexActivityNotificationContainer
 	| PlexProgressNotificationContainer
 	| PlexStatusNotificationContainer
 	| PlexBackgroundProcessingQueueEventNotificationContainer
 	| PlexTimelineEntryNotificationContainer
 	| PlexPlaySessionStateNotificationContainer
-	| PlexAutoUpdateNotificationContainer;
-
+	| PlexAutoUpdateNotificationContainer
+);
 
 
 // Activity Event
