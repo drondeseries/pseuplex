@@ -798,8 +798,13 @@ export class PseuplexApp {
 			if(plexToken) {
 				// save socket info per plex token
 				let sockets = this.clientWebSockets[plexToken];
+				let endpoint = (req as express.Request).path || parseURLPathParts(req.url).path;
+				// trim trailing endpoint slash if needed
+				if(endpoint && endpoint.length > 1 && endpoint.endsWith('/') && endpoint.startsWith('/')) {
+					endpoint = endpoint.slice(0, endpoint.length-1);
+				}
 				const socketInfo: PseuplexPossiblyConfirmedClientWebSocketInfo = {
-					endpoint: (req as express.Request).path || parseURLPathParts(req.url).path,
+					endpoint,
 					socket,
 					proxySocket: undefined,
 				};
@@ -1269,8 +1274,6 @@ export class PseuplexApp {
 			return;
 		}
 		const notifSockets: PseuplexClientNotificationWebSocketInfo[] = [];
-		const notifsWithSlashEndpoint = `${NotificationsWebSocketEndpoint}/`;
-		const eventsWithSlashEndpoint = `${EventSourceNotificationsSocketEndpoint}/`;
 		for(const socketInfo of sockets) {
 			if(!socketInfo.proxySocket) {
 				continue;
@@ -1278,12 +1281,10 @@ export class PseuplexApp {
 			let type: PseuplexNotificationSocketType | undefined;
 			switch(socketInfo.endpoint) {
 				case NotificationsWebSocketEndpoint:
-				case notifsWithSlashEndpoint:
 					type = PseuplexNotificationSocketType.Notification;
 					break;
 
 				case EventSourceNotificationsSocketEndpoint:
-				case eventsWithSlashEndpoint:
 					type = PseuplexNotificationSocketType.EventSource;
 					break;
 			}
