@@ -42,6 +42,7 @@ export enum PlexActivityType {
 	LibraryUpdateItemMetadata = 'library.update.item.metadata',
 	ProviderSubscriptionsProcess = 'provider.subscriptions.process',
 	MediaGenerateCredits = 'media.generate.credits',
+	MediaGenerateChapterThumbs = 'media.generate.chapter.thumbs',
 }
 
 export type PlexActivityNotification = {
@@ -132,12 +133,12 @@ export type PlexBackgroundProcessingQueueEventNotificationContainer = {
 // Timeline Entry
 
 export enum PlexTimelineEntryNotificationState {
-	Added = 0,
+	Created = 0,
 	State1 = 1,
 	State2 = 2,
-	State3 = 3, // this is the first state on removal
+	StartedRefresh = 3,
 	AddingExtras = 4,
-	FinishedLoad = 5,
+	FinishedRefresh = 5,
 	Deleted = 9,
 };
 
@@ -151,6 +152,7 @@ export enum PlexTimelineEntryNotificationMetadataState {
 
 export enum PlexTimelineEntryNotificationMediaState {
 	Analyzing = 'analyzing',
+	Thumbnailing = 'thumbnailing',
 }
 
 export type PlexTimelineEntryNotification = {
