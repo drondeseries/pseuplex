@@ -140,7 +140,7 @@ export const sendMediaUnavailableActivityNotification = (sockets: PseuplexClient
 
 
 
-export const sendMetadataRefreshNotifications = (sockets: PseuplexClientNotificationWebSocketInfo[], items: {
+export const sendMetadataRefreshTimelineNotifications = (sockets: PseuplexClientNotificationWebSocketInfo[], items: {
 	itemID: string,
 	type: plexTypes.PlexMediaItemTypeNumeric,
 	updatedAt: number,
