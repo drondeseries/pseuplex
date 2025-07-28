@@ -20,6 +20,7 @@ export type Config = {
 		processedMachineIdentifier?: string;
 		appDataPath?: string;
 		metadataHost?: string;
+		notificationSocketRetryInterval?: number;
 	},
 	ssl?: SSLConfig & {
 		autoP12Path?: boolean;

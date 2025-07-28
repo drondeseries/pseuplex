@@ -78,12 +78,24 @@ export const PlexMediaItemTypeToNumeric = {
 	[PlexMediaItemType.Movie]: PlexMediaItemTypeNumeric.Movie,
 	[PlexMediaItemType.TVShow]: PlexMediaItemTypeNumeric.Show,
 	[PlexMediaItemType.Season]: PlexMediaItemTypeNumeric.Season,
-	[PlexMediaItemType.Episode]: PlexMediaItemTypeNumeric.Episode
+	[PlexMediaItemType.Episode]: PlexMediaItemTypeNumeric.Episode,
+	[PlexMediaItemType.Artist]: PlexMediaItemTypeNumeric.Artist,
+	[PlexMediaItemType.Album]: PlexMediaItemTypeNumeric.Album,
+	[PlexMediaItemType.Track]: PlexMediaItemTypeNumeric.Track,
+	[PlexMediaItemType.Clip]: PlexMediaItemTypeNumeric.Clip,
+	[PlexMediaItemType.Photos]: PlexMediaItemTypeNumeric.PhotoAlbum,
+	[PlexMediaItemType.Playlist]: PlexMediaItemTypeNumeric.Playlist,
 };
 
 export const PlexMediaItemNumericToType = {
 	[PlexMediaItemTypeNumeric.Movie]: PlexMediaItemType.Movie,
 	[PlexMediaItemTypeNumeric.Show]: PlexMediaItemType.TVShow,
 	[PlexMediaItemTypeNumeric.Season]: PlexMediaItemType.Season,
-	[PlexMediaItemTypeNumeric.Episode]: PlexMediaItemType.Episode
+	[PlexMediaItemTypeNumeric.Episode]: PlexMediaItemType.Episode,
+	[PlexMediaItemTypeNumeric.Artist]: PlexMediaItemType.Artist,
+	[PlexMediaItemTypeNumeric.Album]: PlexMediaItemType.Album,
+	[PlexMediaItemTypeNumeric.Track]: PlexMediaItemType.Track,
+	[PlexMediaItemTypeNumeric.Clip]: PlexMediaItemType.Clip,
+	[PlexMediaItemTypeNumeric.PhotoAlbum]: PlexMediaItemType.Photos,
+	[PlexMediaItemTypeNumeric.Playlist]: PlexMediaItemType.Playlist,
 };

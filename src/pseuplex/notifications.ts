@@ -78,7 +78,7 @@ export const sendSocketNotification = (socketInfo: PseuplexClientNotificationWeb
 
 
 
-export const sendMediaUnavailableNotifications = (sockets: PseuplexClientNotificationWebSocketInfo[] | undefined, options: {
+export const sendMediaUnavailableNotifications = (sockets: PseuplexClientNotificationWebSocketInfo[], options: {
 	userID: number | string,
 	metadataKey: string,
 }) => {
@@ -100,15 +100,12 @@ export const sendMediaUnavailableNotifications = (sockets: PseuplexClientNotific
 	});
 }
 
-export const sendMediaUnavailableActivityNotification = (sockets: PseuplexClientNotificationWebSocketInfo[] | undefined, options: {
+export const sendMediaUnavailableActivityNotification = (sockets: PseuplexClientNotificationWebSocketInfo[], options: {
 	uuid: string,
 	eventType: plexTypes.PlexActivityEventType,
 	userID: number | string,
 	metadataKey: string
 }) => {
-	if(!sockets) {
-		return;
-	}
 	const notification: plexTypes.PlexActivityNotificationContainer = {
 		type: plexTypes.PlexNotificationType.Activity,
 		size: 1,
@@ -134,6 +131,58 @@ export const sendMediaUnavailableActivityNotification = (sockets: PseuplexClient
 				}
 			}
 		]
+	};
+	const notifDataCache: NotificationDataCache = {};
+	for(const socket of sockets) {
+		sendSocketNotification(socket, notification, notifDataCache);
+	}
+};
+
+
+
+export const sendMetadataRefreshNotifications = (sockets: PseuplexClientNotificationWebSocketInfo[], items: {
+	itemID: string,
+	type: plexTypes.PlexMediaItemTypeNumeric,
+	updatedAt: number,
+}[]) => {
+	sendMetadataRefreshTimelineEntryNotification(sockets, items.map((item) => {
+		return {
+			state: plexTypes.PlexTimelineEntryNotificationState.StartedRefresh,
+			metadataState: plexTypes.PlexTimelineEntryNotificationMetadataState.Queued,
+			title: `Refreshing ${item.itemID}`,
+			sectionID: "-1",
+			...item,
+		};
+	}));
+
+	sendMetadataRefreshTimelineEntryNotification(sockets, items.map((item) => {
+		return {
+			state: plexTypes.PlexTimelineEntryNotificationState.FinishedRefresh,
+			title: `Done refreshing ${item.itemID}`,
+			sectionID: "-1",
+			...item,
+		};
+	}));
+};
+
+export const sendMetadataRefreshTimelineEntryNotification = (sockets: PseuplexClientNotificationWebSocketInfo[], items: {
+	itemID: string,
+	type: plexTypes.PlexMediaItemTypeNumeric,
+	sectionID?: string,
+	state: plexTypes.PlexTimelineEntryNotificationState,
+	metadataState?: plexTypes.PlexTimelineEntryNotificationMetadataState,
+	title: string,
+	updatedAt: number,
+}[]) => {
+	const notification: plexTypes.PlexTimelineEntryNotificationContainer = {
+		type: plexTypes.PlexNotificationType.Timeline,
+		size: items.length,
+		TimelineEntry: items.map((item) => {
+			return {
+				identifier: plexTypes.PlexPluginIdentifier.PlexAppLibrary,
+				...item,
+			};
+		})
 	};
 	const notifDataCache: NotificationDataCache = {};
 	for(const socket of sockets) {

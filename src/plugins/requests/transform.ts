@@ -75,15 +75,21 @@ export const createRequestPartialMetadataId = (idParts: RequestPartialMetadataID
 
 export const createRequestItemMetadataKey = (options: {
 	basePath: string,
+	qualifiedMetadataId: boolean,
 	requestProviderSlug: string,
 	mediaType: plexTypes.PlexMediaItemType,
 	plexId: string,
 	season?: number,
-	children?: boolean
+	children?: boolean,
 }) => {
-	return `${options.basePath}/${options.requestProviderSlug}/${options.mediaType}/${options.plexId}`
-		+ (options.season != null ? `${SeasonRelativePath}${options.season}` : '')
-		+ (options.children ? ChildrenRelativePath : '');
+	if(options.qualifiedMetadataId) {
+		const metadataId = createRequestFullMetadataId(options);
+		return `/library/metadata/${metadataId}`;
+	} else {
+		return `${options.basePath}/${options.requestProviderSlug}/${options.mediaType}/${options.plexId}`
+			+ (options.season != null ? `${SeasonRelativePath}${options.season}` : '')
+			+ (options.children ? ChildrenRelativePath : '');
+	}
 }
 
 export const parsePartialRequestMetadataId = (metadataId: PseuplexPartialMetadataIDString): RequestPartialMetadataIDParts => {
@@ -101,7 +107,8 @@ export const parsePartialRequestMetadataId = (metadataId: PseuplexPartialMetadat
 export type TransformRequestMetadataOptions = {
 	basePath: string,
 	requestProviderSlug: string,
-	children?: boolean
+	children?: boolean,
+	qualifiedMetadataIds: boolean;
 };
 
 export const setMetadataItemKeyToRequestKey = (metadataItem: plexTypes.PlexMetadataItem, opts: TransformRequestMetadataOptions) => {
@@ -115,6 +122,7 @@ export const setMetadataItemKeyToRequestKey = (metadataItem: plexTypes.PlexMetad
 	const children = opts?.children ?? metadataItem.key.endsWith(ChildrenRelativePath);
 	metadataItem.key = createRequestItemMetadataKey({
 		basePath: opts.basePath,
+		qualifiedMetadataId: opts.qualifiedMetadataIds,
 		requestProviderSlug: opts.requestProviderSlug,
 		mediaType: guidParts.type as plexTypes.PlexMediaItemType,
 		plexId: guidParts.id,

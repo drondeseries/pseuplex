@@ -118,6 +118,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 				authContext: plexAuthContext,
 				moviesLibraryId: this.config.plex.requestedMoviesLibraryId,
 				tvShowsLibraryId: this.config.plex.requestedTVShowsLibraryId,
+				useLibraryMetadataPath: this.app.alwaysUseLibraryMetadataPath,
 			});
 			if(!metadataItem) {
 				return;

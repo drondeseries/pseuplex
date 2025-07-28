@@ -7,9 +7,12 @@ export type PseuplexMetadataAccessCacheOptions = {
 	limitPerToken?: number;
 };
 
-export type PseuplexMetadataAccessEntry = {
-	metadataId: string;
-	//metadataKey: string;
+const TokenAndClientIdDivider = '|';
+type TokenAndClientIdString = `${string}${typeof TokenAndClientIdDivider}${string}`;
+
+type TokenAndClientId = {
+	token: string;
+	clientId: string;
 };
 
 export class PseuplexMetadataAccessCache {
@@ -18,9 +21,13 @@ export class PseuplexMetadataAccessCache {
 	private readonly _clientAccessLogs: {
 		[token: string]: {
 			[clientId: string]: {
-				[plexGuid: string]: PseuplexMetadataAccessEntry[]
+				[plexGuid: string]: Set<string>
 			}
 		}
+	} = {};
+
+	private readonly _plexGuidAccessors: {
+		[plexGuid: string]: Set<TokenAndClientIdString>;
 	} = {};
 
 	constructor(options?: PseuplexMetadataAccessCacheOptions) {
@@ -44,13 +51,10 @@ export class PseuplexMetadataAccessCache {
 			return;
 		}
 		const fullMetadataId = qualifyPartialMetadataID(metadataId, metadataProvider.sourceSlug);
-		this.addMetadataAccessEntry(plexGuid, {
-			metadataId: fullMetadataId,
-			// metadataKey,
-		}, context);
+		this.addMetadataAccessEntry(plexGuid, fullMetadataId, context);
 	}
 	
-	addMetadataAccessEntry(plexGuid: string, entry: PseuplexMetadataAccessEntry, context: PseuplexRequestContext) {
+	addMetadataAccessEntry(plexGuid: string, metadataId: string, context: PseuplexRequestContext) {
 		// get token and client id
 		const { plexAuthContext } = context;
 		const token = plexAuthContext['X-Plex-Token'];
@@ -59,6 +63,7 @@ export class PseuplexMetadataAccessCache {
 			return;
 		}
 		const clientId = plexAuthContext['X-Plex-Client-Identifier'] ?? '';
+		const tokenAndClientIdString: TokenAndClientIdString = `${token}${TokenAndClientIdDivider}${clientId ?? ''}`;
 		// get guid mapping for token and client id
 		let clientMap = this._clientAccessLogs[token];
 		if(!clientMap) {
@@ -71,46 +76,81 @@ export class PseuplexMetadataAccessCache {
 			clientMap[clientId] = guidMap;
 		}
 		// get access entry list to modify
-		let entryList = guidMap[plexGuid];
-		if(entryList) {
-			// guid mapping already existed
-			// check if entry has already been added
-			const existingIndex = entryList.findIndex((cmpEntry) => (
-				cmpEntry.metadataId == entry.metadataId
-				//&& cmpEntry.metadataKey == entry.metadataKey
-			));
-			if(existingIndex == -1) {
-				// add entry since it hasnt been added
-				entryList.push(entry);
-			}
+		let entries = guidMap[plexGuid];
+		if(entries) {
+			entries.add(metadataId);
 			// delete and re-add guid mapping, so it moves to the end of the keys array
 			delete guidMap[plexGuid];
-			guidMap[plexGuid] = entryList;
+			guidMap[plexGuid] = entries;
 		} else {
 			// guid mapping doesn't exist
 			// add new entry list
-			entryList = [entry];
-			guidMap[plexGuid] = entryList;
+			entries = new Set([metadataId]);
+			guidMap[plexGuid] = entries;
 		}
+		// add to accessors
+		let guidAccessors = this._plexGuidAccessors[plexGuid];
+		if(!guidAccessors) {
+			guidAccessors = new Set();
+			this._plexGuidAccessors[plexGuid] = guidAccessors;
+		}
+		guidAccessors.add(tokenAndClientIdString);
 		// delete entries over limit
 		const guidKeys = Object.keys(guidMap);
 		if(guidKeys.length > this.limitPerToken) {
 			const overAmount = guidKeys.length - this.limitPerToken;
 			for(const guidKey of guidKeys.slice(0, overAmount)) {
+				// remove guid mapping and delete from accessors map
+				const otherGuidAccessors = this._plexGuidAccessors[guidKey];
 				delete guidMap[guidKey];
+				if(otherGuidAccessors) {
+					otherGuidAccessors.delete(tokenAndClientIdString);
+					if(otherGuidAccessors.size == 0) {
+						delete this._plexGuidAccessors[guidKey];
+					}
+				}
 			}
 		}
 	}
 
-	getMetadataAccessEntries(plexGuid: string, context: PseuplexRequestContext): PseuplexMetadataAccessEntry[] | undefined {
-		// get token and client id
-		const { plexAuthContext } = context;
-		const token = plexAuthContext['X-Plex-Token'];
-		if(!token) {
+	getMetadataIdsForGuidAndClient(plexGuid: string, token: string, clientId: string): Set<string> | undefined {
+		return this._clientAccessLogs[token]?.[clientId]?.[plexGuid];
+	}
+
+	getMetadataAccessorsForGuid(plexGuid: string): TokenAndClientId[] | undefined {
+		const accessorStrings = this._plexGuidAccessors[plexGuid];
+		if(!accessorStrings) {
 			return undefined;
 		}
-		const clientId = plexAuthContext['X-Plex-Client-Identifier'] ?? '';
-		// get access log for token and client id
-		return this._clientAccessLogs[token]?.[clientId]?.[plexGuid];
+		const accessors: TokenAndClientId[] = [];
+		for(const accessorString of accessorStrings) {
+			const divIndex = accessorString.indexOf(TokenAndClientIdDivider);
+			if(divIndex == -1) {
+				console.error(`Malformed accessorString ${accessorString}`);
+				continue;
+			}
+			const token = accessorString.substring(0, divIndex);
+			const clientId = accessorString.substring(divIndex+1);
+			accessors.push({
+				token,
+				clientId
+			});
+		}
+		return accessors;
+	}
+
+	getMetadataIdsForGuid(plexGuid: string): Set<string> | undefined {
+		const accessors = this.getMetadataAccessorsForGuid(plexGuid);
+		if(!accessors || accessors.length == 0) {
+			return undefined;
+		}
+		const metadataIds = new Set<string>();
+		for(const {token, clientId} of accessors) {
+			const accessorIds = this._clientAccessLogs[token]?.[clientId]?.[plexGuid];
+			for(const id of accessorIds) {
+				metadataIds.add(id);
+			}
+		}
+		return metadataIds;
 	}
 }

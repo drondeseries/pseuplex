@@ -15,6 +15,7 @@ export type CommandArguments = {
 	logProxyResponseHeaders?: boolean,
 	logProxyResponseBody?: boolean,
 	logProxyErrorResponseBody?: boolean,
+	logWebsocketErrors?: boolean,
 	verbose?: boolean,
 	verboseTraffic?: boolean,
 }
@@ -33,6 +34,7 @@ enum CmdFlag {
 	logProxyResponseHeaders = '--log-proxy-response-headers',
 	logProxyResponseBody = '--log-proxy-response-body',
 	logProxyErrorResponseBody = '--log-proxy-response-body',
+	logWebsocketErrors = '--log-websocket-errors',
 	verbose = '--verbose',
 	verboseTraffic = '--verbose-traffic',
 }
@@ -123,6 +125,10 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 				case CmdFlag.logProxyErrorResponseBody:
 					parsedArgs.logProxyErrorResponseBody = true;
 					break;
+
+				case CmdFlag.logWebsocketErrors:
+					parsedArgs.logWebsocketErrors = true;
+					break;
 				
 				case CmdFlag.verbose:
 					parsedArgs.verbose = true;
@@ -146,6 +152,7 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 					parsedArgs.logProxyResponseHeaders = true;
 					//parsedArgs.logProxyResponseBody = true;
 					parsedArgs.logProxyErrorResponseBody = true;
+					parsedArgs.logWebsocketErrors = true;
 					break;
 				
 				default:

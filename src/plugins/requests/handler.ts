@@ -69,6 +69,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		authContext?: plexTypes.PlexAuthContext,
 		moviesLibraryId?: string | number,
 		tvShowsLibraryId?: string | number,
+		useLibraryMetadataPath?: boolean,
 	}): Promise<plexTypes.PlexMetadataItem | null> {
 		// determine properties and get metadata
 		let requestActionTitle: string;
@@ -119,7 +120,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		const requestMetadataItem: WithOptionalPropsRecursive<plexTypes.PlexMetadataItem> = {
 			guid: options.guid,
 			key: reqsTransform.createRequestItemMetadataKey({
-				basePath: this.basePath,
+				basePath: options.useLibraryMetadataPath ? '/library/metadata' : this.basePath,
+				qualifiedMetadataId: options.useLibraryMetadataPath,
 				requestProviderSlug: options.requestProvider.slug,
 				mediaType: guidParts.type as plexTypes.PlexMediaItemType,
 				plexId: guidParts.id,
@@ -161,6 +163,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		children?: boolean,
 		plexParams?: plexTypes.PlexMetadataPageParams | plexTypes.PlexMetadataChildrenPageParams,
 		context: PseuplexRequestContext,
+		metadataBasePath?: string;
+		qualifiedMetadataIds?: boolean;
 	}): Promise<PseuplexMetadataPage> {
 		const { context } = options;
 		// find requests provider
@@ -183,8 +187,9 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		}
 		// create options for transforming metadata
 		const transformOpts: TransformRequestMetadataOptions = {
-			basePath: this.basePath,
-			requestProviderSlug: reqProvider.slug
+			basePath: options.metadataBasePath || this.basePath,
+			requestProviderSlug: reqProvider.slug,
+			qualifiedMetadataIds: options.qualifiedMetadataIds ?? false,
 		};
 		// check if item already exists on the plex server
 		const guid = `plex://${id.mediaType}/${id.plexId}`;
@@ -379,7 +384,9 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			const metadataPage = await this.handlePlexRequest(idParts, {
 				children: false,
 				context: options.context,
-				plexParams: options.plexParams
+				plexParams: options.plexParams,
+				metadataBasePath: options.metadataBasePath,
+				qualifiedMetadataIds: options.qualifiedMetadataIds,
 			});
 			return metadataPage.MediaContainer.Metadata;
 		}))).flatMap((item) => {
@@ -407,6 +414,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			children: true,
 			plexParams: options.plexParams,
 			context: options.context,
+			metadataBasePath: options.metadataBasePath,
+			qualifiedMetadataIds: options.qualifiedMetadataIds,
 		});
 		let metadatas = metadataPage.MediaContainer.Metadata;
 		if(!(metadatas instanceof Array)) {

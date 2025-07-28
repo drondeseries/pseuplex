@@ -64,6 +64,10 @@ export type PseuplexMetadataChildrenParams = {
 	includePlexDiscoverMatches?: boolean;
 	// Parameters to use when sending plex metadata requests
 	plexParams?: plexTypes.PlexMetadataChildrenPageParams;
+	// The base path to use when transforming metadata keys
+	metadataBasePath?: string;
+	// Whether to use full metadata IDs in the transformed metadata keys
+	qualifiedMetadataIds?: boolean;
 };
 
 export enum PseuplexRelatedHubsSource {
@@ -503,8 +507,8 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 			if(options.includePlexDiscoverMatches && this.plexMetadataClient) {
 				// fetch the children from plex discover
 				const extPlexTransformOpts: PseuplexMetadataTransformOptions = {
-					qualifiedMetadataId: true,
-					metadataBasePath: '/library/metadata'
+					metadataBasePath: options.metadataBasePath || '/library/metadata',
+					qualifiedMetadataId: options.qualifiedMetadataIds ?? true,
 				};
 				// get the guid for the given id
 				let guid = this.idToPlexGuidCache.get(id);

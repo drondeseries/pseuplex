@@ -64,4 +64,6 @@ export interface PseuplexPlugin {
 	resolvePlayQueueURI?: (uri: plexTypes.PlexPlayQueueURIParts, options: PseuplexPlayQueueURIResolverOptions) => Promise<string | false>;
 	hasSections?: (context: PseuplexRequestContext) => Promise<boolean>;
 	getSections?: (context: PseuplexRequestContext) => Promise<PseuplexSection[]>;
+	shouldListenToPlexServerNotifications?: () => boolean;
+	onPlexServerNotification?: (notification: plexTypes.PlexNotificationMessage) => void;
 };

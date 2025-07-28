@@ -94,7 +94,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						promoted: true,
 						uniqueItemsOnly: true,
 						letterboxdMetadataProvider: self.metadata,
-						...(app.metadataIdMappings ? {
+						...(app.alwaysUseLibraryMetadataPath ? {
 							metadataTransformOptions: {
 								metadataBasePath: '/library/metadata',
 								qualifiedMetadataId: true,
@@ -125,7 +125,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						style: plexTypes.PlexHubStyle.Shelf,
 						//promoted: true,
 						letterboxdMetadataProvider: self.metadata,
-						...(app.metadataIdMappings ? {
+						...(app.alwaysUseLibraryMetadataPath ? {
 							metadataTransformOptions: {
 								metadataBasePath: '/library/metadata',
 								qualifiedMetadataId: true,
@@ -184,7 +184,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						style: plexTypes.PlexHubStyle.Shelf,
 						promoted: true,
 						letterboxdMetadataProvider: self.metadata,
-						...(app.metadataIdMappings ? {
+						...(app.alwaysUseLibraryMetadataPath ? {
 							metadataTransformOptions: {
 								metadataBasePath: '/library/metadata',
 								qualifiedMetadataId: true,

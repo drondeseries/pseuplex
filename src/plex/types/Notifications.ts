@@ -14,10 +14,7 @@ export enum PlexNotificationType {
 	UpdateStateChange = 'update.statechange',
 };
 
-export type PlexNotificationContainer = {
-	type?: PlexNotificationType;
-	size: number;
-} & (
+export type PlexNotificationContainer = (
 	PlexActivityNotificationContainer
 	| PlexProgressNotificationContainer
 	| PlexStatusNotificationContainer
@@ -102,11 +99,9 @@ export type PlexStatusNotification = {
 };
 
 export type PlexStatusNotificationContainer = {
-	NotificationContainer: {
-		type: PlexNotificationType.Status,
-		size: number,
-		StatusNotification: PlexStatusNotification[]
-	}
+	type: PlexNotificationType.Status;
+	size: number;
+	StatusNotification: PlexStatusNotification[];
 };
 
 
@@ -157,7 +152,7 @@ export enum PlexTimelineEntryNotificationMediaState {
 
 export type PlexTimelineEntryNotification = {
 	identifier: PlexPluginIdentifier;
-	sectionID: `${number}` | string; // "1", "-1"
+	sectionID?: `${number}` | string; // "1", "-1"
 	itemID: `${number}` | string; // "45"
 	type: PlexMediaItemTypeNumeric;
 	title: string;
