@@ -1632,12 +1632,17 @@ export class PseuplexApp {
 						// send refresh notifications
 						for(const metadataId of metadataIds) {
 							console.log(`Sending metadata refresh timeline notifications for ${metadataId} on ${notifSockets.length} socket(s)`);
-							sendMetadataRefreshTimelineNotifications(notifSockets, [{
-								itemID: metadataId,
-								sectionID: "-1",
-								type: mediaTypeNumeric,
-								updatedAt: now,
-							}]);
+							try {
+								sendMetadataRefreshTimelineNotifications(notifSockets, [{
+									itemID: metadataId,
+									sectionID: "-1",
+									type: mediaTypeNumeric,
+									updatedAt: now,
+								}]);
+							} catch(error) {
+								console.error(`Error sending notification to socket:`);
+								console.error(error);
+							}
 						}
 					});
 				}
@@ -1759,26 +1764,30 @@ export class PseuplexApp {
 							for(const metadataKey of metadataKeys) {
 								const uuid = crypto.randomUUID();
 								console.log(`Sending metadata refresh activity notifications for ${metadataKey} on ${notifSockets.length} socket(s)`);
-								const newNotification: plexTypes.PlexActivityNotification = {
-									...notification,
-									uuid,
-									Activity: {
-										...notification.Activity,
-										uuid,
-										Context: {
-											...notification.Activity.Context,
-											key: metadataKey,
-											librarySectionID: undefined,
-										}
-									}
-								};
-								sendNotificationToSockets(notifSockets, {
-									type: plexTypes.PlexNotificationType.Activity,
-									size: 1,
-									ActivityNotification: [
-										newNotification
-									]
-								});
+								try {
+									sendNotificationToSockets(notifSockets, {
+										type: plexTypes.PlexNotificationType.Activity,
+										size: 1,
+										ActivityNotification: [
+											{
+												...notification,
+												uuid,
+												Activity: {
+													...notification.Activity,
+													uuid,
+													Context: {
+														...notification.Activity.Context,
+														key: metadataKey,
+														librarySectionID: undefined,
+													}
+												}
+											}
+										]
+									});
+								} catch(error) {
+									console.error(`Error sending notification to socket:`);
+									console.error(error);
+								}
 							}
 						}
 					});
@@ -1812,10 +1821,15 @@ export class PseuplexApp {
 							for(const metadataItem of unavailableItems) {
 								if(metadataItem.Pseuplex.unavailable) {
 									console.log(`Sending unavailable notifications for ${metadataItem.key} on ${notifSockets.length} socket(s)`);
-									sendMediaUnavailableNotifications(notifSockets, {
-										userID: context.plexUserInfo.serverUserID,
-										metadataKey: metadataItem.key,
-									});
+									try {
+										sendMediaUnavailableNotifications(notifSockets, {
+											userID: context.plexUserInfo.serverUserID,
+											metadataKey: metadataItem.key,
+										});
+									} catch(error) {
+										console.error(`Error sending notification to socket:`);
+										console.error(error);
+									}
 								}
 							}
 						}
