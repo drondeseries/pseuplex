@@ -78,6 +78,9 @@ export const sendNotificationToSocket = (socketInfo: PseuplexClientNotificationW
 export const sendNotificationToSockets = (sockets: PseuplexClientNotificationWebSocketInfo[], notification: plexTypes.PlexNotificationContainer) => {
 	const notifDataCache: NotificationDataCache = {};
 	for(const socket of sockets) {
+		if(socket.socket.closed) {
+			continue;
+		}
 		sendNotificationToSocket(socket, notification, notifDataCache);
 	}
 };
