@@ -1618,32 +1618,34 @@ export class PseuplexApp {
 					let mediaTypeNumeric: plexTypes.PlexMediaItemTypeNumeric;
 					let now: number;
 					this.pluginMetadataAccessCache.forEachAccessorForGuid(guid, ({token,clientId,metadataIds,metadataIdsMap}) => {
-						// get sockets for client
-						const notifSockets = this.getClientNotificationWebSockets(token);
-						if(!notifSockets || notifSockets.length == 0) {
-							return;
-						}
-						// parse guid if not done already
-						if(!guidParts) {
-							guidParts = parsePlexMetadataGuid(guid);
-							mediaTypeNumeric = plexTypes.PlexMediaItemTypeToNumeric[guidParts.type] ?? guidParts.type;
-							now = (new Date()).getTime() / 1000;
-						}
-						// send refresh notifications
-						for(const metadataId of metadataIds) {
-							console.log(`Sending metadata refresh timeline notifications for ${metadataId} on ${notifSockets.length} socket(s)`);
-							try {
-								sendMetadataRefreshTimelineNotifications(notifSockets, [{
-									itemID: metadataId,
-									sectionID: "-1",
-									type: mediaTypeNumeric,
-									updatedAt: now,
-								}]);
-							} catch(error) {
-								console.error(`Error sending notification to socket:`);
-								console.error(error);
+						setTimeout(() => {
+							// get sockets for client
+							const notifSockets = this.getClientNotificationWebSockets(token);
+							if(!notifSockets || notifSockets.length == 0) {
+								return;
 							}
-						}
+							// parse guid if not done already
+							if(!guidParts) {
+								guidParts = parsePlexMetadataGuid(guid);
+								mediaTypeNumeric = plexTypes.PlexMediaItemTypeToNumeric[guidParts.type] ?? guidParts.type;
+								now = (new Date()).getTime() / 1000;
+							}
+							// send refresh notifications
+							for(const metadataId of metadataIds) {
+								console.log(`Sending metadata refresh timeline notifications for ${metadataId} on ${notifSockets.length} socket(s)`);
+								try {
+									sendMetadataRefreshTimelineNotifications(notifSockets, [{
+										itemID: metadataId,
+										sectionID: "-1",
+										type: mediaTypeNumeric,
+										updatedAt: now,
+									}]);
+								} catch(error) {
+									console.error(`Error sending notification to socket:`);
+									console.error(error);
+								}
+							}
+						}, 0);
 					});
 				}
 			} catch(error) {
@@ -1720,6 +1722,7 @@ export class PseuplexApp {
 							throw error;
 						});
 						// cache each id to guid mapping
+						let lastTask = guidsMapTask;
 						for(const itemID of itemIdsToFetch) {
 							// cache ID to guid mapping
 							const guidTask = guidsMapTask.then((guidsMap) => {
@@ -1727,8 +1730,9 @@ export class PseuplexApp {
 							});
 							idsToGuids[itemID] = guidTask;
 							this.plexServerIdToGuidCache.setSync(itemID, guidTask);
+							lastTask = guidTask;
 						}
-						metadataPage = await metadataTask;
+						await lastTask;
 					} catch(error) {
 						if((error as HttpResponseError).httpResponse?.status != 404) {
 							console.error(`Error fetching metadata items [ ${itemIdsToFetch.join(', ')} ] to forward refresh to plugin metadata:`);
@@ -1749,47 +1753,54 @@ export class PseuplexApp {
 					}
 					guidsToNotifications[guid] = notif;
 				}
-				// send notifications for guids if needed
-				for(const guid of Object.keys(guidsToNotifications)) {
+				// get guids to send notifications
+				const guids = Object.keys(guidsToNotifications);
+				if(guids.length === 0) {
+					return;
+				}
+				// send notifications for guids after delay
+				for(const guid of guids) {
 					const notification = guidsToNotifications[guid];
 					this.pluginMetadataAccessCache.forEachAccessorForGuid(guid, ({token,clientId,metadataIds,metadataIdsMap}) => {
-						// get sockets for client
-						const notifSockets = this.getClientNotificationWebSockets(token);
-						if(!notifSockets || notifSockets.length == 0) {
-							return;
-						}
-						// send refresh notifications
-						for(const metadataId of metadataIds) {
-							const metadataKeys = metadataIdsMap[metadataId];
-							for(const metadataKey of metadataKeys) {
-								const uuid = crypto.randomUUID();
-								console.log(`Sending metadata refresh activity notifications for ${metadataKey} on ${notifSockets.length} socket(s)`);
-								try {
-									sendNotificationToSockets(notifSockets, {
-										type: plexTypes.PlexNotificationType.Activity,
-										size: 1,
-										ActivityNotification: [
-											{
-												...notification,
-												uuid,
-												Activity: {
-													...notification.Activity,
+						setTimeout(() => {
+							// get sockets for client
+							const notifSockets = this.getClientNotificationWebSockets(token);
+							if(!notifSockets || notifSockets.length == 0) {
+								return;
+							}
+							// send refresh notifications
+							for(const metadataId of metadataIds) {
+								const metadataKeys = metadataIdsMap[metadataId];
+								for(const metadataKey of metadataKeys) {
+									const uuid = crypto.randomUUID();
+									console.log(`Sending metadata refresh activity notifications for ${metadataKey} on ${notifSockets.length} socket(s)`);
+									try {
+										sendNotificationToSockets(notifSockets, {
+											type: plexTypes.PlexNotificationType.Activity,
+											size: 1,
+											ActivityNotification: [
+												{
+													...notification,
 													uuid,
-													Context: {
-														...notification.Activity.Context,
-														key: metadataKey,
-														librarySectionID: undefined,
+													Activity: {
+														...notification.Activity,
+														uuid,
+														Context: {
+															...notification.Activity.Context,
+															key: metadataKey,
+															librarySectionID: undefined,
+														}
 													}
 												}
-											}
-										]
-									});
-								} catch(error) {
-									console.error(`Error sending notification to socket:`);
-									console.error(error);
+											]
+										});
+									} catch(error) {
+										console.error(`Error sending notification to socket:`);
+										console.error(error);
+									}
 								}
 							}
-						}
+						}, 0);
 					});
 				}
 			} catch(error) {
