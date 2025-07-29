@@ -210,8 +210,8 @@ export class PseuplexApp {
 		this.slug = options.slug ?? 'pseuplex';
 		this.config = options.config;
 		this.port = options.port;
-		this.forwardMetadataRefreshToPluginMetadata = options.forwardMetadataRefreshToPluginMetadata ?? false;
-		this.alwaysUseLibraryMetadataPath = (options.mapPseuplexMetadataIds || (options.alwaysUseLibraryMetadataPath ?? true));
+		this.forwardMetadataRefreshToPluginMetadata = options.forwardMetadataRefreshToPluginMetadata ?? true;
+		this.alwaysUseLibraryMetadataPath = (options.mapPseuplexMetadataIds || this.forwardMetadataRefreshToPluginMetadata || options.alwaysUseLibraryMetadataPath);
 		this.plexServerNotificationsOptions = options.plexServerNotifications ?? {};
 		this.loggingOptions = options.loggingOptions;
 		if(options.mapPseuplexMetadataIds) {
