@@ -1,6 +1,6 @@
 
 import stream from 'stream';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import * as plexTypes from '../plex/types';
 import { sendWebSocketMessage } from '../utils/stream';
 
@@ -24,7 +24,7 @@ export type NotificationDataCache = {
 	[type: PseuplexNotificationSocketType | number]: string;
 };
 
-export const sendSocketNotification = (socketInfo: PseuplexClientNotificationWebSocketInfo, notification: plexTypes.PlexNotificationContainer, notifDataCache?: NotificationDataCache) => {
+export const sendNotificationToSocket = (socketInfo: PseuplexClientNotificationWebSocketInfo, notification: plexTypes.PlexNotificationContainer, notifDataCache?: NotificationDataCache) => {
 	const { type: socketType, socket } = socketInfo;
 	switch(socketType) {
 		case PseuplexNotificationSocketType.EventSource: {
@@ -75,6 +75,13 @@ export const sendSocketNotification = (socketInfo: PseuplexClientNotificationWeb
 	}
 };
 
+export const sendNotificationToSockets = (sockets: PseuplexClientNotificationWebSocketInfo[], notification: plexTypes.PlexNotificationContainer) => {
+	const notifDataCache: NotificationDataCache = {};
+	for(const socket of sockets) {
+		sendNotificationToSocket(socket, notification, notifDataCache);
+	}
+};
+
 
 
 
@@ -82,7 +89,7 @@ export const sendMediaUnavailableNotifications = (sockets: PseuplexClientNotific
 	userID: number | string,
 	metadataKey: string,
 }) => {
-	const uuidVal = uuidv4();
+	const uuidVal = crypto.randomUUID();
 	/*sendMediaUnavailableActivityNotification(sockets, {
 		uuid: uuidVal,
 		eventType: plexTypes.PlexActivityEventType.Started,
@@ -132,16 +139,14 @@ export const sendMediaUnavailableActivityNotification = (sockets: PseuplexClient
 			}
 		]
 	};
-	const notifDataCache: NotificationDataCache = {};
-	for(const socket of sockets) {
-		sendSocketNotification(socket, notification, notifDataCache);
-	}
+	sendNotificationToSockets(sockets, notification);
 };
 
 
 
 export const sendMetadataRefreshTimelineNotifications = (sockets: PseuplexClientNotificationWebSocketInfo[], items: {
 	itemID: string,
+	sectionID: string,
 	type: plexTypes.PlexMediaItemTypeNumeric,
 	updatedAt: number,
 }[]) => {
@@ -150,7 +155,6 @@ export const sendMetadataRefreshTimelineNotifications = (sockets: PseuplexClient
 			state: plexTypes.PlexTimelineEntryNotificationState.StartedRefresh,
 			metadataState: plexTypes.PlexTimelineEntryNotificationMetadataState.Queued,
 			title: `Refreshing ${item.itemID}`,
-			sectionID: "-1",
 			...item,
 		};
 	}));
@@ -159,7 +163,6 @@ export const sendMetadataRefreshTimelineNotifications = (sockets: PseuplexClient
 		return {
 			state: plexTypes.PlexTimelineEntryNotificationState.FinishedRefresh,
 			title: `Done refreshing ${item.itemID}`,
-			sectionID: "-1",
 			...item,
 		};
 	}));
@@ -184,8 +187,5 @@ export const sendMetadataRefreshTimelineEntryNotification = (sockets: PseuplexCl
 			};
 		})
 	};
-	const notifDataCache: NotificationDataCache = {};
-	for(const socket of sockets) {
-		sendSocketNotification(socket, notification, notifDataCache);
-	}
+	sendNotificationToSockets(sockets, notification);
 };

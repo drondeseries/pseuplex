@@ -1,3 +1,4 @@
+import { parsePlexMetadataGuid } from '../plex/metadataidentifier';
 import * as plexTypes from '../plex/types';
 import { PseuplexMetadataProvider } from './metadata';
 import { qualifyPartialMetadataID } from './metadataidentifier';
@@ -146,5 +147,20 @@ export class PseuplexMetadataAccessCache {
 			});
 		}
 		return accessors;
+	}
+
+	forEachAccessorForGuid(guid: string, callback: (args: {token:string, clientId: string, metadataIds: string[], metadataIdsMap: {[metadataId: string]: Set<string>}}) => void) {
+		const accessors = this.getMetadataAccessorsForGuid(guid);
+		if(accessors) {
+			for(const {token,clientId} of accessors) {
+				const metadataIdsMap = this.getMetadataIdMapForGuidAndClient(guid,token,clientId);
+				const metadataIds = Object.keys(metadataIdsMap);
+				if(metadataIds.length == 0) {
+					console.warn(`0 metadata ids for guid ${guid}, even though it was listed as an accessor`);
+					continue;
+				}
+				callback({token, clientId, metadataIds, metadataIdsMap});
+			}
+		}
 	}
 }

@@ -8,13 +8,24 @@ import httpolyglot from 'httpolyglot';
 import * as plexTypes from '../plex/types';
 import * as plexServerAPI from '../plex/api';
 import { PlexServerPropertiesStore } from '../plex/serverproperties';
-import { PlexServerAccountInfo, PlexServerAccountsStore } from '../plex/accounts';
+import {
+	PlexServerAccountInfo,
+	PlexServerAccountsStore
+} from '../plex/accounts';
 import {
 	PlexGuidToInfoCache,
 	createPlexServerIdToGuidCache,
 } from '../plex/metadata';
-import { parseMetadataIDFromKey, parsePlexMetadataGuid } from '../plex/metadataidentifier';
-import { PseuplexMetadataAccessCache, PseuplexMetadataAccessCacheOptions } from './metadataAccessCache';
+import {
+	parseMetadataIDFromKey,
+	parsePlexMetadataGuid,
+	PlexMetadataGuidParts,
+	PlexMetadataKeyParts
+} from '../plex/metadataidentifier';
+import {
+	PseuplexMetadataAccessCache,
+	PseuplexMetadataAccessCacheOptions
+} from './metadataAccessCache';
 import {
 	plexApiProxy,
 	plexHttpProxy,
@@ -76,7 +87,8 @@ import {
 	PseuplexClientNotificationWebSocketInfo,
 	PseuplexNotificationSocketType,
 	sendMediaUnavailableNotifications,
-	sendMetadataRefreshTimelineNotifications
+	sendMetadataRefreshTimelineNotifications,
+	sendNotificationToSockets,
 } from './notifications';
 import { CachedFetcher } from '../fetching/CachedFetcher';
 import { urlLogString } from '../utils/logging';
@@ -1057,25 +1069,46 @@ export class PseuplexApp {
 		const notification = data.NotificationContainer;
 		// forward metadata refresh if needed
 		if(this.forwardMetadataRefreshToPluginMetadata && this.pluginMetadataAccessCache) {
-			// if timeline notification, and timeline items are finished refreshing,
-			//  then check if we can forward the refresh notification to plugin metadata
-			if(notification.type === plexTypes.PlexNotificationType.Timeline) {
-				let timelineEntries = notification.TimelineEntry;
-				if(timelineEntries) {
-					if(!(timelineEntries instanceof Array)) {
-						timelineEntries = [timelineEntries];
+			// if activity or timeline notification finishes refreshing
+			//  then we should try to forward that notification to plugin metadata ids or keys
+			switch(notification.type) {
+				case plexTypes.PlexNotificationType.Timeline: {
+					let timelineEntries = notification.TimelineEntry;
+					if(timelineEntries) {
+						if(!(timelineEntries instanceof Array)) {
+							timelineEntries = [timelineEntries];
+						}
+						const finishedRefreshingEntries = timelineEntries.filter((entry) => {
+							return (
+								entry.itemID
+								&& entry.state == plexTypes.PlexTimelineEntryNotificationState.FinishedRefresh
+								&& entry.sectionID != null && entry.sectionID != "-1"
+							);
+						});
+						if(finishedRefreshingEntries.length > 0) {
+							const itemIDs = finishedRefreshingEntries.map((entry) => entry.itemID);
+							this.sendPluginMetadataTimelineRefreshForItemIDsIfAble(itemIDs);
+						}
 					}
-					const finishedRefreshingEntries = timelineEntries.filter((entry) => {
-						return (
-							entry.state == plexTypes.PlexTimelineEntryNotificationState.FinishedRefresh
-							// && entry.sectionID != null && entry.sectionID != "-1"
-						);
-					});
-					if(finishedRefreshingEntries.length > 0) {
-						const itemIDs = finishedRefreshingEntries.map((entry) => entry.itemID);
-						this.sendPluginMetadataTimelineRefreshForItemIDsIfNeeded(itemIDs);
+				} break;
+
+				case plexTypes.PlexNotificationType.Activity: {
+					let activityEntries = notification.ActivityNotification;
+					if(activityEntries) {
+						if(!(activityEntries instanceof Array)) {
+							activityEntries = [activityEntries];
+						}
+						const finishedRefreshingEntries = activityEntries.filter((entry) => {
+							return (
+								entry.event == plexTypes.PlexActivityEventType.Ended
+								&& entry.Activity.Context?.key
+							);
+						});
+						if(finishedRefreshingEntries.length > 0) {
+							this.forwardPluginMetadataActivityRefreshNotificationsIfAble(finishedRefreshingEntries);
+						}
 					}
-				}
+				} break;
 			}
 		}
 	}
@@ -1535,89 +1568,223 @@ export class PseuplexApp {
 		return notifSockets;
 	}
 
-	sendPluginMetadataTimelineRefreshForItemIDsIfNeeded(itemIDs: string[]) {
-		if(!this.pluginMetadataAccessCache) {
+	sendPluginMetadataTimelineRefreshForItemIDsIfAble(itemIDs: string[]) {
+		if(!this.pluginMetadataAccessCache || itemIDs.length == 0) {
 			return;
 		}
 		(async () => {
 			try {
 				const guids = new Set<string>();
+				// fetch item IDs from server
+				let metadataPage: plexTypes.PlexMetadataPage | undefined;
+				try {
+					const metadataTask = plexServerAPI.getLibraryMetadata(itemIDs, {
+						serverURL: this.plexServerURL,
+						authContext: this.plexAdminAuthContext,
+					});
+					for(const itemID of itemIDs) {
+						// cache ID to guid mapping
+						this.plexServerIdToGuidCache.setSync(itemID, metadataTask.then((metadataPage) => {
+							const matchingItem = findInArrayOrSingle(metadataPage.MediaContainer.Metadata, (item) => {
+								return item.ratingKey == itemID;
+							});
+							return matchingItem.guid ?? null;
+						}, (error) => {
+							if((error as HttpResponseError).httpResponse?.status == 404) {
+								return null;
+							}
+							throw error;
+						}));
+					}
+					metadataPage = await metadataTask;
+				} catch(error) {
+					if((error as HttpResponseError).httpResponse?.status != 404) {
+						console.error(`Error fetching metadata items [ ${itemIDs.join(', ')} ] to forward refresh to plugin metadata:`);
+						console.error(error);
+					}
+					return;
+				}
+				// find guids to map to plugin metadata
+				if(metadataPage) {
+					forArrayOrSingle(metadataPage.MediaContainer.Metadata, (item) => {
+						if(item.guid) {
+							guids.add(item.guid);
+						}
+					});
+				}
+				// send notifications for guids if needed
+				for(const guid of guids) {
+					let guidParts: PlexMetadataGuidParts;
+					let mediaTypeNumeric: plexTypes.PlexMediaItemTypeNumeric;
+					let now: number;
+					this.pluginMetadataAccessCache.forEachAccessorForGuid(guid, ({token,clientId,metadataIds,metadataIdsMap}) => {
+						// get sockets for client
+						const notifSockets = this.getClientNotificationWebSockets(token);
+						if(!notifSockets || notifSockets.length == 0) {
+							return;
+						}
+						// parse guid if not done already
+						if(!guidParts) {
+							guidParts = parsePlexMetadataGuid(guid);
+							mediaTypeNumeric = plexTypes.PlexMediaItemTypeToNumeric[guidParts.type] ?? guidParts.type;
+							now = (new Date()).getTime() / 1000;
+						}
+						// send refresh notifications
+						for(const metadataId of metadataIds) {
+							console.log(`Sending metadata refresh timeline notifications for ${metadataId} on ${notifSockets.length} socket(s)`);
+							sendMetadataRefreshTimelineNotifications(notifSockets, [{
+								itemID: metadataId,
+								sectionID: "-1",
+								type: mediaTypeNumeric,
+								updatedAt: now,
+							}]);
+						}
+					});
+				}
+			} catch(error) {
+				console.error(`Error forwarding metadata refresh timeline notification to plugin metadata:`);
+				console.error(error);
+			}
+		})();
+	}
+	
+	forwardPluginMetadataActivityRefreshNotificationsIfAble(notifications: plexTypes.PlexActivityNotification[]) {
+		if(!this.pluginMetadataAccessCache || notifications.length == 0) {
+			return;
+		}
+		(async () => {
+			try {
+				const idsToNotifications: {[id: string]: plexTypes.PlexActivityNotification} = {};
+				const idsToGuids: {[id: string]: string | Promise<string>} = {};
 				// find item ids with existing guid map
-				const itemIDsToMatch: string[] = [];
-				for(const itemID of itemIDs) {
-					const guidMatch = await this.plexServerIdToGuidCache.get(itemID);
-					if(guidMatch) {
-						guids.add(guidMatch);
+				const remainingIdsToMatch = new Set<string>();
+				for(const notification of notifications) {
+					const metadataKey = notification.Activity?.Context?.key;
+					if(!metadataKey) {
+						continue;
+					}
+					// parse metadata id
+					const keyParts = parseMetadataIDFromKey(metadataKey, '/library/metadata/');
+					if(!keyParts.id) {
+						console.warn(`Unrecognized metadata key structure for key ${metadataKey}`);
+						continue;
+					}
+					// map id to notification
+					const { id } = keyParts;
+					idsToNotifications[id] = notification;
+					// get cached guid task if any
+					let guidTask = idsToGuids[id];
+					if(guidTask) {
+						continue;
+					}
+					guidTask = this.plexServerIdToGuidCache.get(id);
+					if(guidTask) {
+						idsToGuids[id] = guidTask;
 					} else {
-						itemIDsToMatch.push(itemID);
+						idsToGuids[id] = undefined; // manually set undefined to ensure id remains consistent
+						remainingIdsToMatch.add(id);
 					}
 				}
+				// check that we have any ids mapped
+				if(Object.keys(idsToNotifications).length == 0) {
+					return;
+				}
 				// fetch remaining item IDs from server
-				if(itemIDsToMatch.length > 0) {
+				if(remainingIdsToMatch.size > 0) {
+					// fetch remaining item IDs from server
 					let metadataPage: plexTypes.PlexMetadataPage | undefined;
+					const itemIdsToFetch = Array.from(remainingIdsToMatch);
 					try {
-						const metadataTask = plexServerAPI.getLibraryMetadata(itemIDsToMatch, {
+						const metadataTask = plexServerAPI.getLibraryMetadata(itemIdsToFetch, {
 							serverURL: this.plexServerURL,
 							authContext: this.plexAdminAuthContext,
 						});
-						for(const itemID of itemIDsToMatch) {
-							// cache ID to guid mapping
-							this.plexServerIdToGuidCache.setSync(itemID, metadataTask.then((metadataPage) => {
-								const matchingItem = findInArrayOrSingle(metadataPage.MediaContainer.Metadata, (item) => {
-									return item.ratingKey == itemID;
-								});
-								return matchingItem.guid ?? null;
-							}, (error) => {
-								if((error as HttpResponseError).httpResponse?.status == 404) {
-									return null;
+						// convert result to a map of ids to guids
+						const guidsMapTask = metadataTask.then((metadataPage) => {
+							const idsToGuidsMap: {[id: string]: string} = {};
+							forArrayOrSingle(metadataPage.MediaContainer.Metadata, (item) => {
+								if(item.guid && item.ratingKey) {
+									idsToGuidsMap[item.ratingKey] = item.guid;
 								}
-								throw error;
-							}));
+							});
+							return idsToGuidsMap;
+						}, (error) => {
+							if((error as HttpResponseError).httpResponse?.status == 404) {
+								return null;
+							}
+							throw error;
+						});
+						// cache each id to guid mapping
+						for(const itemID of itemIdsToFetch) {
+							// cache ID to guid mapping
+							const guidTask = guidsMapTask.then((guidsMap) => {
+								return guidsMap[itemID];
+							});
+							idsToGuids[itemID] = guidTask;
+							this.plexServerIdToGuidCache.setSync(itemID, guidTask);
 						}
 						metadataPage = await metadataTask;
 					} catch(error) {
 						if((error as HttpResponseError).httpResponse?.status != 404) {
-							console.error(`Error fetching metadata items [ ${itemIDs.join(', ')} ] to forward refresh to plugin metadata:`);
+							console.error(`Error fetching metadata items [ ${itemIdsToFetch.join(', ')} ] to forward refresh to plugin metadata:`);
 							console.error(error);
 						}
 					}
-					// find guids to map to plugin metadata
-					if(metadataPage) {
-						forArrayOrSingle(metadataPage.MediaContainer.Metadata, (item) => {
-							if(item.guid) {
-								guids.add(item.guid);
-							}
-						});
+				}
+				// create map of guids back to the notification
+				const guidsToNotifications: {[guid: string]: plexTypes.PlexActivityNotification} = {};
+				for(const id of Object.keys(idsToGuids)) {
+					const guid = await idsToGuids[id];
+					if(!guid) {
+						continue;
 					}
+					const notif = idsToNotifications[id];
+					if(!notif) {
+						continue;
+					}
+					guidsToNotifications[guid] = notif;
 				}
 				// send notifications for guids if needed
-				for(const guid of guids) {
-					const accessors = this.pluginMetadataAccessCache.getMetadataAccessorsForGuid(guid);
-					if(accessors) {
-						const guidParts = parsePlexMetadataGuid(guid);
-						const mediaTypeNumeric: plexTypes.PlexMediaItemTypeNumeric = plexTypes.PlexMediaItemTypeToNumeric[guidParts.type] ?? guidParts.type;
-						const now = (new Date()).getTime() / 1000;
-						for(const {token,clientId} of accessors) {
-							const metadataIdMap = this.pluginMetadataAccessCache.getMetadataIdMapForGuidAndClient(guid,token,clientId);
-							const metadataIds = Object.keys(metadataIdMap);
-							if(metadataIds.length == 0) {
-								console.warn(`0 metadata ids for guid ${guid}, even though it was listed as an accessor`);
-								continue;
-							}
-							const notifSockets = this.getClientNotificationWebSockets(token);
-							for(const metadataId of metadataIds) {
-								console.log(`Sending metadata refresh notifications for ${metadataId} on ${notifSockets.length} sockets`);
-								sendMetadataRefreshTimelineNotifications(notifSockets, [{
-									itemID: metadataId,
-									type: mediaTypeNumeric,
-									updatedAt: now,
-								}]);
+				for(const guid of Object.keys(guidsToNotifications)) {
+					const notification = guidsToNotifications[guid];
+					this.pluginMetadataAccessCache.forEachAccessorForGuid(guid, ({token,clientId,metadataIds,metadataIdsMap}) => {
+						// get sockets for client
+						const notifSockets = this.getClientNotificationWebSockets(token);
+						if(!notifSockets || notifSockets.length == 0) {
+							return;
+						}
+						// send refresh notifications
+						for(const metadataId of metadataIds) {
+							const metadataKeys = metadataIdsMap[metadataId];
+							for(const metadataKey of metadataKeys) {
+								const uuid = crypto.randomUUID();
+								console.log(`Sending metadata refresh activity notifications for ${metadataKey} on ${notifSockets.length} socket(s)`);
+								const newNotification: plexTypes.PlexActivityNotification = {
+									...notification,
+									uuid,
+									Activity: {
+										...notification.Activity,
+										uuid,
+										Context: {
+											...notification.Activity.Context,
+											key: metadataKey,
+											librarySectionID: undefined,
+										}
+									}
+								};
+								sendNotificationToSockets(notifSockets, {
+									type: plexTypes.PlexNotificationType.Activity,
+									size: 1,
+									ActivityNotification: [
+										newNotification
+									]
+								});
 							}
 						}
-					}
+					});
 				}
 			} catch(error) {
-				console.error(`Error forwarding metadata refresh to plugin metadata:`);
+				console.error(`Error forwarding metadata refresh activity to plugin metadata:`);
 				console.error(error);
 			}
 		})();
@@ -1644,7 +1811,7 @@ export class PseuplexApp {
 						if(notifSockets) {
 							for(const metadataItem of unavailableItems) {
 								if(metadataItem.Pseuplex.unavailable) {
-									console.log(`Sending unavailable notifications for ${metadataItem.key} on ${notifSockets.length} sockets`);
+									console.log(`Sending unavailable notifications for ${metadataItem.key} on ${notifSockets.length} socket(s)`);
 									sendMediaUnavailableNotifications(notifSockets, {
 										userID: context.plexUserInfo.serverUserID,
 										metadataKey: metadataItem.key,
