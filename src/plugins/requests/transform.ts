@@ -22,6 +22,12 @@ export type RequestPartialMetadataIDParts = {
 	requestProviderSlug: string,
 } & RequestMetadataItemIDComponentParts;
 
+export type RequestMetadataKeyParts = {
+	basePath: string;
+	id: RequestPartialMetadataIDParts;
+	relativePath?: string;
+};
+
 const createRequestMetadataItemIdComponent = (idParts: RequestMetadataItemIDComponentParts) => {
 	return `${idParts.mediaType}:${idParts.plexId}`
 		+ (idParts.season != null ? `:${SeasonIDComponentPortion}${idParts.season}` : '');
@@ -81,16 +87,77 @@ export const createRequestItemMetadataKey = (options: {
 	plexId: string,
 	season?: number,
 	children?: boolean,
-}) => {
+}): string => {
 	if(options.qualifiedMetadataId) {
 		const metadataId = createRequestFullMetadataId(options);
-		return `/library/metadata/${metadataId}`;
+		return `${options.basePath}/${metadataId}`;
 	} else {
 		return `${options.basePath}/${options.requestProviderSlug}/${options.mediaType}/${options.plexId}`
 			+ (options.season != null ? `${SeasonRelativePath}${options.season}` : '')
 			+ (options.children ? ChildrenRelativePath : '');
 	}
 }
+
+export const parseUnqualifiedRequestItemMetadataKey = (metadataKey: string, basePath: string): RequestMetadataKeyParts | null => {
+	if(!basePath.endsWith('/')) {
+		basePath += '/';
+	}
+	if(!metadataKey.startsWith(basePath)) {
+		return null;
+	}
+	const reqProviderStart = basePath.length;
+	const reqProviderEnd = metadataKey.indexOf('/', reqProviderStart);
+	if(reqProviderEnd == -1) {
+		return null;
+	}
+	const mediaTypeStart = reqProviderEnd+1;
+	const mediaTypeEnd = metadataKey.indexOf('/', mediaTypeStart);
+	if(mediaTypeEnd == -1) {
+		return null;
+	}
+	const plexIdStart = mediaTypeEnd+1;
+	let plexIdEnd = metadataKey.indexOf('/', plexIdStart);
+	let couldHaveMore = false;
+	if(plexIdEnd == -1) {
+		plexIdEnd = metadataKey.length;
+	} else if(plexIdEnd < metadataKey.length-1) {
+		couldHaveMore = true;
+	}
+	const idParts: RequestPartialMetadataIDParts = {
+		requestProviderSlug: metadataKey.slice(reqProviderStart, reqProviderEnd),
+		mediaType: metadataKey.slice(mediaTypeStart, mediaTypeEnd) as plexTypes.PlexMediaItemType,
+		plexId: metadataKey.slice(plexIdStart, plexIdEnd),
+	};
+	const keyParts: RequestMetadataKeyParts = {
+		basePath,
+		id: idParts,
+	};
+	if(!couldHaveMore) {
+		return keyParts;
+	}
+	let relativePathStart = plexIdEnd;
+	const nextPartStart = relativePathStart+1;
+	const nextPartEnd = metadataKey.indexOf('/', nextPartStart);
+	if(nextPartEnd != -1) {
+		const nextPart = metadataKey.slice(nextPartStart, nextPartEnd);
+		if(nextPart == SeasonIDComponentPortion) {
+			const seasonValStart = nextPartEnd+1;
+			let seasonValEnd = metadataKey.indexOf('/', seasonValStart);
+			if(seasonValEnd == -1) {
+				seasonValEnd = metadataKey.length;
+			}
+			const seasonValString = metadataKey.slice(seasonValStart, seasonValEnd);
+			let seasonVal = Number.parseInt(seasonValString);
+			if(Number.isNaN(seasonVal)) {
+				seasonVal = seasonValString as any;
+			}
+			idParts.season = seasonVal;
+			relativePathStart = seasonValEnd;
+		}
+	}
+	keyParts.relativePath = metadataKey.slice(relativePathStart);
+	return keyParts;
+};
 
 export const parsePartialRequestMetadataId = (metadataId: PseuplexPartialMetadataIDString): RequestPartialMetadataIDParts => {
 	const metadataIdParts = parsePartialMetadataID(metadataId);
