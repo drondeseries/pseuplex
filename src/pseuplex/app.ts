@@ -729,6 +729,7 @@ export class PseuplexApp {
 
 		router.post('/playQueues', [
 			this.middlewares.plexAuthentication,
+
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				requestPathModifier: async (req: IncomingPlexAPIRequest): Promise<string> => {
 					const context = this.contextForRequest(req);
@@ -1393,7 +1394,7 @@ export class PseuplexApp {
 			if(metadataKeyParts) {
 				const metadataIdParts = parseMetadataID(metadataKeyParts.id);
 				if(metadataIdParts.source && metadataIdParts.source != PseuplexMetadataSource.Plex) {
-					const privateId = this.metadataIdMappings.getKeyForID(metadataKeyParts.id);
+					const privateId = this.metadataIdMappings.getPrivateIDFromPublicID(metadataKeyParts.id);
 					if(privateId != null) {
 						const privatePath = `/library/metadata/${privateId}` + (metadataKeyParts?.relativePath ?? '');
 						uriParts.path = privatePath;
@@ -1453,7 +1454,7 @@ export class PseuplexApp {
 					continue;
 				}
 				// map the ID
-				const publicId = keysToIdsMap?.[metadataIdString] ?? this.metadataIdMappings.getIDForKey(metadataIdString);
+				const publicId = keysToIdsMap?.[metadataIdString] ?? this.metadataIdMappings.getPublicIDFromPrivateID(metadataIdString);
 				metadataIds[i] = publicId;
 			}
 			hub.hubKey = `/library/metadata/${metadataIds.join(',')}` + (metadataKeyParts?.relativePath ?? '');
@@ -1487,7 +1488,7 @@ export class PseuplexApp {
 			return;
 		}
 		// map the ID
-		const publicId = keysToIdsMap?.[metadataIdString] ?? this.metadataIdMappings.getIDForKey(metadataIdString);
+		const publicId = keysToIdsMap?.[metadataIdString] ?? this.metadataIdMappings.getPublicIDFromPrivateID(metadataIdString);
 		const publicPath = `/library/metadata/${publicId}` + (metadataKeyParts?.relativePath ?? '');
 		metadataItem.ratingKey = `${publicId}`;
 		metadataItem.key = publicPath;

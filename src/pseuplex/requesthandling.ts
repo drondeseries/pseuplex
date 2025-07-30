@@ -53,7 +53,7 @@ export const pseuplexMetadataIdRequestMiddleware = <TResult>(
 		const keysToIdsMap: {[key: string]: (number | string)} = {};
 		let metadataIdParts = parseMetadataIdFromPathParam(metadataId);
 		if(!metadataIdParts.source) {
-			const privateId = options.metadataIdMappings?.getKeyForID(metadataIdParts.id);
+			const privateId = options.metadataIdMappings?.getPrivateIDFromPublicID(metadataIdParts.id);
 			if(privateId != null) {
 				// id is a mapped ID, so we need to handle the request
 				keysToIdsMap[privateId] = metadataIdParts.id;
@@ -94,7 +94,7 @@ export const pseuplexMetadataIdsRequestMiddleware = <TResult>(
 				// id is not a plain plex ID, so we should handle it
 				anyNonPlexIds = true;
 			} else {
-				const privateId = options.metadataIdMappings?.getKeyForID(metadataId.id);
+				const privateId = options.metadataIdMappings?.getPrivateIDFromPublicID(metadataId.id);
 				if(privateId != null) {
 					// id is a mapped ID, so we need to handle the request
 					keysToIdsMap[privateId] = metadataId.id;
