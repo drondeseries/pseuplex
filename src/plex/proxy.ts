@@ -374,7 +374,7 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 		}
 	});
 	if(args.logProxyResponses || args.logUserResponses || args.logProxyErrorResponseBody) {
-		plexGeneralProxy.on('proxyRes', (proxyRes, userReq, userRes) => {
+		plexGeneralProxy.on('proxyRes', (proxyRes, userReq: express.Request, userRes: express.Response) => {
 			const logHeaders = args.logProxyResponseHeaders || args.logUserResponseHeaders;
 			const logProxyResponseBody = () => {
 				// log proxy response body
@@ -392,7 +392,7 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 				});
 			};
 			const isProxyResError = (!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300);
-			if(logHeaders) {
+			if(logHeaders || userReq.url != userReq.originalUrl) {
 				// log proxy response if needed
 				if(args.logProxyResponses || (args.logProxyErrorResponseBody && isProxyResError)) {
 					console.log(`\nProxy Response ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.url)}`);
@@ -412,7 +412,7 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 				// log user response when finished
 				if(args.logUserResponses) {
 					userRes.on('close', () => {
-						console.log(`\nUser Response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.url)}`);
+						console.log(`\nUser Response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
 						if(args.logUserResponseHeaders) {
 							const userResHeaders = userRes.getHeaders();
 							for(const headerKey in userResHeaders) {
@@ -425,7 +425,7 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 			} else {
 				// log response if needed
 				if(args.logProxyResponses || args.logUserResponses || (args.logProxyErrorResponseBody && isProxyResError)) {
-					console.log(`\nResponse ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.url)}`);
+					console.log(`\nResponse ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
 					if(args.logProxyErrorResponseBody && isProxyResError) {
 						logProxyResponseBody();
 					}
