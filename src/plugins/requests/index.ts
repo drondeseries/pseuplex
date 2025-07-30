@@ -157,6 +157,8 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 						children,
 						plexParams,
 						context,
+						throw404OnNoMatches: true,
+						transformMatchKeys: !children,
 					});
 					// cache metadata access if needed
 					if(this.app.pluginMetadataAccessCache) {

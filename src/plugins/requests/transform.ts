@@ -98,21 +98,48 @@ export const createRequestItemMetadataKey = (options: {
 	}
 }
 
-export const parseUnqualifiedRequestItemMetadataKey = (metadataKey: string, basePath: string): RequestMetadataKeyParts | null => {
-	if(!basePath.endsWith('/')) {
-		basePath += '/';
-	}
-	if(!metadataKey.startsWith(basePath)) {
+export const parseUnqualifiedRequestItemMetadataKey = (metadataKey: string, basePath: string, warnOnFailure: boolean = true): RequestMetadataKeyParts | null => {
+	if(!metadataKey) {
+		if(warnOnFailure) {
+			console.error(new Error(`Null metadata id passed to parseMetadataIDFromKey`));
+		}
 		return null;
 	}
-	const reqProviderStart = basePath.length;
+	if(!metadataKey.startsWith(basePath)) {
+		if(warnOnFailure) {
+			console.warn(`Unrecognized metadata key ${metadataKey}`);
+		}
+		return null;
+	}
+	if(metadataKey.length == basePath.length) {
+		if(warnOnFailure) {
+			console.warn(`Metadata key is the same as the base path ${metadataKey}`);
+		}
+		return null;
+	}
+	let reqProviderStart = basePath.length;
+	if(!basePath.endsWith('/')) {
+		if(metadataKey[basePath.length] != '/') {
+			if(warnOnFailure) {
+				console.warn(`Unrecognized metadata key ${metadataKey}`);
+			}
+			return null;
+		}
+		reqProviderStart += 1;
+	}
 	const reqProviderEnd = metadataKey.indexOf('/', reqProviderStart);
 	if(reqProviderEnd == -1) {
+		if(warnOnFailure) {
+			console.warn(`Unrecognized metadata key ${metadataKey}`);
+		}
 		return null;
 	}
 	const mediaTypeStart = reqProviderEnd+1;
 	const mediaTypeEnd = metadataKey.indexOf('/', mediaTypeStart);
 	if(mediaTypeEnd == -1) {
+		if(warnOnFailure) {
+			console.warn(`Unrecognized metadata key ${metadataKey}`);
+		}
 		return null;
 	}
 	const plexIdStart = mediaTypeEnd+1;
@@ -176,6 +203,7 @@ export type TransformRequestMetadataOptions = {
 	requestProviderSlug: string,
 	children?: boolean,
 	qualifiedMetadataIds: boolean;
+	transformRatingKey?: boolean;
 };
 
 export const setMetadataItemKeyToRequestKey = (metadataItem: plexTypes.PlexMetadataItem, opts: TransformRequestMetadataOptions) => {
@@ -196,12 +224,14 @@ export const setMetadataItemKeyToRequestKey = (metadataItem: plexTypes.PlexMetad
 		season,
 		children
 	});
-	metadataItem.ratingKey = createRequestFullMetadataId({
-		requestProviderSlug: opts.requestProviderSlug,
-		mediaType: guidParts.type as plexTypes.PlexMediaItemType,
-		plexId: guidParts.id,
-		season,
-	});
+	if(opts.transformRatingKey) {
+		metadataItem.ratingKey = createRequestFullMetadataId({
+			requestProviderSlug: opts.requestProviderSlug,
+			mediaType: guidParts.type as plexTypes.PlexMediaItemType,
+			plexId: guidParts.id,
+			season,
+		});
+	}
 };
 
 export const transformRequestableSeasonMetadata = (metadataItem: plexTypes.PlexMetadataItem, opts: TransformRequestMetadataOptions) => {

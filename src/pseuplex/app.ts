@@ -72,7 +72,6 @@ import {
 	PseuplexPlugin,
 	PseuplexResponseFilterName,
 	PseuplexResponseFilters,
-	PseuplexPlayQueueURIResolverOptions
 } from './plugin';
 import {
 	parseMetadataIdFromPathParam,
@@ -93,7 +92,7 @@ import {
 import { CachedFetcher } from '../fetching/CachedFetcher';
 import { urlLogString } from '../utils/logging';
 import { httpError, HttpResponseError } from '../utils/error';
-import { expressErrorHandler } from '../utils/requesthandling';
+import { asyncRequestHandler, expressErrorHandler } from '../utils/requesthandling';
 import {
 	parseURLPath,
 	stringifyURLPath,
@@ -149,6 +148,11 @@ type PseuplexLoggingOptions = {
 type PseuplexPlexServerNotificationsOptions = {
 	socketRetryInterval?: number;
 }
+
+type PseuplexPlayQueueURIResolverOptions = {
+	plexMachineIdentifier: string;
+	context: PseuplexRequestContext;
+};
 
 export type PseuplexAppOptions = {
 	slug?: string;
@@ -356,6 +360,7 @@ export class PseuplexApp {
 			next();
 		});
 
+		// define plugin routes early, so they can intercept requests
 		for(const pluginSlug of Object.keys(this.plugins)) {
 			const plugin = this.plugins[pluginSlug];
 			plugin.defineRoutes?.(router);
@@ -729,7 +734,6 @@ export class PseuplexApp {
 
 		router.post('/playQueues', [
 			this.middlewares.plexAuthentication,
-
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				requestPathModifier: async (req: IncomingPlexAPIRequest): Promise<string> => {
 					const context = this.contextForRequest(req);
@@ -1387,30 +1391,161 @@ export class PseuplexApp {
 
 
 	async resolvePlayQueueURI(uri: string, options: PseuplexPlayQueueURIResolverOptions): Promise<string> {
+		const originalURI = uri;
 		const uriParts = plexTypes.parsePlayQueueURI(uri);
-		// remap if the path is using a mapped id
-		if(this.metadataIdMappings) {
-			const metadataKeyParts = parseMetadataIDFromKey(uriParts.path, '/library/metadata/');
-			if(metadataKeyParts) {
-				const metadataIdParts = parseMetadataID(metadataKeyParts.id);
-				if(metadataIdParts.source && metadataIdParts.source != PseuplexMetadataSource.Plex) {
-					const privateId = this.metadataIdMappings.getPrivateIDFromPublicID(metadataKeyParts.id);
-					if(privateId != null) {
-						const privatePath = `/library/metadata/${privateId}` + (metadataKeyParts?.relativePath ?? '');
-						uriParts.path = privatePath;
+		if(!uriParts.path) {
+			return uri;
+		}
+		const libraryMetadataPath = '/library/metadata';
+		const metadataKeyParts = parseMetadataIDFromKey(uriParts.path, libraryMetadataPath);
+		let uriChanged = false;
+		if(metadataKeyParts) {
+			// path is using /library/metadata
+			let metadataIds = metadataKeyParts.id.split(',');
+			let parsedMetadataIds = metadataIds.map((id) => parseMetadataID(id));
+			// remap if the path is using a mapped id
+			if(this.metadataIdMappings) {
+				for(let i=0; i<parsedMetadataIds.length; i++) {
+					const metadataIdParts = parsedMetadataIds[i];
+					if(!metadataIdParts.source) {
+						const privateId = this.metadataIdMappings.getPrivateIDFromPublicID(metadataKeyParts.id);
+						if(privateId != null) {
+							metadataIds[i] = privateId;
+							parsedMetadataIds[i] = parseMetadataID(privateId);
+							uriChanged = true;
+							console.log(`Remapped public metadata id ${metadataIds[i]} to private id ${privateId}`);
+						}
 					}
 				}
 			}
-		}
-		// check if any plugins can resolve the URI
-		for(const pluginSlug of Object.keys(this.plugins)) {
-			const plugin = this.plugins[pluginSlug];
-			if(plugin.resolvePlayQueueURI) {
-				const resolvedURI = await plugin.resolvePlayQueueURI(uriParts, options);
-				if(resolvedURI) {
-					return resolvedURI;
+			// remap metadata ids for custom providers to plex server items
+			const mappingTasks: {[index: number]: Promise<PseuplexMetadataPage>} = {};
+			for(let i=0; i<parsedMetadataIds.length; i++) {
+				const metadataIdParts = parsedMetadataIds[i];
+				if(metadataIdParts.source && metadataIdParts.source != PseuplexMetadataSource.Plex) {
+					const metadataProvider = this.metadataProviders[metadataIdParts.source];
+					if(metadataProvider) {
+						const partialMetadataId = stringifyPartialMetadataID(metadataIdParts);
+						mappingTasks[i] = metadataProvider.get([partialMetadataId], {
+							context: options.context,
+							includePlexDiscoverMatches: false,
+							includeUnmatched: false,
+							transformMatchKeys: false, // keep the key from the plex server
+							qualifiedMetadataIds: true,
+							metadataBasePath: libraryMetadataPath,
+						});
+					} else {
+						console.error(`Cannot resolve metadata id ${metadataIds[i]} for play queue`);
+					}
 				}
 			}
+			const remappedIds = Object.keys(mappingTasks);
+			if(remappedIds.length > 0) {
+				// wait for all metadata tasks and return the resolved IDs
+				let caughtError;
+				metadataIds = (await Promise.all(metadataIds.map(async (id, index): Promise<string[]> => {
+					try {
+						const mappingTask = mappingTasks[index];
+						if(!mappingTask) {
+							return [id];
+						}
+						let metadatas = (await mappingTask).MediaContainer.Metadata;
+						if(!metadatas) {
+							return [];
+						}
+						if(!(metadatas instanceof Array)) {
+							metadatas = [];
+						}
+						let foundNull = false;
+						let ratingKeys = metadatas.map((m) => {
+							if(m.ratingKey) {
+								return m.ratingKey;
+							}
+							const parsedKey = parseMetadataIDFromKey(m.key, libraryMetadataPath);
+							if(parsedKey) {
+								return parsedKey.id;
+							}
+							foundNull = true;
+							console.error(`No metadata ratingKey or key for item with title ${m.title}`);
+							return null;
+						});
+						if(foundNull) {
+							ratingKeys = ratingKeys.filter((rk) => rk);
+						}
+						console.log(`Remapped metadata id ${id} to ${ratingKeys.join(",")}`);
+						return ratingKeys;
+					} catch(error) {
+						console.error(`Failed to remap metadata id ${id} :`);
+						console.error(error);
+						if(!caughtError) {
+							caughtError = error;
+						}
+						return [];
+					}
+				}))).flatMap(entry => entry);
+				if(metadataIds.length == 0) {
+					if(caughtError) {
+						throw caughtError;
+					}
+					throw httpError(500, "Failed to resolve custom metadata ids for play queue");
+				}
+				uriChanged = true;
+			}
+			// rebuild path and uri from metadata ids
+			if(uriChanged) {
+				uriParts.path = `${libraryMetadataPath}/${metadataIds.join(',')}${metadataKeyParts.relativePath ?? ''}`;
+				uri = plexTypes.stringifyPlayQueueURIParts(uriParts);
+			}
+		} else {
+			// using an unknown metadata base path
+			// check all metadata providers to see if one matches
+			for(const metadataProvider of Object.values(this.metadataProviders)) {
+				const metadataIds = metadataProvider.metadataIdsFromKey(uriParts.path);
+				if(!metadataIds) {
+					continue;
+				}
+				// resolve items to plex server items
+				let metadatas = (await metadataProvider.get(metadataIds.ids, {
+					context: options.context,
+					includePlexDiscoverMatches: false,
+					includeUnmatched: false,
+					transformMatchKeys: false, // keep the key from the plex server
+					qualifiedMetadataIds: true,
+					metadataBasePath: libraryMetadataPath,
+				})).MediaContainer.Metadata || [];
+				if(!(metadatas instanceof Array)) {
+					metadatas = [metadatas];
+				}
+				if(metadatas.length <= 0) {
+					throw httpError(404, "A matching plex server item was not found for this item");
+				}
+				let foundNull = false;
+				let newMetadataIds = metadatas.map((m) => {
+					if(m.ratingKey) {
+						return m.ratingKey;
+					}
+					const parsedKey = parseMetadataIDFromKey(m.key, libraryMetadataPath);
+					if(parsedKey) {
+						return parsedKey.id;
+					}
+					foundNull = true;
+					console.error(`No metadata ratingKey or key for item with title ${m.title}`);
+					return null;
+				});
+				if(foundNull) {
+					newMetadataIds = newMetadataIds.filter((rk) => rk);
+				}
+				// rebuild path from metadata ids
+				const newMetadataKey = `${libraryMetadataPath}/${newMetadataIds.join(',')}${metadataIds.relativePath ?? ''}`;
+				console.log(`Remapped metadata key ${uriParts.path} to ${newMetadataKey}`);
+				uriParts.path = newMetadataKey;
+				uri = plexTypes.stringifyPlayQueueURIParts(uriParts);
+				uriChanged = true;
+				break;
+			}
+		}
+		if(uriChanged) {
+			console.log(`Remapped play queue uri ${originalURI} to ${uri}`);
 		}
 		return uri;
 	}

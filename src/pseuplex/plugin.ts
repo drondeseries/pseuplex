@@ -49,11 +49,6 @@ export type PseuplexReadOnlyResponseFilters = {
 	readonly [filterName in PseuplexResponseFilterName]?: PseuplexResponseFilters[filterName];
 };
 
-export type PseuplexPlayQueueURIResolverOptions = {
-	plexMachineIdentifier: string;
-	context: PseuplexRequestContext;
-};
-
 
 export interface PseuplexPlugin {
 	readonly metadataProviders?: PseuplexMetadataProvider[];
@@ -61,7 +56,6 @@ export interface PseuplexPlugin {
 	readonly responseFilters?: PseuplexReadOnlyResponseFilters;
 
 	defineRoutes?: (router: express.Express) => void;
-	resolvePlayQueueURI?: (uri: plexTypes.PlexPlayQueueURIParts, options: PseuplexPlayQueueURIResolverOptions) => Promise<string | false>;
 	hasSections?: (context: PseuplexRequestContext) => Promise<boolean>;
 	getSections?: (context: PseuplexRequestContext) => Promise<PseuplexSection[]>;
 	shouldListenToPlexServerNotifications?: () => boolean;

@@ -16,7 +16,6 @@ import {
 	PseuplexHubProvider,
 	PseuplexMetadataPage,
 	PseuplexPartialMetadataIDString,
-	PseuplexPlayQueueURIResolverOptions,
 	PseuplexReadOnlyResponseFilters,
 	PseuplexMetadataIDParts,
 	PseuplexMetadataSource,
@@ -271,7 +270,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					transformMatchKeys: true,
 					metadataBasePath: metadataProvider.basePath,
 					qualifiedMetadataIds: false,
-					plexParams: params
+					plexParams: params,
 				});
 				// cache metadata access if needed
 				if(ids.length == 1) {
@@ -396,54 +395,6 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				return await hub.getHubPage(params, context);
 			})
 		]);
-	}
-
-
-	async resolvePlayQueueURI(uri: plexTypes.PlexPlayQueueURIParts, options: PseuplexPlayQueueURIResolverOptions): Promise<(string | false)> {
-		if(!uri.path || uri.machineIdentifier != options.plexMachineIdentifier) {
-			return false;
-		}
-		const letterboxdMetadataBasePath = this.metadata.basePath;
-		if(!(uri.path.startsWith(letterboxdMetadataBasePath) && uri.path[letterboxdMetadataBasePath.length] == '/')) {
-			return false;
-		}
-		// handle letterboxd uri
-		const idsStartIndex = letterboxdMetadataBasePath.length+1;
-		let idsEndIndex = uri.path.indexOf('/', idsStartIndex);
-		if(idsEndIndex == -1) {
-			idsEndIndex = uri.path.length;
-		}
-		const slugs = uri.path.substring(idsStartIndex, idsEndIndex).split(',');
-		// get letterboxd item(s) (resolving the key(s) if needed)
-		let metadatas = (await this.metadata.get(slugs, {
-			context: options.context,
-			includePlexDiscoverMatches: false,
-			includeUnmatched: false,
-			transformMatchKeys: false // keep the resolved key
-		})).MediaContainer.Metadata;
-		if(!metadatas) {
-			return false;
-		}
-		if(!(metadatas instanceof Array)) {
-			metadatas = [metadatas];
-		}
-		// apply new metadata key(s)
-		if(metadatas.length <= 0) {
-			return false;
-		} else if(metadatas.length == 1) {
-			uri.path = `${metadatas[0].key}${uri.path.substring(idsEndIndex)}`;
-		} else {
-			const metadataIds = metadatas?.map((metadata) => {
-				return parseMetadataIDFromKey(metadata.key, '/library/metadata/')?.id
-			})?.filter((metadataId) => metadataId);
-			if(!metadataIds || metadataIds.length == 0) {
-				return false;
-			}
-			uri.path = `/library/metadata/${metadataIds.join(',')}${uri.path.substring(idsEndIndex)}`;
-		}
-		const newUri = plexTypes.stringifyPlayQueueURIParts(uri);
-		console.log(`mapped uri ${uri} to ${newUri}`);
-		return newUri;
 	}
 
 

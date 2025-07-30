@@ -4,7 +4,10 @@ import { RequestExecutor } from '../fetching/RequestExecutor';
 import * as plexTypes from '../plex/types';
 import * as plexServerAPI from '../plex/api';
 import { removeFileParamsFromMetadataParams } from '../plex/api/serialization';
-import { parsePlexMetadataGuid } from '../plex/metadataidentifier';
+import {
+	parseMetadataIDFromKey,
+	parsePlexMetadataGuid
+} from '../plex/metadataidentifier';
 import {
 	PlexClient
 } from '../plex/client';
@@ -84,11 +87,19 @@ export type PseuplexRelatedHubsParams = {
 export type PseuplexMetadataProviderParams = PseuplexMetadataParams;
 export type PseuplexMetadataChildrenProviderParams = PseuplexMetadataChildrenParams;
 
+export type PseuplexPartialMetadataIDsFromKey = {
+	ids: string[];
+	relativePath?: string;
+};
+
 export interface PseuplexMetadataProvider {
 	readonly sourceSlug: string;
+
 	get(ids: string[], options: PseuplexMetadataProviderParams): Promise<PseuplexMetadataPage>;
 	getChildren(id: string, options: PseuplexMetadataChildrenProviderParams): Promise<PseuplexMetadataPage>;
 	getRelatedHubs(id: string, options: PseuplexRelatedHubsParams): Promise<plexTypes.PlexHubsPage>;
+
+	metadataIdsFromKey(metadataKey: string): PseuplexPartialMetadataIDsFromKey | null;
 }
 
 export type PseuplexSimilarItemsHubProvider = PseuplexHubProvider & {
@@ -515,6 +526,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 				if(guid) {
 					guid = await guid;
 				} else {
+					// only show seasons/episodes matched to items on your plex server when fetching children
 					const metadataItemsPage = await this.get([id], {
 						context,
 						includePlexDiscoverMatches: true,
@@ -576,6 +588,20 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 				identifier: plexTypes.PlexPluginIdentifier.PlexAppLibrary,
 				Hub: hubEntries
 			}
+		};
+	}
+
+
+
+	metadataIdsFromKey(metadataKey: string): PseuplexPartialMetadataIDsFromKey | null {
+		const metadataKeyParts = parseMetadataIDFromKey(metadataKey, this.basePath, false);
+		if(!metadataKeyParts) {
+			return null;
+		}
+		const ids = metadataKeyParts.id.split(',');
+		return {
+			ids,
+			relativePath: metadataKeyParts.relativePath
 		};
 	}
 }

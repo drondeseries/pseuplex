@@ -12,6 +12,7 @@ import {
 	PseuplexMetadataItem,
 	PseuplexRelatedHubsParams,
 	PseuplexRequestContext,
+	PseuplexPartialMetadataIDsFromKey,
 } from '../../pseuplex';
 import * as extPlexTransform from '../../pseuplex/externalplex/transform';
 import {
@@ -163,8 +164,17 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		children?: boolean,
 		plexParams?: plexTypes.PlexMetadataPageParams | plexTypes.PlexMetadataChildrenPageParams,
 		context: PseuplexRequestContext,
+		// Indicates whether to return items that couldn't be matched to items on the plex server
+		//  (or on plex discover, if includePlexDiscoverMatches was set)
+		includeUnmatched?: boolean;
+		// Indicates whether to transform the keys of items matched to plex server items back to their plugin custom keys
+		transformMatchKeys?: boolean;
+		// The base path to use when transforming metadata keys
 		metadataBasePath?: string;
+		// Whether to use full metadata IDs in the transformed metadata keys
 		qualifiedMetadataIds?: boolean;
+		// Whether to throw a 404 error if includeUnmatched is false and no matches were found
+		throw404OnNoMatches?: boolean;
 	}): Promise<PseuplexMetadataPage> {
 		const { context } = options;
 		// find requests provider
@@ -251,6 +261,14 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 							unavailable: false,
 							metadataIds: {},
 						};
+						if(options.transformMatchKeys) {
+							reqsTransform.setMetadataItemKeyToRequestKey(pseuMatchingItem, {
+								...transformOpts,
+								// since the item is on the server, we want to leave the original ratingKey,
+								//  so that the plex server items will be fetched directly if any additional request is made
+								transformRatingKey: false,
+							});
+						}
 						return pseuMatchingItem;
 					}
 					// season doesn't exist on the server
@@ -275,10 +293,29 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 							[this.sourceSlug]: reqsTransform.createRequestPartialMetadataId(id)
 						},
 					}
-					reqsTransform.setMetadataItemKeyToRequestKey(metadataItem, transformOpts);
+					reqsTransform.setMetadataItemKeyToRequestKey(metadataItem, {
+						...transformOpts,
+						// since the item is on the server, we want to leave the original ratingKey,
+						//  so that the plex server items will be fetched directly if any additional request is made
+						transformRatingKey: false,
+					});
 				});
 			}
 			return plexDisplayedPage as PseuplexMetadataPage;
+		}
+		else if(!(options.includeUnmatched ?? true)) {
+			// matching item not found on plex server
+			if(options.throw404OnNoMatches) {
+				throw httpError(404, "Failed to find matching plex server item");
+			}
+			return {
+				MediaContainer: {
+					size: 0,
+					identifier: plexTypes.PlexPluginIdentifier.PlexAppLibrary,
+					allowSync: false,
+					Metadata: [],
+				}
+			};
 		}
 		// item doesn't exist in the plex server library,
 		//  so get the plex discover ID of the item to fetch
@@ -385,6 +422,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				children: false,
 				context: options.context,
 				plexParams: options.plexParams,
+				transformMatchKeys: options.transformMatchKeys,
 				metadataBasePath: options.metadataBasePath,
 				qualifiedMetadataIds: options.qualifiedMetadataIds,
 			});
@@ -414,6 +452,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			children: true,
 			plexParams: options.plexParams,
 			context: options.context,
+			transformMatchKeys: false,
 			metadataBasePath: options.metadataBasePath,
 			qualifiedMetadataIds: options.qualifiedMetadataIds,
 		});
@@ -443,6 +482,18 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				totalSize: 0,
 				Hub: []
 			}
+		};
+	}
+
+
+	metadataIdsFromKey(metadataKey: string): PseuplexPartialMetadataIDsFromKey | null {
+		const keyParts = reqsTransform.parseUnqualifiedRequestItemMetadataKey(metadataKey, this.basePath, false);
+		if(!keyParts) {
+			return null;
+		}
+		return {
+			ids: [reqsTransform.createRequestPartialMetadataId(keyParts.id)],
+			relativePath: keyParts.relativePath,
 		};
 	}
 }

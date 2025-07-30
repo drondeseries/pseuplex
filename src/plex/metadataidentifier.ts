@@ -8,27 +8,46 @@ export type PlexMetadataKeyParts = {
 	relativePath?: string;
 };
 
-export const parseMetadataIDFromKey = (metadataKey: string | null | undefined, basePath: string): PlexMetadataKeyParts | null => {
+export const parseMetadataIDFromKey = (metadataKey: string | null | undefined, basePath: string, warnOnFailure: boolean = true): PlexMetadataKeyParts | null => {
 	if(!metadataKey) {
+		if(warnOnFailure) {
+			console.error(new Error(`Null metadata id passed to parseMetadataIDFromKey`));
+		}
 		return null;
-	}
-	if(!basePath.endsWith('/')) {
-		basePath += '/';
 	}
 	if(!metadataKey.startsWith(basePath)) {
-		console.warn(`Unrecognized metadata key ${metadataKey}`);
+		if(warnOnFailure) {
+			console.warn(`Unrecognized metadata key ${metadataKey}`);
+		}
 		return null;
 	}
-	const slashIndex = metadataKey.indexOf('/', basePath.length);
+	if(metadataKey.length == basePath.length) {
+		if(warnOnFailure) {
+			console.warn(`Metadata key is the same as the base path ${metadataKey}`);
+		}
+		return null;
+	}
+	let idStartIndex = basePath.length;
+	if(!basePath.endsWith('/')) {
+		if(metadataKey[basePath.length] != '/') {
+			if(warnOnFailure) {
+				console.warn(`Unrecognized metadata key ${metadataKey}`);
+			}
+			return null;
+		}
+		idStartIndex += 1;
+	}
+	const parsedBasePath = metadataKey.slice(0, idStartIndex);
+	const slashIndex = metadataKey.indexOf('/', idStartIndex);
 	if(slashIndex == -1) {
 		return {
-			basePath,
-			id: metadataKey.substring(basePath.length)
+			basePath: parsedBasePath,
+			id: metadataKey.substring(idStartIndex)
 		};
 	}
 	return {
-		basePath,
-		id: metadataKey.substring(basePath.length, slashIndex),
+		basePath: parsedBasePath,
+		id: metadataKey.substring(idStartIndex, slashIndex),
 		relativePath: metadataKey.substring(slashIndex)
 	};
 };
