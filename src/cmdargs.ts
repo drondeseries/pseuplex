@@ -15,9 +15,14 @@ export type CommandArguments = {
 	logProxyResponseHeaders?: boolean,
 	logProxyResponseBody?: boolean,
 	logProxyErrorResponseBody?: boolean,
+	logWebsocketMessagesFromUser?: boolean,
+	logWebsocketMessagesToUser?: boolean,
+	logWebsocketMessagesFromServer?: boolean,
+	logWebsocketMessagesToServer?: boolean,
 	logWebsocketErrors?: boolean,
 	verbose?: boolean,
-	verboseTraffic?: boolean,
+	verboseHttpTraffic?: boolean,
+	verboseWsTraffic?: boolean,
 }
 
 enum CmdFlag {
@@ -35,7 +40,13 @@ enum CmdFlag {
 	logProxyResponseBody = '--log-proxy-response-body',
 	logProxyErrorResponseBody = '--log-proxy-response-body',
 	logWebsocketErrors = '--log-websocket-errors',
+	logWebsocketFromUser = '--log-websocket-from-user',
+	logWebsocketToUser = '--log-websocket-to-user',
+	logWebsocketFromServer = '--log-websocket-from-server',
+	logWebsocketToServer = '--log-websocket-to-server',
 	verbose = '--verbose',
+	verboseHttpTraffic = '--verbose-http-traffic',
+	verboseWsTraffic = '--verbose-ws-traffic',
 	verboseTraffic = '--verbose-traffic',
 }
 
@@ -126,6 +137,22 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 					parsedArgs.logProxyErrorResponseBody = true;
 					break;
 
+				case CmdFlag.logWebsocketFromUser:
+					parsedArgs.logWebsocketMessagesFromUser = true;
+					break;
+
+				case CmdFlag.logWebsocketToUser:
+					parsedArgs.logWebsocketMessagesToUser = true;
+					break;
+
+				case CmdFlag.logWebsocketFromServer:
+					parsedArgs.logWebsocketMessagesFromServer = true;
+					break;
+
+				case CmdFlag.logWebsocketToServer:
+					parsedArgs.logWebsocketMessagesToServer = true;
+					break;
+
 				case CmdFlag.logWebsocketErrors:
 					parsedArgs.logWebsocketErrors = true;
 					break;
@@ -136,8 +163,9 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 					parsedArgs.logUserResponses = true;
 					break;
 
-				case CmdFlag.verboseTraffic:
-					parsedArgs.verboseTraffic = true;
+				case CmdFlag.verboseHttpTraffic:
+					parsedArgs.verboseHttpTraffic = true;
+					parsedArgs.verboseHttpTraffic = true;
 					parsedArgs.logFullURLs = true;
 					parsedArgs.logOutgoingRequests = true;
 					parsedArgs.logUserRequests = true;
@@ -152,6 +180,38 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 					parsedArgs.logProxyResponseHeaders = true;
 					//parsedArgs.logProxyResponseBody = true;
 					parsedArgs.logProxyErrorResponseBody = true;
+					break;
+
+				case CmdFlag.verboseWsTraffic:
+					parsedArgs.verboseWsTraffic = true;
+					parsedArgs.logWebsocketMessagesFromUser = true;
+					parsedArgs.logWebsocketMessagesToUser = true;
+					parsedArgs.logWebsocketMessagesFromServer = true;
+					parsedArgs.logWebsocketMessagesToServer = true;
+					parsedArgs.logWebsocketErrors = true;
+					break;
+
+				case CmdFlag.verboseTraffic:
+					parsedArgs.verboseHttpTraffic = true;
+					parsedArgs.logFullURLs = true;
+					parsedArgs.logOutgoingRequests = true;
+					parsedArgs.logUserRequests = true;
+					parsedArgs.logUserRequestHeaders = true;
+					parsedArgs.logUserResponses = true;
+					parsedArgs.logUserResponseHeaders = true;
+					parsedArgs.logUserResponseBody = true;
+					//parsedArgs.logRequestPathMappings = true;
+					parsedArgs.logProxyRequests = true;
+					parsedArgs.logProxyRequestHeaders = true;
+					parsedArgs.logProxyResponses = true;
+					parsedArgs.logProxyResponseHeaders = true;
+					//parsedArgs.logProxyResponseBody = true;
+					parsedArgs.logProxyErrorResponseBody = true;
+					parsedArgs.verboseWsTraffic = true;
+					parsedArgs.logWebsocketMessagesFromUser = true;
+					parsedArgs.logWebsocketMessagesToUser = true;
+					parsedArgs.logWebsocketMessagesFromServer = true;
+					parsedArgs.logWebsocketMessagesToServer = true;
 					parsedArgs.logWebsocketErrors = true;
 					break;
 				

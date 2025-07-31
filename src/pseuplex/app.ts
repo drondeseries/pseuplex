@@ -85,6 +85,7 @@ import {
 	NotificationsWebSocketEndpoint,
 	PseuplexClientNotificationWebSocketInfo,
 	PseuplexNotificationSocketType,
+	PseuplexNotificationsOptions,
 	sendMediaUnavailableNotifications,
 	sendMetadataRefreshTimelineNotifications,
 	sendNotificationToSockets,
@@ -139,10 +140,14 @@ type PseuplexAppMetadataChildrenParams = {
 type PseuplexAppConfig = PseuplexConfigBase<{[key: string]: any}> & {[key: string]: any};
 
 type PseuplexLoggingOptions = {
-	logWebsocketErrors?: boolean;
 	logOutgoingRequests?: boolean;
 	logUserRequests?: boolean;
 	logUserRequestHeaders?: boolean;
+	logWebsocketMessagesFromUser?: boolean;
+	logWebsocketMessagesToUser?: boolean;
+	logWebsocketMessagesFromServer?: boolean;
+	logWebsocketMessagesToServer?: boolean;
+	logWebsocketErrors?: boolean;
 } & PlexProxyLoggingOptions;
 
 type PseuplexPlexServerNotificationsOptions = {
@@ -835,8 +840,17 @@ export class PseuplexApp {
 
 		// handle upgrade to socket
 		server.on('upgrade', (req, socket, head) => {
-			if(this.loggingOptions.logUserRequests) {
+			if(this.loggingOptions.logUserRequests || this.loggingOptions.logWebsocketMessagesFromUser) {
 				console.log(`\nupgrade ws ${req.url}`);
+				if(this.loggingOptions.logUserRequestHeaders) {
+					const reqHeaderList = req.rawHeaders;
+					for(let i=0; i<reqHeaderList.length; i++) {
+						const headerKey = reqHeaderList[i];
+						i++;
+						const headerVal = reqHeaderList[i];
+						console.log(`\t${headerKey}: ${headerVal}`);
+					}
+				}
 			}
 			// socket endpoints seem to only get passed the token
 			const plexToken = plexTypes.parsePlexTokenFromRequest(req);
@@ -1042,6 +1056,9 @@ export class PseuplexApp {
 	}
 
 	private _handlePlexServerNotification(event: WebSocketEventMap['message']) {
+		if(this.loggingOptions.logWebsocketMessagesFromServer) {
+			console.log(`\nGot websocket message from server:\n${event.data}`);
+		}
 		// parse data
 		let data: plexTypes.PlexNotificationMessage;
 		try {
@@ -1116,6 +1133,12 @@ export class PseuplexApp {
 				} break;
 			}
 		}
+	}
+
+	private _notificationsOptions(): PseuplexNotificationsOptions {
+		return {
+			loggingOptions: this.loggingOptions,
+		};
 	}
 
 
@@ -1663,8 +1686,8 @@ export class PseuplexApp {
 
 
 
-	getClientWebSockets(token: string): PseuplexClientWebSocketInfo[] | undefined {
-		const sockets = this.clientWebSockets[token];
+	getClientWebSockets(plexToken: string): PseuplexClientWebSocketInfo[] | undefined {
+		const sockets = this.clientWebSockets[plexToken];
 		if(!sockets) {
 			return undefined;
 		}
@@ -1672,8 +1695,8 @@ export class PseuplexApp {
 			.filter((si) => si.proxySocket);
 	}
 
-	getClientNotificationWebSockets(token: string): PseuplexClientNotificationWebSocketInfo[] | undefined {
-		const sockets = this.clientWebSockets[token];
+	getClientNotificationWebSockets(plexToken: string): PseuplexClientNotificationWebSocketInfo[] | undefined {
+		const sockets = this.clientWebSockets[plexToken];
 		if(!sockets) {
 			return undefined;
 		}
@@ -1696,6 +1719,7 @@ export class PseuplexApp {
 				continue;
 			}
 			notifSockets.push({
+				plexToken,
 				type,
 				socket: socketInfo.socket,
 				proxySocket: socketInfo.proxySocket,
@@ -1775,7 +1799,7 @@ export class PseuplexApp {
 										sectionID: "-1",
 										type: mediaTypeNumeric,
 										updatedAt: now,
-									}]);
+									}], this._notificationsOptions());
 								} catch(error) {
 									console.error(`Error sending notification to socket:`);
 									console.error(error);
@@ -1929,7 +1953,7 @@ export class PseuplexApp {
 													}
 												}
 											]
-										});
+										}, this._notificationsOptions());
 									} catch(error) {
 										console.error(`Error sending notification to socket:`);
 										console.error(error);
@@ -1972,7 +1996,7 @@ export class PseuplexApp {
 										sendMediaUnavailableNotifications(notifSockets, {
 											userID: context.plexUserInfo.serverUserID,
 											metadataKey: metadataItem.key,
-										});
+										}, this._notificationsOptions());
 									} catch(error) {
 										console.error(`Error sending notification to socket:`);
 										console.error(error);

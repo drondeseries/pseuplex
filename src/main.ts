@@ -146,6 +146,10 @@ const readPlexPrefsIfNeeded = async () => {
 			logProxyResponses: args.logProxyResponses,
 			logProxyResponseHeaders: args.logProxyResponseHeaders,
 			logProxyResponseBody: args.logProxyResponseBody,
+			logWebsocketMessagesFromUser: args.logWebsocketMessagesFromUser,
+			logWebsocketMessagesToUser: args.logWebsocketMessagesToUser,
+			logWebsocketMessagesFromServer: args.logWebsocketMessagesFromServer,
+			logWebsocketMessagesToServer: args.logWebsocketMessagesToServer,
 			logWebsocketErrors: args.logWebsocketErrors,
 		},
 		plugins: [

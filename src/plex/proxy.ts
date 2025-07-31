@@ -415,8 +415,9 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 						console.log(`\nUser Response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
 						if(args.logUserResponseHeaders) {
 							const userResHeaders = userRes.getHeaders();
-							for(const headerKey in userResHeaders) {
-								console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
+							for(const headerKey of Object.keys(userResHeaders)) {
+								const headerVal = userResHeaders[headerKey];
+								console.log(`\t${headerKey}: ${headerVal}`);
 							}
 						}
 						console.log();

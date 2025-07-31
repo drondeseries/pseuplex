@@ -8,6 +8,16 @@ export const NotificationsWebSocketEndpoint = '/:/websockets/notifications';
 export const EventSourceNotificationsSocketEndpoint = '/:/eventsource/notifications';
 
 
+export type PseuplexNotificationsOptions = {
+	loggingOptions: {
+		logWebsocketMessagesFromUser?: boolean,
+		logWebsocketMessagesToUser?: boolean,
+		logWebsocketMessagesFromServer?: boolean,
+		logWebsocketMessagesToServer?: boolean,
+	}
+};
+
+
 
 export enum PseuplexNotificationSocketType {
 	EventSource = 1,
@@ -15,6 +25,7 @@ export enum PseuplexNotificationSocketType {
 }
 
 export type PseuplexClientNotificationWebSocketInfo = {
+	plexToken: string;
 	type: PseuplexNotificationSocketType;
 	socket: stream.Duplex;
 	proxySocket: stream.Duplex;
@@ -24,7 +35,7 @@ export type NotificationDataCache = {
 	[type: PseuplexNotificationSocketType | number]: string;
 };
 
-export const sendNotificationToSocket = (socketInfo: PseuplexClientNotificationWebSocketInfo, notification: plexTypes.PlexNotificationContainer, notifDataCache?: NotificationDataCache) => {
+export const sendNotificationToSocket = (socketInfo: PseuplexClientNotificationWebSocketInfo, notification: plexTypes.PlexNotificationContainer, options: PseuplexNotificationsOptions, notifDataCache?: NotificationDataCache) => {
 	const { type: socketType, socket } = socketInfo;
 	switch(socketType) {
 		case PseuplexNotificationSocketType.EventSource: {
@@ -51,6 +62,9 @@ export const sendNotificationToSocket = (socketInfo: PseuplexClientNotificationW
 				if(notifDataCache) {
 					notifDataCache[socketType] = dataString;
 				}
+				if(options.loggingOptions.logWebsocketMessagesToUser) {
+					console.log(`\nSending eventsource socket message to token ${socketInfo.plexToken}:\n${dataString}`);
+				}
 			}
 			sendWebSocketMessage(socket, dataString);
 		} break;
@@ -65,6 +79,9 @@ export const sendNotificationToSocket = (socketInfo: PseuplexClientNotificationW
 				if(notifDataCache) {
 					notifDataCache[socketType] = dataString;
 				}
+				if(options.loggingOptions.logWebsocketMessagesToUser) {
+					console.log(`\nSending notification socket message to token ${socketInfo.plexToken}:\n${dataString}`);
+				}
 			}
 			sendWebSocketMessage(socket, dataString);
 		} break;
@@ -75,23 +92,23 @@ export const sendNotificationToSocket = (socketInfo: PseuplexClientNotificationW
 	}
 };
 
-export const sendNotificationToSockets = (sockets: PseuplexClientNotificationWebSocketInfo[], notification: plexTypes.PlexNotificationContainer) => {
+export const sendNotificationToSockets = (sockets: PseuplexClientNotificationWebSocketInfo[], notification: plexTypes.PlexNotificationContainer, options: PseuplexNotificationsOptions) => {
 	const notifDataCache: NotificationDataCache = {};
 	for(const socket of sockets) {
 		if(socket.socket.closed) {
 			continue;
 		}
-		sendNotificationToSocket(socket, notification, notifDataCache);
+		sendNotificationToSocket(socket, notification, options, notifDataCache);
 	}
 };
 
 
 
 
-export const sendMediaUnavailableNotifications = (sockets: PseuplexClientNotificationWebSocketInfo[], options: {
+export const sendMediaUnavailableNotifications = (sockets: PseuplexClientNotificationWebSocketInfo[], notif: {
 	userID: number | string,
 	metadataKey: string,
-}) => {
+}, options: PseuplexNotificationsOptions) => {
 	const uuidVal = crypto.randomUUID();
 	/*sendMediaUnavailableActivityNotification(sockets, {
 		uuid: uuidVal,
@@ -106,28 +123,28 @@ export const sendMediaUnavailableNotifications = (sockets: PseuplexClientNotific
 	sendMediaUnavailableActivityNotification(sockets, {
 		uuid: uuidVal,
 		eventType: plexTypes.PlexActivityEventType.Ended,
-		...options
-	});
+		...notif
+	}, options);
 }
 
-export const sendMediaUnavailableActivityNotification = (sockets: PseuplexClientNotificationWebSocketInfo[], options: {
+export const sendMediaUnavailableActivityNotification = (sockets: PseuplexClientNotificationWebSocketInfo[], notif: {
 	uuid: string,
 	eventType: plexTypes.PlexActivityEventType,
 	userID: number | string,
 	metadataKey: string
-}) => {
+}, options: PseuplexNotificationsOptions) => {
 	const notification: plexTypes.PlexActivityNotificationContainer = {
 		type: plexTypes.PlexNotificationType.Activity,
 		size: 1,
 		ActivityNotification: [
 			{
-				event: options.eventType,
-				uuid: options.uuid,
+				event: notif.eventType,
+				uuid: notif.uuid,
 				Activity: {
-					uuid: options.uuid,
+					uuid: notif.uuid,
 					type: plexTypes.PlexActivityType.LibraryRefreshItems,
 					cancellable: false,
-					userID: options.userID as number,
+					userID: notif.userID as number,
 					title: "Refreshing",
 					subtitle: "Checking Availability",
 					progress: 100,
@@ -135,14 +152,14 @@ export const sendMediaUnavailableActivityNotification = (sockets: PseuplexClient
 						accessible: false,
 						analyzed: false,
 						exists: false,
-						key: options.metadataKey,
+						key: notif.metadataKey,
 						refreshed: false
 					}
 				}
 			}
 		]
 	};
-	sendNotificationToSockets(sockets, notification);
+	sendNotificationToSockets(sockets, notification, options);
 };
 
 
@@ -152,7 +169,7 @@ export const sendMetadataRefreshTimelineNotifications = (sockets: PseuplexClient
 	sectionID: string,
 	type: plexTypes.PlexMediaItemTypeNumeric,
 	updatedAt: number,
-}[]) => {
+}[], options: PseuplexNotificationsOptions) => {
 	sendMetadataRefreshTimelineEntryNotification(sockets, items.map((item) => {
 		return {
 			state: plexTypes.PlexTimelineEntryNotificationState.StartedRefresh,
@@ -160,7 +177,7 @@ export const sendMetadataRefreshTimelineNotifications = (sockets: PseuplexClient
 			title: `Refreshing ${item.itemID}`,
 			...item,
 		};
-	}));
+	}), options);
 
 	sendMetadataRefreshTimelineEntryNotification(sockets, items.map((item) => {
 		return {
@@ -168,7 +185,7 @@ export const sendMetadataRefreshTimelineNotifications = (sockets: PseuplexClient
 			title: `Done refreshing ${item.itemID}`,
 			...item,
 		};
-	}));
+	}), options);
 };
 
 export const sendMetadataRefreshTimelineEntryNotification = (sockets: PseuplexClientNotificationWebSocketInfo[], items: {
@@ -179,7 +196,7 @@ export const sendMetadataRefreshTimelineEntryNotification = (sockets: PseuplexCl
 	metadataState?: plexTypes.PlexTimelineEntryNotificationMetadataState,
 	title: string,
 	updatedAt: number,
-}[]) => {
+}[], options: PseuplexNotificationsOptions) => {
 	const notification: plexTypes.PlexTimelineEntryNotificationContainer = {
 		type: plexTypes.PlexNotificationType.Timeline,
 		size: items.length,
@@ -190,5 +207,5 @@ export const sendMetadataRefreshTimelineEntryNotification = (sockets: PseuplexCl
 			};
 		})
 	};
-	sendNotificationToSockets(sockets, notification);
+	sendNotificationToSockets(sockets, notification, options);
 };
