@@ -19,6 +19,7 @@ export type PlexServerAccountInfo = {
 export type PlexServerAccountsStoreOptions = {
 	plexServerProperties: PlexServerPropertiesStore;
 	sharedServersMinLifetime?: number;
+	logPlexFuckery?: boolean;
 };
 
 export class PlexServerAccountsStore {
@@ -32,9 +33,12 @@ export class PlexServerAccountsStore {
 	_sharedServersTask: Promise<void> | null = null;
 	_lastSharedServersFetchTime: number | null = null;
 
+	_logPlexFuckery: boolean;
+
 	constructor(options: PlexServerAccountsStoreOptions) {
 		this.plexServerProperties = options.plexServerProperties;
 		this.sharedServersMinLifetime = options.sharedServersMinLifetime ?? 60;
+		this._logPlexFuckery = options.logPlexFuckery;
 	}
 
 	get lastSharedServersFetchTime() {
@@ -92,8 +96,10 @@ export class PlexServerAccountsStore {
 					});
 				} catch (error) {
 					if((error as HttpResponseError).httpResponse?.status == 401) {
-						console.error("The plex server owner wasn't able to fetch account info:");
-						console.error(error);
+						if(this._logPlexFuckery) {
+							console.error("The plex server owner wasn't able to fetch account info:");
+							console.error(error);
+						}
 						return null;
 					}
 					throw error;

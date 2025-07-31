@@ -3,6 +3,7 @@ export type CommandArguments = {
 	configPath?: string,
 	logRequestPathMappings?: boolean,
 	logFullURLs?: boolean,
+	logProblemIgnoredByPlexEvenThoughIReportedItAMonthAgo?: boolean,
 	logOutgoingRequests?: boolean,
 	logUserRequests?: boolean,
 	logUserRequestHeaders?: boolean,
@@ -27,6 +28,7 @@ export type CommandArguments = {
 
 enum CmdFlag {
 	configPath = '--config',
+	logFuckingPlex = '--log-fucking-plex',
 	logOutgoingRequests = '--log-outgoing-requests',
 	logUserRequests = '--log-user-requests',
 	logUserRequestHeaders = '--log-user-request-headers',
@@ -87,6 +89,10 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 						throw new Error(`Missing value for flag ${arg}`);
 					}
 					parsedArgs.configPath = flagVal;
+					break;
+
+				case CmdFlag.logFuckingPlex:
+					parsedArgs.logProblemIgnoredByPlexEvenThoughIReportedItAMonthAgo = true;
 					break;
 				
 				case CmdFlag.logOutgoingRequests:

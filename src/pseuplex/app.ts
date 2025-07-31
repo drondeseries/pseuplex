@@ -140,6 +140,7 @@ type PseuplexAppMetadataChildrenParams = {
 type PseuplexAppConfig = PseuplexConfigBase<{[key: string]: any}> & {[key: string]: any};
 
 type PseuplexLoggingOptions = {
+	logProblemIgnoredByPlexEvenThoughIReportedItAMonthAgo?: boolean;
 	logOutgoingRequests?: boolean;
 	logUserRequests?: boolean;
 	logUserRequestHeaders?: boolean;
@@ -236,7 +237,8 @@ export class PseuplexApp {
 			verbose: this.loggingOptions.logOutgoingRequests,
 		});
 		this.plexServerAccounts = new PlexServerAccountsStore({
-			plexServerProperties: this.plexServerProperties
+			plexServerProperties: this.plexServerProperties,
+			logPlexFuckery: this.loggingOptions.logProblemIgnoredByPlexEvenThoughIReportedItAMonthAgo,
 		});
 		this.plexMetadataClient = options.plexMetadataClient;
 		this.plexServerIdToGuidCache = createPlexServerIdToGuidCache({
