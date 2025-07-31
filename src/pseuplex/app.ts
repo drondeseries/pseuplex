@@ -1249,7 +1249,7 @@ export class PseuplexApp {
 					return metadatas;
 				}
 			} catch(error) {
-				if((caughtError as HttpResponseError)?.httpResponse?.status != 404) {
+				if((error as HttpResponseError)?.httpResponse?.status != 404) {
 					console.error(`Error fetching metadata for metadata id ${stringifyMetadataID(metadataId)} :`);
 					console.error(error);
 					if(!caughtNon404Error) {
