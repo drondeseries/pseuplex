@@ -351,7 +351,7 @@ export class PseuplexApp {
 		router.use((req, res, next) => {
 			// log request if needed
 			if(this.loggingOptions.logUserRequests) {
-				console.log(`\nUser ${req.method} ${urlLogString(this.loggingOptions, req.originalUrl)}`);
+				console.log(`\n\x1b[42mUser ${req.method} ${urlLogString(this.loggingOptions, req.originalUrl)}\x1b[0m`);
 				if(this.loggingOptions.logUserRequestHeaders) {
 					const reqHeaderList = req.rawHeaders;
 					for(let i=0; i<reqHeaderList.length; i++) {
@@ -841,7 +841,7 @@ export class PseuplexApp {
 		// handle upgrade to socket
 		server.on('upgrade', (req, socket, head) => {
 			if(this.loggingOptions.logUserRequests || this.loggingOptions.logWebsocketMessagesFromUser) {
-				console.log(`\nupgrade ws ${req.url}`);
+				console.log(`\n\x1b[104mupgrade ws ${req.url}\x1b[0m`);
 				if(this.loggingOptions.logUserRequestHeaders) {
 					const reqHeaderList = req.rawHeaders;
 					for(let i=0; i<reqHeaderList.length; i++) {
