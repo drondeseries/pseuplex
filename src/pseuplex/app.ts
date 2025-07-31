@@ -1394,7 +1394,8 @@ export class PseuplexApp {
 			const hubsPage = await plexServerAPI.getLibraryMetadataRelatedHubs(metadataId.id, {
 				serverURL: itemPlexServerURL,
 				authContext: options.plexAuthContext,
-				params: options.plexParams
+				params: options.plexParams,
+				verbose: this.loggingOptions.logOutgoingRequests,
 			});*/
 			// TODO transform external plex hubs
 			return {
@@ -1743,6 +1744,7 @@ export class PseuplexApp {
 					const metadataTask = plexServerAPI.getLibraryMetadata(itemIDs, {
 						serverURL: this.plexServerURL,
 						authContext: this.plexAdminAuthContext,
+						verbose: this.loggingOptions.logOutgoingRequests,
 					});
 					for(const itemID of itemIDs) {
 						// cache ID to guid mapping
@@ -1867,6 +1869,7 @@ export class PseuplexApp {
 						const metadataTask = plexServerAPI.getLibraryMetadata(itemIdsToFetch, {
 							serverURL: this.plexServerURL,
 							authContext: this.plexAdminAuthContext,
+							verbose: this.loggingOptions.logOutgoingRequests,
 						});
 						// convert result to a map of ids to guids
 						const guidsMapTask = metadataTask.then((metadataPage) => {

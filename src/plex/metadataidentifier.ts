@@ -69,18 +69,18 @@ export const parsePlexMetadataGuid = (guid: string): PlexMetadataGuidParts => {
 	// parse ID portion
 	const slashIndex = guid.lastIndexOf('/');
 	if(slashIndex == -1) {
-		throw httpError(400, `Invalid guid`);
+		throw httpError(400, `Invalid guid ${guid}`);
 	}
 	const id = guid.substring(slashIndex+1);
 	// parse type portion
 	const prevSlashIndex = guid.lastIndexOf('/', slashIndex-1);
 	if(prevSlashIndex == -1) {
-		throw httpError(400, `Invalid guid`);
+		throw httpError(400, `Invalid guid ${guid}`);
 	}
 	const type = guid.substring(prevSlashIndex+1, slashIndex);
 	// parse protocol
 	if(prevSlashIndex < 3 || guid[prevSlashIndex-2] != ':' || guid[prevSlashIndex-1] != '/') {
-		throw httpError(400, "Invalid guid structure");
+		throw httpError(400, `Invalid guid structure  ${guid}`);
 	}
 	const protocol = guid.substring(0, prevSlashIndex-2);
 	// parse protocol

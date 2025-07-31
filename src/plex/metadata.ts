@@ -50,18 +50,19 @@ export class PlexGuidToInfoCache extends CachedFetcher<PlexGuidCachedInfo | null
 				metadataItem = metadatas;
 			}
 			if(!metadataItem) {
-				throw httpError(404, "Not Found");
+				return null;
 			}
 			return this.metadataToInfo(metadataItem);
 		});
 		this.plexMetadataClient = options.plexMetadataClient;
 	}
 
-	private metadataToInfo(metadataItem: plexTypes.PlexMetadataItem) {
+	private metadataToInfo(metadataItem: plexTypes.PlexMetadataItem): PlexGuidCachedInfo {
 		return {
 			slug: metadataItem.slug,
 			parentSlug: metadataItem.parentSlug,
 			grandparentSlug: metadataItem.grandparentSlug,
+			//Guid: metadataItem.Guid,
 		};
 	}
 

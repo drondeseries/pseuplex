@@ -3,6 +3,7 @@ import * as plexTypes from '../../plex/types';
 import * as plexServerAPI from '../../plex/api';
 import { PlexServerAccountInfo } from '../../plex/accounts';
 import { parsePlexMetadataGuid } from '../../plex/metadataidentifier';
+import { PlexGuidToInfoCache } from '../../plex/metadata';
 import {
 	PseuplexMetadataPage,
 	PseuplexMetadataChildrenProviderParams,
@@ -38,6 +39,7 @@ export type PlexRequestsHandlerOptions = {
 	basePath: string;
 	requestProviders: RequestsProviders;
 	plexMetadataClient: PlexClient;
+	plexGuidToInfoCache?: PlexGuidToInfoCache;
 	loggingOptions: PlexRequestsHandlerLoggingOptions;
 };
 
@@ -52,6 +54,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 	readonly basePath: string;
 	readonly requestProviders: RequestsProviders;
 	readonly plexMetadataClient: PlexClient;
+	readonly plexGuidToInfoCache?: PlexGuidToInfoCache;
 	readonly loggingOptions: PlexRequestsHandlerLoggingOptions;
 
 	constructor(options: PlexRequestsHandlerOptions) {
@@ -109,9 +112,12 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		const guidParts = parsePlexMetadataGuid(options.guid);
 		if(options.season != null) {
 			const metadataItems = (await options.plexMetadataClient.getMetadataChildren(guidParts.id)).MediaContainer.Metadata;
+			this.plexGuidToInfoCache?.cacheMetadataItems(metadataItems);
 			metadataItem = findInArrayOrSingle(metadataItems, (item) => (item.index == options.season));
 		} else {
-			metadataItem = firstOrSingle((await options.plexMetadataClient.getMetadata(guidParts.id)).MediaContainer.Metadata);
+			const metadataItems = (await options.plexMetadataClient.getMetadata(guidParts.id)).MediaContainer.Metadata;
+			this.plexGuidToInfoCache?.cacheMetadataItems(metadataItems);
+			metadataItem = firstOrSingle(metadataItems);
 		}
 		if(!metadataItem) {
 			console.error(`No matching metadata found for guid ${options.guid}`);
@@ -247,6 +253,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				}
 				const plexGuidParts = parsePlexMetadataGuid(libraryMetadataItem.guid);
 				const discoverMetadataPage = await this.plexMetadataClient.getMetadataChildren(plexGuidParts.id, options.plexParams as plexTypes.PlexMetadataChildrenPageParams);
+				this.plexGuidToInfoCache?.cacheMetadataItems(discoverMetadataPage.MediaContainer.Metadata);
 				plexDisplayedPage.MediaContainer.Metadata = transformArrayOrSingle(discoverMetadataPage.MediaContainer.Metadata, (metadataItem: PseuplexMetadataItem) => {
 					const matchingItem = metadataItem.guid ?
 						findInArrayOrSingle(plexDisplayedPage.MediaContainer.Metadata, (cmpMetadataItem) => {
@@ -324,6 +331,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		if(id.season != null && id.mediaType == plexTypes.PlexMediaItemType.TVShow) {
 			// get guid for season
 			const showChildrenPage = await this.plexMetadataClient.getMetadataChildren(id.plexId);
+			this.plexGuidToInfoCache?.cacheMetadataItems(showChildrenPage.MediaContainer.Metadata);
 			const seasonItem = findInArrayOrSingle(showChildrenPage.MediaContainer.Metadata, (item) => {
 				return item.index == id.season
 			});
@@ -353,6 +361,11 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			await this.plexMetadataClient.getMetadata(id.plexId)
 			: await resDataPromise;
 		const resData = await resDataPromise;
+		// cache if needed
+		this.plexGuidToInfoCache?.cacheMetadataItems(requestedPlexItemPage.MediaContainer.Metadata);
+		if(resData !== requestedPlexItemPage) {
+			this.plexGuidToInfoCache?.cacheMetadataItems(resData.MediaContainer.Metadata);
+		}
 		// send request if needed
 		let reqInfo: RequestInfo | undefined = undefined;
 		if(itemType != plexTypes.PlexMediaItemType.TVShow && !options.children) {
