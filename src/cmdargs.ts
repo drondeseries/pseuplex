@@ -3,7 +3,7 @@ export type CommandArguments = {
 	configPath?: string,
 	logRequestPathMappings?: boolean,
 	logFullURLs?: boolean,
-	logProblemIgnoredByPlexEvenThoughIReportedItAMonthAgo?: boolean,
+	logPlexFuckery?: boolean,
 	logOutgoingRequests?: boolean,
 	logUserRequests?: boolean,
 	logUserRequestHeaders?: boolean,
@@ -28,7 +28,7 @@ export type CommandArguments = {
 
 enum CmdFlag {
 	configPath = '--config',
-	logFuckingPlex = '--log-fucking-plex',
+	logPlexFuckery = '--log-plex-fuckery',
 	logOutgoingRequests = '--log-outgoing-requests',
 	logUserRequests = '--log-user-requests',
 	logUserRequestHeaders = '--log-user-request-headers',
@@ -91,8 +91,8 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 					parsedArgs.configPath = flagVal;
 					break;
 
-				case CmdFlag.logFuckingPlex:
-					parsedArgs.logProblemIgnoredByPlexEvenThoughIReportedItAMonthAgo = true;
+				case CmdFlag.logPlexFuckery:
+					parsedArgs.logPlexFuckery = true;
 					break;
 				
 				case CmdFlag.logOutgoingRequests:

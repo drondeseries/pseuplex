@@ -134,7 +134,7 @@ const readPlexPrefsIfNeeded = async () => {
 			socketRetryInterval: cfg.plex?.notificationSocketRetryInterval,
 		},
 		loggingOptions: {
-			logProblemIgnoredByPlexEvenThoughIReportedItAMonthAgo: args.logProblemIgnoredByPlexEvenThoughIReportedItAMonthAgo,
+			logPlexFuckery: args.logPlexFuckery,
 			logOutgoingRequests: args.logOutgoingRequests,
 			logFullURLs: args.logFullURLs,
 			logUserRequests: args.logUserRequests,
