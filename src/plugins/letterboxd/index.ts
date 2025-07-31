@@ -202,7 +202,9 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			basePath: `${this.basePath}/metadata`,
 			//section: this.section,
 			plexMetadataClient: this.app.plexMetadataClient,
-			similarItemsHubProvider: this.hubs.similar,
+			relatedHubsProviders: [
+				this.hubs.similar,
+			],
 			plexGuidToInfoCache: this.app.plexGuidToInfoCache,
 			requestExecutor,
 		});
@@ -240,7 +242,9 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 		},
 
 		metadataRelatedHubs: async (resData, context) => {
-			await this._addSimilarItemsHubIfNeeded(resData, context);
+			if(context.metadataId.source != this.metadata.sourceSlug) {
+				await this._addSimilarItemsHubIfNeeded(resData, context);
+			}
 		},
 
 		metadataFromProvider: async (resData, context) => {

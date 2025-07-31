@@ -110,7 +110,7 @@ export type PseuplexMetadataProviderOptions = {
 	basePath: string;
 	section?: PseuplexSection;
 	plexMetadataClient: PlexClient;
-	similarItemsHubProvider?: PseuplexSimilarItemsHubProvider;
+	relatedHubsProviders?: PseuplexSimilarItemsHubProvider[];
 	plexGuidToInfoCache?: PlexGuidToInfoCache;
 	loggingOptions?: PseuplexMetadataProviderLoggingOptions;
 	requestExecutor?: RequestExecutor;
@@ -140,7 +140,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 	readonly plexMetadataClient: PlexClient;
 	readonly loggingOptions: PseuplexMetadataProviderLoggingOptions;
 	readonly requestExecutor?: RequestExecutor;
-	readonly similarItemsHubProvider?: PseuplexSimilarItemsHubProvider | undefined;
+	readonly relatedHubsProviders?: PseuplexSimilarItemsHubProvider[];
 
 	readonly idToPlexGuidCache: CachedFetcher<string | null>;
 	readonly plexGuidToIDCache: CachedFetcher<string | null>;
@@ -152,7 +152,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		this.plexMetadataClient = options.plexMetadataClient;
 		this.loggingOptions = options.loggingOptions || {};
 		this.requestExecutor = options.requestExecutor;
-		this.similarItemsHubProvider = options.similarItemsHubProvider;
+		this.relatedHubsProviders = options.relatedHubsProviders;
 		this.idToPlexGuidCache = new CachedFetcher(async (id: string) => {
 			throw new Error("Cannot fetch guid from cache");
 		});
@@ -575,11 +575,20 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 	}
 
 	async getRelatedHubs(id: string, options: PseuplexRelatedHubsParams): Promise<plexTypes.PlexHubsPage> {
-		const hubEntries: plexTypes.PlexHubWithItems[] = [];
-		if(this.similarItemsHubProvider) {
-			const hub = await this.similarItemsHubProvider.get(id);
-			const hubListEntry = await hub.getHubListEntry(options.plexParams ?? {}, options.context);
-			hubEntries.push(hubListEntry);
+		let hubEntries: plexTypes.PlexHubWithItems[] = [];
+		if(this.relatedHubsProviders && this.relatedHubsProviders.length > 0) {
+			const relatedHubs = (await Promise.all(this.relatedHubsProviders.map(async (hubProvider) => {
+				try {
+					const hub = await hubProvider.get(id);
+					const hubListEntry = await hub.getHubListEntry(options.plexParams ?? {}, options.context);
+					return [hubListEntry]
+				} catch(error) {
+					console.error(`Error fetching related hub ${hubProvider.relativePath} for metadata id ${id} :`);
+					console.error(error);
+					return [];
+				}
+			}))).flat();
+			hubEntries = hubEntries.concat(relatedHubs);
 		}
 		return {
 			MediaContainer: {

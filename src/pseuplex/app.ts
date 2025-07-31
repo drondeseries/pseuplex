@@ -1482,7 +1482,7 @@ export class PseuplexApp {
 						}
 						return [];
 					}
-				}))).flatMap(entry => entry);
+				}))).flat();
 				if(metadataIds.length == 0) {
 					if(caughtError) {
 						throw caughtError;
