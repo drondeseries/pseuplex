@@ -55,6 +55,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 			basePath: `/${this.app.slug}/${PseuplexMetadataSource.Request}`,
 			requestProviders: this.requestProviders,
 			plexMetadataClient: this.app.plexMetadataClient,
+			plexGuidToInfoCache: this.app.plexGuidToInfoCache,
 			loggingOptions: {
 				logOutgoingRequests: app.loggingOptions.logOutgoingRequests,
 			}
