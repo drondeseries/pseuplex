@@ -244,7 +244,6 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 					// already requested by this user
 					return ovrsrTransform.transformOverseerrRequestItem(firstRequest, mediaItemInfo.mediaInfo);
 				}
-				throw error;
 			}
 			throw error;
 		}
