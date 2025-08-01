@@ -96,7 +96,8 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 		}
 		overseerrUser = this._overseerrUsers?.find((osrUser) => {
 			return (osrUser.plexId != null && osrUser.plexId == userInfo.plexUserID)
-				|| (osrUser.plexUsername && osrUser.plexUsername == userInfo.plexUsername);
+				|| (osrUser.plexUsername && osrUser.plexUsername == userInfo.plexUsername)
+				|| (osrUser.email && osrUser.email == userInfo.email);
 		});
 		if(overseerrUser) {
 			this._plexTokensToOverseerrUsersMap[token] = overseerrUser;
