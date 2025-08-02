@@ -7,7 +7,7 @@ import { PseuplexClientNotificationWebSocketInfo, PseuplexNotificationSocketType
 export type GeneralLoggingOptions = {
 	logDebug?: boolean;
 	logFullURLs?: boolean;
-	logPlexFuckery?: boolean;
+	logPlexStillLivingDangerously?: boolean;
 };
 
 export type OutgoingRequestsLoggingOptions = {
@@ -302,8 +302,8 @@ export class Logger {
 		return true;
 	}
 
-	logPlexBeingFuckeryError(message: string, error: Error): boolean {
-		if(!this.options.logPlexFuckery) {
+	logPlexStillLivingDangerously(message: string, error: Error): boolean {
+		if(!this.options.logPlexStillLivingDangerously) {
 			return false;
 		}
 		console.error(message);

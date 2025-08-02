@@ -1,31 +1,11 @@
+import { LoggingOptions } from './logging';
 
 export type CommandArguments = {
 	configPath?: string,
-	logRequestPathMappings?: boolean,
-	logFullURLs?: boolean,
-	logPlexFuckery?: boolean,
-	logOutgoingRequests?: boolean,
-	logOutgoingResponseBody?: boolean;
-	logUserRequests?: boolean,
-	logUserRequestHeaders?: boolean,
-	logUserResponses?: boolean,
-	logUserResponseHeaders?: boolean,
-	logUserResponseBody?: boolean,
-	logProxyRequests?: boolean,
-	logProxyRequestHeaders?: boolean,
-	logProxyResponses?: boolean,
-	logProxyResponseHeaders?: boolean,
-	logProxyResponseBody?: boolean,
-	logProxyErrorResponseBody?: boolean,
-	logWebsocketMessagesFromUser?: boolean,
-	logWebsocketMessagesToUser?: boolean,
-	logWebsocketMessagesFromServer?: boolean,
-	logWebsocketMessagesToServer?: boolean,
-	logWebsocketErrors?: boolean,
 	verbose?: boolean,
 	verboseHttpTraffic?: boolean,
 	verboseWsTraffic?: boolean,
-}
+} & LoggingOptions
 
 enum CmdFlag {
 	configPath = '--config',
@@ -93,7 +73,7 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 					break;
 
 				case CmdFlag.logPlexFuckery:
-					parsedArgs.logPlexFuckery = true;
+					parsedArgs.logPlexStillLivingDangerously = true;
 					break;
 				
 				case CmdFlag.logOutgoingRequests:
