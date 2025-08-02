@@ -5,7 +5,7 @@ export type CommandArguments = {
 	verbose?: boolean,
 	verboseHttpTraffic?: boolean,
 	verboseWsTraffic?: boolean,
-} & LoggingOptions
+} & LoggingOptions;
 
 enum CmdFlag {
 	configPath = '--config',
@@ -158,12 +158,12 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 				
 				case CmdFlag.verbose:
 					parsedArgs.verbose = true;
+					parsedArgs.logDebug = true;
 					parsedArgs.logUserRequests = true;
 					parsedArgs.logUserResponses = true;
 					break;
 
 				case CmdFlag.verboseHttpTraffic:
-					parsedArgs.verboseHttpTraffic = true;
 					parsedArgs.verboseHttpTraffic = true;
 					parsedArgs.logFullURLs = true;
 					parsedArgs.logOutgoingRequests = true;
@@ -183,6 +183,7 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 
 				case CmdFlag.verboseWsTraffic:
 					parsedArgs.verboseWsTraffic = true;
+					parsedArgs.logFullURLs = true;
 					parsedArgs.logWebsocketMessagesFromUser = true;
 					parsedArgs.logWebsocketMessagesToUser = true;
 					parsedArgs.logWebsocketMessagesFromServer = true;
