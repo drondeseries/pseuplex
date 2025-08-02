@@ -3,6 +3,7 @@ import { PseuplexConfigBase } from '../../pseuplex/configbase';
 type RequestsFlags = {
 	requests?: {
 		enabled?: boolean;
+		requestableSeasons?: boolean;
 	},
 };
 type RequestsPerUserPluginConfig = {

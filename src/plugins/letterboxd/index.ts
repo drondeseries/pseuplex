@@ -269,10 +269,10 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				if(!itemIdsStr) {
 					throw httpError(400, "No slug was provided");
 				}
-				const ids = itemIdsStr.split(',');
+				const metadataIds = itemIdsStr.split(',');
 				// get metadatas from letterboxd
 				const metadataProvider = this.metadata;
-				const resData = await metadataProvider.get(ids, {
+				const resData = await metadataProvider.get(metadataIds, {
 					context: context,
 					includePlexDiscoverMatches: true,
 					includeUnmatched: true,
@@ -282,8 +282,8 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 					plexParams: params,
 				});
 				// cache metadata access if needed
-				if(ids.length == 1) {
-					this.app.pluginMetadataAccessCache?.cachePluginMetadataAccessIfNeeded(metadataProvider, ids[0], req.path, resData.MediaContainer.Metadata, context);
+				if(metadataIds.length == 1) {
+					this.app.pluginMetadataAccessCache?.cachePluginMetadataAccessIfNeeded(metadataProvider, metadataIds[0], req.path, resData.MediaContainer.Metadata, context);
 				}
 				// add related hubs if included
 				if(params.includeRelated == 1) {
@@ -293,7 +293,6 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						if(!metadataId) {
 							return;
 						}
-						const metadataIdParts = parsePartialMetadataID(metadataId);
 						// add letterboxd hubs
 						const metadataProvider = this.metadata;
 						const relHubsData = await metadataProvider.getRelatedHubs(metadataId, {
@@ -312,7 +311,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						await this.app.filterResponse('metadataRelatedHubsFromProvider', relHubsData, {
 							userReq:req,
 							userRes:res,
-							metadataId:metadataIdParts,
+							metadataId,
 							metadataProvider,
 							from: PseuplexRelatedHubsSource.Library,
 						});
@@ -324,7 +323,8 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 				await this.app.filterResponse('metadataFromProvider', resData, {
 					userReq:req,
 					userRes:res,
-					metadataProvider
+					metadataProvider,
+					metadataIds,
 				});
 				// send unavailable notification(s) if needed
 				this.app.sendMetadataUnavailableNotificationsIfNeeded(resData, params, context);
@@ -337,18 +337,17 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 			router.get(endpoint, [
 				this.app.middlewares.plexAuthentication,
 				this.app.middlewares.plexRequestHandler(async (req: IncomingPlexAPIRequest, res): Promise<plexTypes.PlexHubsPage> => {
-					const id = req.params.id;
+					const metadataId = req.params.id;
 					const context = this.app.contextForRequest(req);
 					const params = plexTypes.parsePlexHubPageParams(req, {fromListPage:true});
 					// add similar items hub
 					const metadataProvider = this.metadata;
-					const resData = await metadataProvider.getRelatedHubs(id, {
+					const resData = await metadataProvider.getRelatedHubs(metadataId, {
 						plexParams: params,
 						context,
 						from: hubsSource,
 					});
 					// filter response
-					const metadataId = parsePartialMetadataID(id);
 					await this.app.filterResponse('metadataRelatedHubsFromProvider', resData, {
 						userReq:req,
 						userRes:res,

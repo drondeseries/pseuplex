@@ -16,6 +16,7 @@ import { PlexGuidToInfoCache } from '../plex/metadata';
 import { PlexServerAccountInfo } from '../plex/accounts';
 import * as extPlexTransform from './externalplex/transform';
 import {
+	PseuplexMetadataChildrenPage,
 	PseuplexMetadataItem,
 	PseuplexMetadataPage,
 	PseuplexRequestContext
@@ -93,7 +94,7 @@ export interface PseuplexMetadataProvider {
 	readonly sourceSlug: string;
 
 	get(ids: string[], options: PseuplexMetadataProviderParams): Promise<PseuplexMetadataPage>;
-	getChildren(id: string, options: PseuplexMetadataChildrenProviderParams): Promise<PseuplexMetadataPage>;
+	getChildren(id: string, options: PseuplexMetadataChildrenProviderParams): Promise<PseuplexMetadataChildrenPage>;
 	getRelatedHubs(id: string, options: PseuplexRelatedHubsParams): Promise<plexTypes.PlexHubsPage>;
 
 	metadataIdsFromKey(metadataKey: string): PseuplexPartialMetadataIDsFromKey | null;
@@ -520,7 +521,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		};
 	}
 
-	async getChildren(id: PseuplexPartialMetadataIDString, options: PseuplexMetadataChildrenProviderParams): Promise<PseuplexMetadataPage> {
+	async getChildren(id: PseuplexPartialMetadataIDString, options: PseuplexMetadataChildrenProviderParams): Promise<PseuplexMetadataChildrenPage> {
 		const { context, plexParams } = options;
 		if(!this.fetchMetadataItemChildren) {
 			// we don't have a way to fetch children in this provider

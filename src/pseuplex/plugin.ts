@@ -3,7 +3,7 @@ import http from 'http';
 import express from 'express';
 import * as plexTypes from '../plex/types';
 import { IncomingPlexAPIRequest } from '../plex/requesthandling';
-import { PseuplexMetadataPage, PseuplexRequestContext } from './types';
+import { PseuplexMetadataChildrenPage, PseuplexMetadataPage, PseuplexRequestContext } from './types';
 import { PseuplexHubProvider } from './hub';
 import { PseuplexMetadataProvider, PseuplexRelatedHubsSource } from './metadata';
 import { PseuplexMetadataIDParts, PseuplexPartialMetadataIDParts } from './metadataidentifier';
@@ -17,17 +17,26 @@ export type PseuplexResponseFilterContext = {
 	previousFilterPromises?: Promise<void>[];
 };
 
+export type PseuplexMetadataResponseFilterContext = PseuplexResponseFilterContext & {
+	metadataIds: PseuplexMetadataIDParts[];
+};
+
+export type PseuplexMetadataChildrenResponseFilterContext = PseuplexResponseFilterContext & {
+	metadataId: PseuplexMetadataIDParts;
+};
+
 export type PseuplexMetadataRelatedHubsResponseFilterContext = PseuplexResponseFilterContext & {
 	metadataId: PseuplexMetadataIDParts;
 	from: PseuplexRelatedHubsSource;
 };
 
 export type PseuplexMetadataFromProviderResponseFilterContext = PseuplexResponseFilterContext & {
+	metadataIds: string[];
 	metadataProvider: PseuplexMetadataProvider;
 };
 
 export type PseuplexMetadataRelatedHubsFromProviderResponseFilterContext = PseuplexResponseFilterContext & {
-	metadataId: PseuplexPartialMetadataIDParts;
+	metadataId: string;
 	metadataProvider: PseuplexMetadataProvider;
 	from: PseuplexRelatedHubsSource;
 };
@@ -37,7 +46,8 @@ export type PseuplexResponseFilters = {
 	mediaProviders?: PseuplexResponseFilter<plexTypes.PlexServerMediaProvidersPage>;
 	hubs?: PseuplexResponseFilter<plexTypes.PlexLibraryHubsPage>;
 	promotedHubs?: PseuplexResponseFilter<plexTypes.PlexLibraryHubsPage>;
-	metadata?: PseuplexResponseFilter<PseuplexMetadataPage>;
+	metadata?: PseuplexResponseFilter<PseuplexMetadataPage, PseuplexMetadataResponseFilterContext>;
+	metadataChildren?: PseuplexResponseFilter<PseuplexMetadataChildrenPage, PseuplexMetadataChildrenResponseFilterContext>;
 	metadataRelatedHubs?: PseuplexResponseFilter<plexTypes.PlexHubsPage, PseuplexMetadataRelatedHubsResponseFilterContext>;
 	findGuidInLibrary?: PseuplexResponseFilter<plexTypes.PlexMetadataPage, PseuplexResponseFilterContext>;
 

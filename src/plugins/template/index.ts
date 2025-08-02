@@ -9,8 +9,9 @@ import {
 	PseuplexReadOnlyResponseFilters
 } from '../../pseuplex';
 import { TemplatePluginConfig } from './config';
+import { TemplatePluginDef } from './plugindef';
 
-export default (class TemplatePlugin implements PseuplexPlugin {
+export default (class TemplatePlugin implements TemplatePluginDef, PseuplexPlugin {
 	static slug = '<plugin_name>';
 	readonly slug = TemplatePlugin.slug;
 	readonly app: PseuplexApp;

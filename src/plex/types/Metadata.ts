@@ -125,16 +125,16 @@ export type PlexMetadataItem = {
 	grandparentTheme?: string; // "/library/metadata/20198/theme/45343402402354"
 };
 
-export type PlexMetadataPage = {
+export type PlexMetadataPage<TPlexMetadataItem extends PlexMetadataItem = PlexMetadataItem> = {
 	MediaContainer: PlexMediaContainer & {
 		librarySectionID?: string | number;
 		librarySectionTitle?: string;
 		librarySectionUUID?: string; // only included on PMS results
-		Metadata: PlexMetadataItem | PlexMetadataItem[]
+		Metadata: TPlexMetadataItem | TPlexMetadataItem[]
 	}
 };
 
-export type PlexMetadataChildrenPage = PlexMetadataPage & {
+export type PlexMetadataChildrenPage<TPlexMetadataItem extends PlexMetadataItem = PlexMetadataItem> = PlexMetadataPage<TPlexMetadataItem> & {
 	MediaContainer: {
 		nocache?: boolean;
 		key?: string; // "12345"

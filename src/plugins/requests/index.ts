@@ -10,11 +10,14 @@ import { PlexServerAccountInfo } from '../../plex/accounts';
 import {
 	PseuplexApp,
 	PseuplexConfigBase,
+	PseuplexMetadataChildrenPage,
 	PseuplexMetadataProvider,
 	PseuplexMetadataSource,
 	PseuplexPlugin,
 	PseuplexPluginClass,
-	PseuplexReadOnlyResponseFilters
+	PseuplexReadOnlyResponseFilters,
+	PseuplexRequestContext,
+	PseuplexResponseFilterContext
 } from '../../pseuplex';
 import * as extPlexTransform from '../../pseuplex/externalplex/transform';
 import {
@@ -40,20 +43,16 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 	static slug = 'requests';
 	readonly slug = RequestsPlugin.slug;
 	readonly app: PseuplexApp;
-	readonly requestProviders: RequestsProviders = {};
 	readonly requestsHandler: PlexRequestsHandler;
 
 	constructor(app: PseuplexApp) {
 		this.app = app;
-		const requestProviders = [
-			new OverseerrRequestsProvider(app)
-		];
-		for(const provider of requestProviders) {
-			this.requestProviders[provider.slug] = provider;
-		}
 		this.requestsHandler = new PlexRequestsHandler({
+			plugin: this,
 			basePath: `/${this.app.slug}/${PseuplexMetadataSource.Request}`,
-			requestProviders: this.requestProviders,
+			requestProviders: [
+				new OverseerrRequestsProvider(app),
+			],
 			plexMetadataClient: this.app.plexMetadataClient,
 			plexGuidToInfoCache: this.app.plexGuidToInfoCache,
 			loggingOptions: {
@@ -94,7 +93,7 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 				return;
 			}
 			// get request provider
-			const requestProvider = await this._getRequestsProviderForPlexUser(userToken, plexUserInfo);
+			const requestProvider = await this.requestsHandler.getRequestsProviderForPlexUser(userToken, plexUserInfo);
 			if(!requestProvider) {
 				return;
 			}
@@ -126,7 +125,48 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 			}
 			resData.MediaContainer.Metadata = pushToArray(resData.MediaContainer.Metadata, metadataItem);
 			resData.MediaContainer.size += 1;
-		}
+		},
+
+		metadataChildren: async (resData, context) => {
+			const plexUserInfo = context.userReq.plex.userInfo;
+			// get prefs
+			const config = this.config;
+			const userPrefs = config.perUser[plexUserInfo.email];
+			const requestsEnabled = userPrefs?.requests?.enabled ?? config.requests?.enabled;
+			if(!requestsEnabled) {
+				return;
+			}
+			const showRequestableSeasons = userPrefs?.requests?.requestableSeasons ?? config.requests?.requestableSeasons;
+			const requestProviderSlug = this.requestsHandler.defaultRequestsProviderSlug;
+			// add requestable seasons if able
+			if(showRequestableSeasons && !context.metadataId.source && requestProviderSlug) {
+				await context.previousFilterPromises;
+				// get guid for id
+				const plexGuid = await this.app.plexServerIdToGuidCache.getOrFetch(context.metadataId.id);
+				const plexGuidParts = plexGuid ? parsePlexMetadataGuid(plexGuid) : null;
+				if(plexGuidParts
+					&& plexGuidParts.type == plexTypes.PlexMediaItemType.TVShow
+					&& plexGuidParts.protocol == plexTypes.PlexMetadataGuidProtocol.Plex
+				) {
+					const fullIdString = reqsTransform.createRequestFullMetadataId({
+						mediaType: plexGuidParts.type as plexTypes.PlexMediaItemType,
+						plexId: plexGuidParts.id,
+						requestProviderSlug,
+					});
+					await this.requestsHandler.addRequestableSeasons(resData, plexGuidParts.id, {
+						plexParams: context.userReq.plex.requestParams,
+						transformExistingKeys: false,
+						transformOptions: {
+							basePath: '/library/metadata',
+							qualifiedMetadataIds: true,
+							requestProviderSlug,
+							parentKey: `/library/metadata/${fullIdString}`,
+							parentRatingKey: fullIdString,
+						},
+					})
+				}
+			}
+		},
 	}
 
 	defineRoutes(router: express.Express) {
@@ -190,21 +230,6 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 				// TODO handle /related routes
 			}
 		}
-	}
-
-	async _getRequestsProviderForPlexUser(token: string, userInfo: PlexServerAccountInfo): Promise<RequestsProvider | null> {
-		for(const slug in this.requestProviders) {
-			const provider = this.requestProviders[slug];
-			try {
-				if(provider.isConfigured && await provider.canPlexUserMakeRequests(token, userInfo)) {
-					return provider;
-				}
-			} catch(error) {
-				console.error(`Failed check for whether user ${userInfo?.email} can make requests:`);
-				console.error(error);
-			}
-		}
-		return null;
 	}
 
 } as PseuplexPluginClass);

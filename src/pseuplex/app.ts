@@ -46,6 +46,7 @@ import {
 	PseuplexMetadataSource,
 	PseuplexServerProtocol,
 	PseuplexRequestContext,
+	PseuplexMetadataChildrenPage,
 } from './types';
 import { PseuplexConfigBase } from './configbase';
 import {
@@ -73,6 +74,7 @@ import {
 } from './plugin';
 import {
 	parseMetadataIdFromPathParam,
+	parseMetadataIdsFromPathParam,
 	pseuplexMetadataIdRequestMiddleware,
 	pseuplexMetadataIdsRequestMiddleware
 } from './requesthandling';
@@ -198,7 +200,7 @@ export class PseuplexApp {
 	readonly clientWebSockets: {
 		[plexToken: string]: PseuplexPossiblyConfirmedClientWebSocketInfo[]
 	} = {};
-	readonly plexServerIdToGuidCache: CachedFetcher<string | null>;
+	readonly plexServerIdToGuidCache: CachedFetcher<string | null | undefined>;
 	readonly plexGuidToInfoCache?: PlexGuidToInfoCache;
 	readonly pluginMetadataAccessCache?: PseuplexMetadataAccessCache;
 	readonly plexMetadataClient: PlexClient;
@@ -301,9 +303,13 @@ export class PseuplexApp {
 			const pluginResponseFilters = plugin.responseFilters;
 			if(pluginResponseFilters) {
 				for(const filterName of Object.keys(pluginResponseFilters)) {
+					const pluginResponseFilter = pluginResponseFilters[filterName as PseuplexResponseFilterName];
+					if(!pluginResponseFilter) {
+						continue;
+					}
 					const filter: ResponseFilterDefinition<any> = {
 						slug: pluginClass.slug,
-						filter: pluginResponseFilters[filterName as PseuplexResponseFilterName]
+						filter: pluginResponseFilter
 					};
 					// get or create list for filter
 					let filterList = this.responseFilters[filterName as PseuplexResponseFilterName];
@@ -557,7 +563,11 @@ export class PseuplexApp {
 					}
 				});
 				// filter metadata page
-				await this.filterResponse('metadata', resData, { userReq:req, userRes:res });
+				await this.filterResponse('metadata', resData, {
+					userReq:req,
+					userRes:res,
+					metadataIds,
+				});
 				// remap IDs if needed
 				if(this.metadataIdMappings) {
 					forArrayOrSingle(resData.MediaContainer.Metadata, (metadataItem) => {
@@ -570,7 +580,9 @@ export class PseuplexApp {
 			}),
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexMetadataPage, userReq: IncomingPlexAPIRequest, userRes) => {
-					const params: plexTypes.PlexMetadataPageParams = userReq.plex.requestParams;
+					const context = this.contextForRequest(userReq);
+					const plexParams: plexTypes.PlexMetadataPageParams = userReq.plex.requestParams;
+					const metadataIds = parseMetadataIdsFromPathParam(userReq.params.metadataId);
 					// process metadata items
 					await forArrayOrSingleAsyncParallel(resData.MediaContainer.Metadata, async (metadataItem: PseuplexMetadataItem) => {
 						const metadataId = parseMetadataIDFromKey(metadataItem.key, '/library/metadata/')?.id;
@@ -587,7 +599,7 @@ export class PseuplexApp {
 							this.plexServerIdToGuidCache.setSync(metadataId, metadataItem.guid);
 						}
 						// filter related hubs if included
-						if(metadataId && params.includeRelated == 1) {
+						if(metadataId && plexParams.includeRelated == 1) {
 							// filter related hubs
 							const metadataIdParts = parseMetadataID(metadataId);
 							const relatedHubsResponse: plexTypes.PlexHubsPage = {
@@ -607,7 +619,14 @@ export class PseuplexApp {
 						}
 					});
 					// filter metadata page
-					await this.filterResponse('metadata', resData as PseuplexMetadataPage, { proxyRes, userReq, userRes });
+					await this.filterResponse('metadata', resData as PseuplexMetadataPage, {
+						proxyRes,
+						userReq,
+						userRes,
+						metadataIds,
+					});
+					// send unavailable notifications if needed
+					this.sendMetadataUnavailableNotificationsIfNeeded(resData  as PseuplexMetadataPage, plexParams, context);
 					// no need to remap IDs here, since the request was proxied
 					return resData;
 				}
@@ -619,32 +638,67 @@ export class PseuplexApp {
 			pseuplexMetadataIdRequestMiddleware({
 				...plexReqHandlerOpts,
 				metadataIdMappings: this.metadataIdMappings,
-			}, async (req: IncomingPlexAPIRequest, res, metadataId, keysToIdsMap): Promise<plexTypes.PlexMetadataPage | PseuplexMetadataPage> => {
+			}, async (req: IncomingPlexAPIRequest, res, metadataId, privateToPublicIds): Promise<plexTypes.PlexMetadataPage | PseuplexMetadataPage> => {
 				const context = this.contextForRequest(req);
-				// get metadatas
-				const plexParams = {
+				const plexParams: plexTypes.PlexMetadataChildrenPageParams = {
 					...req.plex.requestParams,
 					'X-Plex-Container-Start': intParam(req.query['X-Plex-Container-Start'] ?? req.header('x-plex-container-start')),
 					'X-Plex-Container-Size': intParam(req.query['X-Plex-Container-Size'] ?? req.header('x-plex-container-size'))
-				}
+				};
+				// get metadatas
 				const resData = await this.getMetadataChildren(metadataId, {
 					plexParams: plexParams,
 					context,
 					cachePluginMetadataAccess: true,
 				});
+				// filter metadata children page
+				await this.filterResponse('metadataChildren', resData, {
+					userReq:req,
+					userRes:res,
+					metadataId,
+				});
 				// remap IDs if needed
 				if(this.metadataIdMappings) {
 					forArrayOrSingle(resData.MediaContainer.Metadata, (metadataItem) => {
-						this.remapMetadataIdIfNeeded(metadataItem, keysToIdsMap);
+						this.remapMetadataIdIfNeeded(metadataItem, privateToPublicIds);
 					});
 				}
 				// send unavailable notifications if needed
 				this.sendMetadataUnavailableNotificationsIfNeeded(resData, plexParams as plexTypes.PlexMetadataPageParams, context);
 				return resData;
 			}),
-			// no need to modify proxied response here (for now)
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
-				//
+				responseModifier: async (proxyRes, resData: plexTypes.PlexMetadataChildrenPage, userReq: IncomingPlexAPIRequest, userRes) => {
+					const context = this.contextForRequest(userReq);
+					const metadataId = parseMetadataIdFromPathParam(userReq.params.metadataId);
+					const plexParams: plexTypes.PlexMetadataChildrenPageParams = {
+						...userReq.plex.requestParams,
+						'X-Plex-Container-Start': intParam(userReq.query['X-Plex-Container-Start'] ?? userReq.header('x-plex-container-start')),
+						'X-Plex-Container-Size': intParam(userReq.query['X-Plex-Container-Size'] ?? userReq.header('x-plex-container-size'))
+					};
+					// process metadata items
+					await forArrayOrSingleAsyncParallel(resData.MediaContainer.Metadata, async (metadataItem: PseuplexMetadataItem) => {
+						const metadataId = parseMetadataIDFromKey(metadataItem.key, '/library/metadata/')?.id;
+						metadataItem.Pseuplex = {
+							isOnServer: true,
+							unavailable: false,
+							metadataIds: {},
+							plexMetadataIds: {
+								[this.plexServerURL]: metadataId
+							}
+						};
+					});
+					// filter metadata page
+					await this.filterResponse('metadataChildren', resData as PseuplexMetadataChildrenPage, {
+						proxyRes,
+						userReq,
+						userRes,
+						metadataId,
+					});
+					// send unavailable notifications if needed
+					this.sendMetadataUnavailableNotificationsIfNeeded(resData as PseuplexMetadataPage, plexParams as plexTypes.PlexMetadataPageParams, context);
+					return resData;
+				},
 			})
 		]);
 
@@ -654,7 +708,7 @@ export class PseuplexApp {
 				pseuplexMetadataIdRequestMiddleware({
 					...plexReqHandlerOpts,
 					metadataIdMappings: this.metadataIdMappings,
-				}, async (req: IncomingPlexAPIRequest, res, metadataId, keysToIdsMap): Promise<plexTypes.PlexHubsPage> => {
+				}, async (req: IncomingPlexAPIRequest, res, metadataId, privateToPublicIds): Promise<plexTypes.PlexHubsPage> => {
 					const context = this.contextForRequest(req);
 					// get metadata
 					const resData = await this.getMetadataRelatedHubs(metadataId, {
@@ -672,7 +726,7 @@ export class PseuplexApp {
 					// remap IDs if needed
 					if(this.metadataIdMappings && resData.MediaContainer.Hub) {
 						for(const hub of resData.MediaContainer.Hub) {
-							this.remapHubMetadataIdsIfNeeded(hub, keysToIdsMap);
+							this.remapHubMetadataIdsIfNeeded(hub, privateToPublicIds);
 						}
 					}
 					return resData;
@@ -1298,7 +1352,7 @@ export class PseuplexApp {
 		};
 	}
 
-	async getMetadataChildren(metadataId: PseuplexMetadataIDParts, options: PseuplexAppMetadataChildrenParams): Promise<PseuplexMetadataPage> {
+	async getMetadataChildren(metadataId: PseuplexMetadataIDParts, options: PseuplexAppMetadataChildrenParams): Promise<PseuplexMetadataChildrenPage> {
 		const { context } = options;
 		// create provider params
 		const transformOpts: PseuplexMetadataTransformOptions = {
@@ -1612,7 +1666,7 @@ export class PseuplexApp {
 	}
 
 	// remaps private IDs (such as "letterboxd:film:mission-impossible") to plex-acceptable IDs (such as "-2")
-	remapHubMetadataIdsIfNeeded(hub: plexTypes.PlexHubWithItems, keysToIdsMap?: {[key: string]: (number | string)}) {
+	remapHubMetadataIdsIfNeeded(hub: plexTypes.PlexHubWithItems, privateToPublicIds?: {[key: string]: (number | string)}) {
 		if(!this.metadataIdMappings) {
 			return;
 		}
@@ -1628,7 +1682,7 @@ export class PseuplexApp {
 					continue;
 				}
 				// map the ID
-				const publicId = keysToIdsMap?.[metadataIdString] ?? this.metadataIdMappings.getPublicIDFromPrivateID(metadataIdString);
+				const publicId = privateToPublicIds?.[metadataIdString] ?? this.metadataIdMappings.getPublicIDFromPrivateID(metadataIdString);
 				metadataIds[i] = publicId;
 			}
 			hub.hubKey = `/library/metadata/${metadataIds.join(',')}` + (metadataKeyParts?.relativePath ?? '');
@@ -1636,13 +1690,13 @@ export class PseuplexApp {
 		// remap metadata items if needed
 		if(hub.Metadata) {
 			for(const metadataItem of hub.Metadata) {
-				this.remapMetadataIdIfNeeded(metadataItem, keysToIdsMap);
+				this.remapMetadataIdIfNeeded(metadataItem, privateToPublicIds);
 			}
 		}
 	}
 
 	// remaps private IDs (such as "letterboxd:film:mission-impossible") to plex-acceptable IDs (such as "-2")
-	remapMetadataIdIfNeeded(metadataItem: plexTypes.PlexMetadataItem, keysToIdsMap?: {[key: string]: (number | string)}) {
+	remapMetadataIdIfNeeded(metadataItem: plexTypes.PlexMetadataItem, privateToPublicIds?: {[key: string]: (number | string)}) {
 		if(!this.metadataIdMappings) {
 			return;
 		}
@@ -1662,14 +1716,14 @@ export class PseuplexApp {
 			return;
 		}
 		// map the ID
-		const publicId = keysToIdsMap?.[metadataIdString] ?? this.metadataIdMappings.getPublicIDFromPrivateID(metadataIdString);
+		const publicId = privateToPublicIds?.[metadataIdString] ?? this.metadataIdMappings.getPublicIDFromPrivateID(metadataIdString);
 		const publicPath = `/library/metadata/${publicId}` + (metadataKeyParts?.relativePath ?? '');
 		metadataItem.ratingKey = `${publicId}`;
 		metadataItem.key = publicPath;
 		// map related items if needed
 		if(metadataItem.Related?.Hub) {
 			for(const hub of metadataItem.Related.Hub) {
-				this.remapHubMetadataIdsIfNeeded(hub, keysToIdsMap);
+				this.remapHubMetadataIdsIfNeeded(hub, privateToPublicIds);
 			}
 		}
 	}
@@ -1765,7 +1819,7 @@ export class PseuplexApp {
 							const matchingItem = findInArrayOrSingle(metadataPage.MediaContainer.Metadata, (item) => {
 								return item.ratingKey == itemID;
 							});
-							return matchingItem?.guid ?? null;
+							return matchingItem?.guid;
 						}, (error) => {
 							if((error as HttpResponseError).httpResponse?.status == 404) {
 								return null;
@@ -2008,7 +2062,7 @@ export class PseuplexApp {
 				|| params.refreshLocalMediaAgent == 1 || params.asyncRefreshLocalMediaAgent == 1
 				|| params.refreshAnalysis == 1 || params.asyncRefreshAnalysis) {
 				// get any items marked unavailable
-				const unavailableItems = metadataItems.filter((item) => item.Pseuplex.unavailable);
+				const unavailableItems = metadataItems.filter((item) => item.Pseuplex?.unavailable);
 				if(unavailableItems.length > 0) {
 					// send message after short delay, so that the page is already displayed when the message is received
 					setTimeout(() => {

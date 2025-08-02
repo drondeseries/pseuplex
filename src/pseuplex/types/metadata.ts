@@ -1,7 +1,9 @@
 
 import {
 	PlexMetadataItem,
-	PlexMediaContainer
+	PlexMediaContainer,
+	PlexMetadataChildrenPage,
+	PlexMetadataPage
 } from '../../plex/types';
 
 export enum PseuplexMetadataSource {
@@ -20,11 +22,5 @@ export type PseuplexMetadataItem = PlexMetadataItem & {
 	}
 };
 
-export type PseuplexMetadataPage = {
-	MediaContainer: PlexMediaContainer & {
-		librarySectionID?: string | number;
-		librarySectionTitle?: string;
-		librarySectionUUID?: string; // only included on PMS results
-		Metadata: PseuplexMetadataItem | PseuplexMetadataItem[];
-	}
-};
+export type PseuplexMetadataPage = PlexMetadataPage<PseuplexMetadataItem>;
+export type PseuplexMetadataChildrenPage = PlexMetadataChildrenPage<PseuplexMetadataItem>;
