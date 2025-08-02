@@ -8,9 +8,10 @@ import {
 } from '../../../../pseuplex';
 import {
 	PlexMediaRequestOptions,
-	RequestsProvider
+	RequestsProvider,
+	RequestsProviderClass
 } from '../../provider';
-import { RequestedMediaStatus, RequestInfo, RequestStatus } from '../../types';
+import { RequestInfo } from '../../types';
 import { OverseerrRequestsPluginConfig } from './config';
 import * as overseerrAPI from './api';
 import * as overseerrTypes from './apitypes'
@@ -18,7 +19,7 @@ import * as ovrsrTransform from './transform';
 import { httpError, HttpResponseError } from '../../../../utils/error';
 import { firstOrSingle } from '../../../../utils/misc';
 
-export class OverseerrRequestsProvider implements RequestsProvider {
+export default (class OverseerrRequestsProvider implements RequestsProvider {
 	readonly slug = 'overseerr';
 	readonly app: PseuplexApp;
 	
@@ -271,4 +272,4 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 		}
 		return ovrsrTransform.transformOverseerrRequestItem(resData, resData.media);
 	}
-}
+} as RequestsProviderClass);

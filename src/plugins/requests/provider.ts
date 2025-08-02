@@ -1,7 +1,7 @@
 
 import * as plexTypes from '../../plex/types';
 import { PlexServerAccountInfo } from '../../plex/accounts';
-import { PseuplexRequestContext } from '../../pseuplex';
+import { PseuplexApp, PseuplexConfigBase, PseuplexRequestContext } from '../../pseuplex';
 import { RequestInfo } from './types';
 
 export type PlexMediaRequestOptions = {
@@ -16,6 +16,11 @@ export interface RequestsProvider {
 	canPlexUserMakeRequests: (token: string, userInfo: PlexServerAccountInfo) => Promise<boolean>;
 	requestPlexItem: (plexItem: plexTypes.PlexMetadataItem, options: PlexMediaRequestOptions) => Promise<RequestInfo>;
 }
+
+export type RequestsProviderClass = {
+	new(app: PseuplexApp): RequestsProvider;
+};
+
 
 export type RequestsProviders = {
 	[providerSlug: string]: RequestsProvider

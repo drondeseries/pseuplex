@@ -34,11 +34,15 @@ import {
 	RequestsProvider,
 	RequestsProviders,
 } from './provider';
-import { OverseerrRequestsProvider } from './providers/overseerr';
+import OverseerrRequestsProvider from './providers/overseerr';
 import { PlexRequestsHandler } from './handler';
 import * as reqsTransform from './transform';
 import { RequestsPluginConfig } from './config';
 import { RequestsPluginDef } from './plugindef';
+
+const RequestProviderClasses = [
+	OverseerrRequestsProvider,
+];
 
 export default (class RequestsPlugin implements RequestsPluginDef, PseuplexPlugin {
 	static slug = 'requests';
@@ -51,9 +55,9 @@ export default (class RequestsPlugin implements RequestsPluginDef, PseuplexPlugi
 		this.requestsHandler = new PlexRequestsHandler({
 			plugin: this,
 			basePath: `/${this.app.slug}/${PseuplexMetadataSource.Request}`,
-			requestProviders: [
-				new OverseerrRequestsProvider(app),
-			],
+			requestProviders: RequestProviderClasses.map((providerClass) => {
+				return new providerClass(app);
+			}),
 			plexMetadataClient: this.app.plexMetadataClient,
 			plexGuidToInfoCache: this.app.plexGuidToInfoCache,
 		});
