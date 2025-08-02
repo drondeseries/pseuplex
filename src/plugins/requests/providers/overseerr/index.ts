@@ -34,6 +34,10 @@ export default (class OverseerrRequestsProvider implements RequestsProvider {
 	
 	constructor(app: PseuplexApp) {
 		this.app = app;
+		// log if overseerr is misspelled, so this doesn't happen again
+		if(!this.config.overseerr && (this.config as any)['overseer']) {
+			console.warn(`It looks like overseerr may be misspelled in your config`);
+		}
 	}
 	
 	get config(): OverseerrRequestsPluginConfig {
