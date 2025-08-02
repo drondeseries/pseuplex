@@ -217,11 +217,20 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 			// check content type
 			const contentType = parseHttpContentType(proxyRes.headers['content-type']).contentTypes[0];
 			let isXml: boolean;
+			let assumed = false;
 			if(contentType?.endsWith('/xml')) {
 				isXml = true;
 			}
 			else if(contentType == 'application/json') {
 				isXml = false;
+			}
+			else if(!contentType && proxyResString?.startsWith('{')) {
+				isXml = false;
+				assumed = true;
+			}
+			else if(!contentType && proxyResString?.startsWith('<?xml')) {
+				isXml = true;
+				assumed = true;
 			}
 			else {
 				// log user response if needed
@@ -238,6 +247,9 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 			}
 			// log proxy response
 			args?.logger?.logProxyResponse(userReq, userRes, proxyReq, proxyRes, (logHeaders ? proxyResString : undefined));
+			if(assumed) {
+				console.warn(`No content type was specified in response, but detected ${isXml ? 'xml' : 'json'}`);
+			}
 			// parse response content
 			let resData;
 			if(isXml) {
