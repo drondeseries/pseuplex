@@ -127,7 +127,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				librarySectionID = options.moviesLibraryId;
 				break;
 			case plexTypes.PlexMediaItemTypeNumeric.Show:
-				requestActionTitle = "Request Show";
+				requestActionTitle = "Request Seasons";
 				librarySectionID = options.tvShowsLibraryId;
 				break;
 			case plexTypes.PlexMediaItemTypeNumeric.Season:
@@ -194,7 +194,9 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				plexId: guidParts.id,
 				season: options.season
 			}),
-			type: plexTypes.PlexMediaItemNumericToType[options.mediaType],
+			type: options.mediaType == plexTypes.PlexMediaItemTypeNumeric.Show ? // TV shows should display as movies so that the "request" text shows up
+				plexTypes.PlexMediaItemType.Movie 
+				: plexTypes.PlexMediaItemNumericToType[options.mediaType],
 			title: requestActionTitle,
 			slug: metadataItem.slug,
 			parentSlug: metadataItem.parentSlug,
