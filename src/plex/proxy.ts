@@ -224,11 +224,11 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 			else if(contentType == 'application/json') {
 				isXml = false;
 			}
-			else if(!contentType && proxyResString?.startsWith('{')) {
+			else if(proxyResString?.startsWith('{')) {
 				isXml = false;
 				assumed = true;
 			}
-			else if(!contentType && proxyResString?.startsWith('<?xml')) {
+			else if(proxyResString?.startsWith('<?xml')) {
 				isXml = true;
 				assumed = true;
 			}
