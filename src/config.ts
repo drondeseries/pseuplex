@@ -22,6 +22,7 @@ export type Config = {
 		appDataPath?: string;
 		metadataHost?: string;
 		notificationSocketRetryInterval?: number;
+		overwritePrivatePort?: number | boolean;
 	},
 	ssl?: SSLConfig & {
 		autoP12Path?: boolean;

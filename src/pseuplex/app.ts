@@ -153,6 +153,7 @@ export type PseuplexAppOptions = {
 	port: number;
 	ipv4ForwardingMode?: IPv4NormalizeMode;
 	forwardMetadataRefreshToPluginMetadata?: boolean;
+	overwritePlexPrivatePort?: number | boolean;
 	alwaysUseLibraryMetadataPath?: boolean;
 	serverOptions: https.ServerOptions;
 	plexServerURL: string;
@@ -172,6 +173,7 @@ export class PseuplexApp {
 	readonly config: PseuplexAppConfig;
 	readonly port: number;
 	readonly forwardMetadataRefreshToPluginMetadata: boolean;
+	readonly overwritePlexPrivatePort: number | boolean;
 	readonly logger?: Logger;
 	readonly plexServerNotificationsOptions: PseuplexPlexServerNotificationsOptions;
 	readonly plugins: { [slug: string]: PseuplexPlugin } = {};
@@ -208,6 +210,7 @@ export class PseuplexApp {
 		this.config = options.config;
 		this.port = options.port;
 		this.forwardMetadataRefreshToPluginMetadata = options.forwardMetadataRefreshToPluginMetadata ?? true;
+		this.overwritePlexPrivatePort = options.overwritePlexPrivatePort ?? true;
 		this.alwaysUseLibraryMetadataPath = (options.mapPseuplexMetadataIds || this.forwardMetadataRefreshToPluginMetadata || options.alwaysUseLibraryMetadataPath) ?? false;
 		this.plexServerNotificationsOptions = options.plexServerNotifications ?? {};
 		this.logger = options.logger;
@@ -759,7 +762,13 @@ export class PseuplexApp {
 			this.middlewares.plexServerOwnerOnly,
 			plexApiProxy(this.plexServerURL, plexProxyArgs, {
 				responseModifier: async (proxyRes, resData: plexTypes.PlexMyPlexAccountPage, userReq: IncomingPlexAPIRequest, userRes) => {
-					resData.MyPlex.privatePort = this.port;
+					if(this.overwritePlexPrivatePort) {
+						if(this.overwritePlexPrivatePort === true) {
+							resData.MyPlex.privatePort = this.port;
+						} else {
+							resData.MyPlex.privatePort = this.overwritePlexPrivatePort;
+						}
+					}
 					return resData;
 				}
 			})
