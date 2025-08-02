@@ -28,7 +28,7 @@ import {
 } from './plex/config';
 import { PlexPreferences } from './plex/types/preferences';
 import { PlexClient } from './plex/client';
-import { Logger } from './logging';
+import { Logger, LoggingOptions } from './logging';
 
 modConsoleColors();
 
@@ -52,7 +52,6 @@ const readPlexPrefsIfNeeded = async () => {
 		console.log(`parsed arguments:\n${JSON.stringify(args, null, '\t')}\n`);
 		process.env.DEBUG = '*';
 	}
-	const logger = new Logger(args);
 
 	// load config
 	cfg = await readConfigFile(args.configPath);
@@ -70,6 +69,18 @@ const readPlexPrefsIfNeeded = async () => {
 	if(plexServerURL.indexOf('://') === -1) {
 		plexServerURL = 'http://'+plexServerURL;
 	}
+
+	// create logger
+	const loggingOptions: LoggingOptions = {...cfg.logging};
+	for(const key in Object.keys(args)) {
+		if(key.startsWith('log')) {
+			const val = args[key];
+			if(val != null) {
+				loggingOptions[key] = val;
+			}
+		}
+	}
+	const logger = new Logger(loggingOptions);
 	
 	// initialize server SSL
 	const sslConfig: SSLConfig = {

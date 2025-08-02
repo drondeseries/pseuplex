@@ -7,6 +7,7 @@ import { PseuplexServerProtocol } from './pseuplex/types/server';
 import { LetterboxdPluginConfig } from './plugins/letterboxd/config';
 import { RequestsPluginConfig } from './plugins/requests/config';
 import { OverseerrRequestsPluginConfig } from './plugins/requests/providers/overseerr/config';
+import { LoggingOptions } from './logging';
 
 export type Config = {
 	protocol?: PseuplexServerProtocol,
@@ -28,6 +29,7 @@ export type Config = {
 		watchCertChanges?: boolean;
 		certReloadDelay?: number;
 	},
+	logging?: LoggingOptions;
 } & PseuplexConfigBase<{}>
 	& LetterboxdPluginConfig
 	& RequestsPluginConfig
