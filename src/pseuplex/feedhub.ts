@@ -120,7 +120,9 @@ export abstract class PseuplexFeedHub<
 			const guids = items.flatMap((item) => (item.guid ? [item.guid] : []));
 			if(guids.length > 0) {
 				try {
-					const plexServerItems = (await plexServerAPI.getLibraryMetadata(guids, {
+					const plexServerItems = (await plexServerAPI.findLibraryMetadata({
+						guid: guids,
+					}, {
 						serverURL: context.plexServerURL,
 						authContext: context.plexAuthContext,
 						logger: this._options.logger,

@@ -14,14 +14,16 @@ import {
 } from '../utils/error';
 import { parseQueryParams } from '../utils/misc';
 
-export const handlePlexAPIRequest = async <TResult>(req: express.Request, res: express.Response, handler: (req: express.Request, res: express.Response) => Promise<TResult>, options?: PlexAPIRequestHandlerOptions): Promise<void> => {
+export const handlePlexAPIRequest = async <TResult>(req: express.Request, res: express.Response, handler: (req: express.Request, res: express.Response) => Promise<TResult>, options: PlexAPIRequestHandlerOptions): Promise<void> => {
 	let serializedRes: {contentType:string, data:string};
 	try {
 		const result = await handler(req,res);
 		serializedRes = serializeResponseContent(req, res, result);
 	} catch(error) {
-		console.error("Plex request handler failed:");
-		console.error(error);
+		if(!options?.logger?.logPlexRequestHandlerFailed(req, res, error)) {
+			console.error("Plex request handler failed:");
+			console.error(error);
+		}
 		let statusCode =
 			(error as HttpError).statusCode
 			?? (error as HttpResponseError).httpResponse?.status;
@@ -54,7 +56,7 @@ export type PlexAPIRequestHandlerOptions = {
 };
 export type PlexAPIRequestHandler<TResult> = (req: express.Request, res: express.Response) => Promise<TResult>;
 export type PlexAPIRequestHandlerMiddleware<TResult> = (handler: PlexAPIRequestHandler<TResult>, options?: PlexAPIRequestHandlerOptions) => ((req: express.Request, res: express.Response) => Promise<void>);
-export const plexAPIRequestHandler = <TResult>(handler: PlexAPIRequestHandler<TResult>, options?: PlexAPIRequestHandlerOptions) => {
+export const plexAPIRequestHandler = <TResult>(handler: PlexAPIRequestHandler<TResult>, options: PlexAPIRequestHandlerOptions) => {
 	return async (req: IncomingPlexAPIRequest, res: express.Response) => {
 		await handlePlexAPIRequest(req, res, handler, options);
 	};

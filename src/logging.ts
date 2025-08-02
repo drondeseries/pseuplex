@@ -320,6 +320,13 @@ export class Logger {
 		return true;
 	}
 
+	logPlexRequestHandlerFailed(userReq: express.Request, userRes: express.Response, error: Error): boolean {
+		const logsAnyUrls = this.options.logUserRequests || this.options.logProxyRequests || this.options.logProxyResponses;
+		console.error(`Plex request handler failed${!logsAnyUrls ? ` for ${userReq.originalUrl} :` : ':'}`);
+		console.error(error);
+		return true;
+	}
+
 	logPlexStillLivingDangerously(message: string, error: Error): boolean {
 		if(!this.options.logPlexStillLivingDangerously) {
 			return false;

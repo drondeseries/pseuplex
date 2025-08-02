@@ -28,7 +28,7 @@ export const getLibraryMetadataChildren = async (id: string, options: (PlexAPIRe
 
 export type FindLibraryMetadataArgs = (
 	{type?: plexTypes.PlexMediaItemTypeNumeric}
-	& ({guid: string} | {'show.guid': string, 'season.index': number})
+	& ({guid: string | string[]} | {'show.guid': string, 'season.index': number})
 );
 
 export const findLibraryMetadata = async (args: FindLibraryMetadataArgs, options: (PlexAPIRequestOptions & {
