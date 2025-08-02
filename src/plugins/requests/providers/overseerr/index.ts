@@ -24,7 +24,9 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 	
 	overseerrUsersMinLifetime: number = 60;
 	
+	_uniqueOverseerrUsernames = new Set<string>();
 	_overseerrUsers: overseerrTypes.User[] | undefined = undefined;
+	_allMatchedPlexTokensToOverseerrUsersMap: {[token: string]: overseerrTypes.User} = {};
 	_plexTokensToOverseerrUsersMap: {[token: string]: overseerrTypes.User} = {};
 	_overseerrUsersTask: Promise<void> | null = null;
 	_lastOverseerrUsersFetchTime: number | null = null;
@@ -58,7 +60,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 		};
 	}
 
-	async _refetchOverseerrUsersIfAble(): Promise<boolean> {
+	private async _refetchOverseerrUsersIfAble(): Promise<boolean> {
 		// wait for existing fetch operation, if any
 		if(this._overseerrUsersTask) {
 			await this._overseerrUsersTask;
@@ -76,6 +78,15 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 				apiKey: cfg.apiKey,
 			}).then((usersPage) => {
 				this._overseerrUsers = usersPage.results;
+				if(usersPage.results) {
+					const prevKeys = new Set(this._uniqueOverseerrUsernames);
+					for(const user of usersPage.results) {
+						if(!prevKeys.has(user.username)) {
+							this._uniqueOverseerrUsernames.add(user.username);
+							this.app.logger?.logFetchedOverseerrUser(user);
+						}
+					}
+				}
 				this._plexTokensToOverseerrUsersMap = {};
 				this._lastOverseerrUsersFetchTime = process.uptime();
 			});
@@ -89,7 +100,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 		}
 	}
 
-	_findOverseerrUserFromPlexUser(token: string, userInfo: PlexServerAccountInfo): (overseerrTypes.User | null) {
+	private _findOverseerrUserFromPlexUser(token: string, userInfo: PlexServerAccountInfo): (overseerrTypes.User | null) {
 		let overseerrUser: (overseerrTypes.User | undefined) = this._plexTokensToOverseerrUsersMap[token];
 		if(overseerrUser) {
 			return overseerrUser;
@@ -101,20 +112,30 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 		});
 		if(overseerrUser) {
 			this._plexTokensToOverseerrUsersMap[token] = overseerrUser;
+			const prevMatchedUser = this._allMatchedPlexTokensToOverseerrUsersMap[token];
+			this._allMatchedPlexTokensToOverseerrUsersMap[token] = overseerrUser;
+			const userChanged =
+				(!prevMatchedUser || prevMatchedUser.plexId != overseerrUser.plexId || prevMatchedUser.plexUsername != overseerrUser.plexUsername
+				|| prevMatchedUser.email != overseerrUser.email || prevMatchedUser.username != overseerrUser.username);
+			if(userChanged) {
+				this.app.logger?.logOverseerrUserMatched(token, userInfo, overseerrUser);
+			}
 			return overseerrUser;
 		}
 		return null;
 	}
 
-	async _getOverseerrUserFromPlexUser(token: string, userInfo: PlexServerAccountInfo): Promise<overseerrTypes.User | null> {
+	private async _getOverseerrUserFromPlexUser(token: string, userInfo: PlexServerAccountInfo): Promise<overseerrTypes.User | null> {
 		let overseerrUser = this._findOverseerrUserFromPlexUser(token, userInfo);
-		if(overseerrUser) {
-			return overseerrUser;
+		if(!overseerrUser) {
+			if(await this._refetchOverseerrUsersIfAble()) {
+				overseerrUser = this._findOverseerrUserFromPlexUser(token, userInfo);
+			}
 		}
-		if(await this._refetchOverseerrUsersIfAble()) {
-			return this._findOverseerrUserFromPlexUser(token, userInfo);
+		if(!overseerrUser) {
+			this.app.logger?.logOverseerrUserNotMatched(token, userInfo);
 		}
-		return null;
+		return overseerrUser ?? null;
 	}
 
 	async canPlexUserMakeRequests(token: string, userInfo: PlexServerAccountInfo): Promise<boolean> {

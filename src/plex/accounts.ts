@@ -117,6 +117,7 @@ export class PlexServerAccountsStore {
 					isServerOwner: true
 				};
 				this._tokensToPlexOwnersMap[token] = userInfo;
+				this._logger?.logPlexTokenRegistered(token, userInfo);
 				return userInfo;
 			})();
 			// store pending task and wait
@@ -156,20 +157,24 @@ export class PlexServerAccountsStore {
 						if(sharedServer.accessToken && sharedServer.email) {
 							newServerTokens.add(sharedServer.accessToken);
 							const userID = Number.parseInt(sharedServer.userID);
-							this._tokensToPlexUsersMap[sharedServer.accessToken] = {
+							const userInfo: PlexServerAccountInfo = {
 								email: sharedServer.email,
 								serverUserID: !Number.isNaN(userID) ? userID : sharedServer.userID,
 								plexUsername: sharedServer.username,
 								plexUserID: sharedServer.id,
 								isServerOwner: false
 							};
+							this._tokensToPlexUsersMap[sharedServer.accessToken] = userInfo;
+							this._logger?.logPlexTokenRegistered(sharedServer.accessToken, userInfo);
 						}
 					}
 				}
 				// delete old server tokens
 				for(const token in this._tokensToPlexUsersMap) {
 					if(!newServerTokens.has(token)) {
+						const userInfo = this._tokensToPlexUsersMap[token];
 						delete this._tokensToPlexUsersMap[token];
+						this._logger?.logPlexTokenUnregistered(token, userInfo);
 					}
 				}
 				// update the last time that the server users was fetched

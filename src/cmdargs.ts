@@ -9,6 +9,7 @@ export type CommandArguments = {
 
 enum CmdFlag {
 	configPath = '--config',
+	logPlexTokenInfo = '--log-plex-tokens',
 	logPlexFuckery = '--log-plex-fuckery',
 	logOutgoingRequests = '--log-outgoing-requests',
 	logUserRequests = '--log-user-requests',
@@ -27,6 +28,7 @@ enum CmdFlag {
 	logWebsocketToUser = '--log-websocket-to-user',
 	logWebsocketFromServer = '--log-websocket-from-server',
 	logWebsocketToServer = '--log-websocket-to-server',
+	logOverseerrUsers = '--log-overseerr-users',
 	verbose = '--verbose',
 	verboseHttpTraffic = '--verbose-http-traffic',
 	verboseWsTraffic = '--verbose-ws-traffic',
@@ -70,6 +72,10 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 						throw new Error(`Missing value for flag ${arg}`);
 					}
 					parsedArgs.configPath = flagVal;
+					break;
+
+				case CmdFlag.logPlexTokenInfo:
+					parsedArgs.logPlexTokenInfo = true;
 					break;
 
 				case CmdFlag.logPlexFuckery:
@@ -142,6 +148,12 @@ export const parseCmdArgs = (args: string[]): CommandArguments => {
 
 				case CmdFlag.logWebsocketErrors:
 					parsedArgs.logWebsocketErrors = true;
+					break;
+
+				case CmdFlag.logOverseerrUsers:
+					parsedArgs.logOverseerrUserMatches = true;
+					parsedArgs.logOverseerrUserMatchFailures = true;
+					parsedArgs.logOverseerrUsers = true;
 					break;
 				
 				case CmdFlag.verbose:

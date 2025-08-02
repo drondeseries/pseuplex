@@ -1,13 +1,23 @@
 import http from 'http';
 import express from 'express';
 import { urlFromClientRequest } from './utils/requests';
-import { WebSocketEventMap } from './utils/websocket';
-import { PseuplexClientNotificationWebSocketInfo, PseuplexNotificationSocketType, PseuplexNotificationSocketTypeToName } from './pseuplex/types/sockets';
+import type { WebSocketEventMap } from './utils/websocket';
+import {
+	PseuplexClientNotificationWebSocketInfo,
+	PseuplexNotificationSocketType,
+	PseuplexNotificationSocketTypeToName
+} from './pseuplex/types/sockets';
+import type { PlexServerAccountInfo } from './plex/accounts';
+import * as overseerrTypes from './plugins/requests/providers/overseerr/apitypes';
 
 export type GeneralLoggingOptions = {
 	logDebug?: boolean;
 	logFullURLs?: boolean;
+};
+
+export type PlexLoggingOptions = {
 	logPlexStillLivingDangerously?: boolean;
+	logPlexTokenInfo?: boolean;
 };
 
 export type OutgoingRequestsLoggingOptions = {
@@ -43,12 +53,20 @@ export type WebsocketLoggingOptions = {
 	logWebsocketErrors?: boolean;
 };
 
+export type OverseerrLoggingOptions = {
+	logOverseerrUsers?: boolean;
+	logOverseerrUserMatches?: boolean;
+	logOverseerrUserMatchFailures?: boolean;
+}
+
 export type LoggingOptions =
 	GeneralLoggingOptions
+	& PlexLoggingOptions
 	& OutgoingRequestsLoggingOptions
 	& IncomingRequestsLoggingOptions
 	& ProxyRequestsLoggingOptions
-	& WebsocketLoggingOptions;
+	& WebsocketLoggingOptions
+	& OverseerrLoggingOptions;
 
 export class Logger {
 	options: LoggingOptions;
@@ -309,5 +327,45 @@ export class Logger {
 		console.error(message);
 		console.error(error);
 		return true;
+	}
+
+	logPlexTokenRegistered(plexToken: string, accountInfo: PlexServerAccountInfo) {
+		if(!this.options.logPlexTokenInfo) {
+			return;
+		}
+		// TODO add colored logs
+		console.log(`Registered plex token ${plexToken}: ${JSON.stringify(accountInfo, null, '\t')}`);
+	}
+
+	logPlexTokenUnregistered(plexToken: string, accountInfo: PlexServerAccountInfo) {
+		if(!this.options.logPlexTokenInfo) {
+			return;
+		}
+		// TODO add colored logs
+		console.log(`Unregistered plex token ${plexToken}: ${JSON.stringify(accountInfo, null, '\t')}`);
+	}
+
+	logOverseerrUserMatched(plexToken: string, accountInfo: PlexServerAccountInfo, overseerrUser: overseerrTypes.User) {
+		if(!this.options.logOverseerrUserMatches) {
+			return;
+		}
+		// TODO add colored logs
+		console.log(`Registered overseerr user ${overseerrUser.username} to plex token ${plexToken} (${accountInfo.email})`);
+	}
+
+	logOverseerrUserNotMatched(plexToken: string, accountInfo: PlexServerAccountInfo) {
+		if(!this.options.logOverseerrUserMatchFailures) {
+			return;
+		}
+		// TODO add colored logs
+		console.warn(`Failed to register overseerr user to plex token ${plexToken} (${accountInfo.email})`);
+	}
+
+	logFetchedOverseerrUser(user: overseerrTypes.User) {
+		if(!this.options.logOverseerrUsers) {
+			return;
+		}
+		// TODO add colored logs
+		console.log(`Fetched overseerr user: ${JSON.stringify(user, null, '\t')}`);
 	}
 }
