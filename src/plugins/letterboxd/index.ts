@@ -40,6 +40,7 @@ import {
 	createListHub,
 } from './hubs'
 import * as lbTransform from './transform';
+import { LetterboxdPluginDef } from './plugindef';
 import { RequestExecutor } from '../../fetching/RequestExecutor';
 import { httpError } from '../../utils/error';
 import {
@@ -48,7 +49,7 @@ import {
 	stringParam
 } from '../../utils/misc';
 
-export default (class LetterboxdPlugin implements PseuplexPlugin {
+export default (class LetterboxdPlugin implements LetterboxdPluginDef, PseuplexPlugin {
 	static slug = 'letterboxd';
 	readonly slug: string = LetterboxdPlugin.slug;
 	readonly app: PseuplexApp;

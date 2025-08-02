@@ -38,8 +38,9 @@ import { OverseerrRequestsProvider } from './providers/overseerr';
 import { PlexRequestsHandler } from './handler';
 import * as reqsTransform from './transform';
 import { RequestsPluginConfig } from './config';
+import { RequestsPluginDef } from './plugindef';
 
-export default (class RequestsPlugin implements PseuplexPlugin {
+export default (class RequestsPlugin implements RequestsPluginDef, PseuplexPlugin {
 	static slug = 'requests';
 	readonly slug = RequestsPlugin.slug;
 	readonly app: PseuplexApp;
