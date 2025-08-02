@@ -8,6 +8,7 @@ import httpProxy from 'http-proxy';
 import {
 	parseHttpContentType,
 	parseHttpContentTypeFromHeader,
+	plexXMLToJS,
 	serializeResponseContent
 } from './serialization';
 import * as constants from '../constants';
@@ -213,15 +214,20 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 				console.error(error);
 				return proxyResData;
 			}
-			// get response content type
+			// check content type
 			const contentType = parseHttpContentType(proxyRes.headers['content-type']).contentTypes[0];
-			if(contentType != 'application/json') {
+			let isXml: boolean;
+			if(contentType?.endsWith('/xml')) {
+				isXml = true;
+			}
+			else if(contentType == 'application/json') {
+				isXml = false;
+			}
+			else {
 				// log user response if needed
 				args.logger?.logProxyAndUserResponse(userReq, userRes, proxyRes, undefined, proxyResString);
 				return proxyResData;
 			}
-			// log proxy response
-			args?.logger?.logProxyResponse(userReq, userRes, proxyReq, proxyRes, (logHeaders ? proxyResString : undefined));
 			// remove any compression headers, since we're modifying it
 			if(userRes.headersSent) {
 				console.error("Too late to remove headers");
@@ -230,8 +236,18 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 				userRes.removeHeader('x-plex-content-compressed-length');
 				userRes.removeHeader('content-length');
 			}
-			// parse response
-			let resData = await JSON.parse(proxyResString);
+			// log proxy response
+			args?.logger?.logProxyResponse(userReq, userRes, proxyReq, proxyRes, (logHeaders ? proxyResString : undefined));
+			// parse response content
+			let resData;
+			if(isXml) {
+				// parse xml
+				console.warn(`Expected json response, but got xml`);
+				resData = await plexXMLToJS(proxyResString);
+			} else {
+				// parse json
+				resData = await JSON.parse(proxyResString);
+			}
 			// don't modify errors
 			if(proxyRes.statusCode && proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
 				// modify response
