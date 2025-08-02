@@ -6,7 +6,6 @@ import {
 	PseuplexPartialMetadataIDString,
 	qualifyPartialMetadataID,
 	PseuplexHubSectionInfo,
-	PseuplexFeedHubLoggingOptions,
 } from '../../pseuplex';
 import { ListFetchInterval } from '../../fetching/LoadableList';
 import { RequestExecutor } from '../../fetching/RequestExecutor';
@@ -15,6 +14,7 @@ import { LetterboxdMetadataProvider } from './metadata';
 import { LetterboxdActivityFeedHub } from './activityfeedhub';
 import { LetterboxdFilmsHub } from './filmshub';
 import { LetterboxdFilmListHub } from './filmlisthub';
+import { Logger } from '../../logging';
 
 
 export const createUserFollowingFeedHub = (letterboxdUsername: string, options: {
@@ -26,7 +26,7 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 	letterboxdMetadataProvider: LetterboxdMetadataProvider,
 	section?: PseuplexHubSectionInfo,
 	matchToPlexServerMetadata?: boolean,
-	loggingOptions?: PseuplexFeedHubLoggingOptions,
+	logger?: Logger,
 	requestExecutor?: RequestExecutor,
 }): LetterboxdActivityFeedHub => {
 	const { requestExecutor } = options;
@@ -47,7 +47,7 @@ export const createUserFollowingFeedHub = (letterboxdUsername: string, options: 
 		letterboxdMetadataProvider: options.letterboxdMetadataProvider,
 		section: options.section,
 		matchToPlexServerMetadata: options.matchToPlexServerMetadata,
-		loggingOptions: options.loggingOptions,
+		logger: options.logger,
 	}, async (pageToken) => {
 		const reqOpts: letterboxd.GetUserFollowingFeedOptions = {
 			after: pageToken?.token ?? undefined,
@@ -75,7 +75,7 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 	defaultCount?: number,
 	section?: PseuplexHubSectionInfo,
 	matchToPlexServerMetadata?: boolean,
-	loggingOptions?: PseuplexFeedHubLoggingOptions,
+	logger?: Logger,
 	requestExecutor?: RequestExecutor,
 }) => {
 	const { requestExecutor } = options;
@@ -103,7 +103,7 @@ export const createSimilarItemsHub = async (metadataId: PseuplexPartialMetadataI
 		metadataTransformOptions: metadataTransformOpts,
 		section: options.section,
 		matchToPlexServerMetadata: options.matchToPlexServerMetadata,
-		loggingOptions: options.loggingOptions,
+		logger: options.logger,
 	}, async (pageHref: string | null) => {
 		let opts: letterboxd.GetSimilarFilmsOptions;
 		if(pageHref) {
@@ -133,7 +133,7 @@ export const createListHub = async (listId: lbtransform.PseuplexLetterboxdListID
 	listStartFetchInterval?: ListFetchInterval,
 	section?: PseuplexHubSectionInfo,
 	matchToPlexServerMetadata?: boolean,
-	loggingOptions?: PseuplexFeedHubLoggingOptions,
+	logger?: Logger,
 	requestExecutor?: RequestExecutor,
 }) => {
 	const { requestExecutor } = options;
@@ -157,7 +157,7 @@ export const createListHub = async (listId: lbtransform.PseuplexLetterboxdListID
 		metadataTransformOptions: metadataTransformOpts,
 		section: options.section,
 		matchToPlexServerMetadata: options.matchToPlexServerMetadata,
-		loggingOptions: options.loggingOptions,
+		logger: options.logger,
 	}, async (pageHref: string | null) => {
 		let opts: letterboxd.GetFilmListOptions;
 		if(pageHref) {

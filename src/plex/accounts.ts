@@ -5,6 +5,7 @@ import {
 import * as plexServerAPI from './api';
 import * as plexTVAPI from '../plextv/api';
 import { PlexTVCurrentUserInfo } from '../plextv/types/User';
+import { Logger } from '../logging';
 import { HttpResponseError } from '../utils/error';
 import { PlexServerPropertiesStore } from './serverproperties';
 
@@ -19,7 +20,7 @@ export type PlexServerAccountInfo = {
 export type PlexServerAccountsStoreOptions = {
 	plexServerProperties: PlexServerPropertiesStore;
 	sharedServersMinLifetime?: number;
-	logPlexFuckery?: boolean;
+	logger?: Logger;
 };
 
 export class PlexServerAccountsStore {
@@ -33,12 +34,12 @@ export class PlexServerAccountsStore {
 	_sharedServersTask: Promise<void> | null = null;
 	_lastSharedServersFetchTime: number | null = null;
 
-	_logPlexFuckery?: boolean;
+	_logger?: Logger;
 
 	constructor(options: PlexServerAccountsStoreOptions) {
 		this.plexServerProperties = options.plexServerProperties;
 		this.sharedServersMinLifetime = options.sharedServersMinLifetime ?? 60;
-		this._logPlexFuckery = options.logPlexFuckery;
+		this._logger = options.logger;
 	}
 
 	get lastSharedServersFetchTime() {
@@ -96,10 +97,7 @@ export class PlexServerAccountsStore {
 					});
 				} catch (error) {
 					if((error as HttpResponseError).httpResponse?.status == 401) {
-						if(this._logPlexFuckery) {
-							console.error("The plex server owner wasn't able to fetch account info:");
-							console.error(error);
-						}
+						this._logger?.logPlexBeingFuckeryError("The plex server owner wasn't able to fetch account info:", error);
 						return null;
 					}
 					throw error;

@@ -55,9 +55,6 @@ export default (class RequestsPlugin implements PseuplexPlugin {
 			],
 			plexMetadataClient: this.app.plexMetadataClient,
 			plexGuidToInfoCache: this.app.plexGuidToInfoCache,
-			loggingOptions: {
-				logOutgoingRequests: app.loggingOptions.logOutgoingRequests,
-			}
 		});
 	}
 

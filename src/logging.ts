@@ -1,0 +1,313 @@
+import http from 'http';
+import express from 'express';
+import { urlFromClientRequest } from './utils/requests';
+import { WebSocketEventMap } from './utils/websocket';
+import { PseuplexClientNotificationWebSocketInfo, PseuplexNotificationSocketType, PseuplexNotificationSocketTypeToName } from './pseuplex/types/sockets';
+
+export type GeneralLoggingOptions = {
+	logDebug?: boolean;
+	logFullURLs?: boolean;
+	logPlexFuckery?: boolean;
+};
+
+export type OutgoingRequestsLoggingOptions = {
+	logOutgoingRequests?: boolean;
+	logOutgoingRequestBody?: boolean;
+	logOutgoingRequestFailures?: boolean;
+	logOutgoingResponses?: boolean;
+	logOutgoingResponseBody?: boolean;
+};
+
+export type IncomingRequestsLoggingOptions = {
+	logUserRequests?: boolean;
+	logUserRequestHeaders?: boolean;
+	logUserResponses?: boolean;
+	logUserResponseHeaders?: boolean;
+	logUserResponseBody?: boolean;
+};
+
+export type ProxyRequestsLoggingOptions = {
+	logProxyRequests?: boolean;
+	logProxyRequestHeaders?: boolean;
+	logProxyResponses?: boolean;
+	logProxyResponseHeaders?: boolean;
+	logProxyResponseBody?: boolean;
+	logProxyErrorResponseBody?: boolean;
+};
+
+export type WebsocketLoggingOptions = {
+	logWebsocketMessagesFromUser?: boolean;
+	logWebsocketMessagesToUser?: boolean;
+	logWebsocketMessagesFromServer?: boolean;
+	logWebsocketMessagesToServer?: boolean;
+	logWebsocketErrors?: boolean;
+};
+
+export type LoggingOptions =
+	GeneralLoggingOptions
+	& OutgoingRequestsLoggingOptions
+	& IncomingRequestsLoggingOptions
+	& ProxyRequestsLoggingOptions
+	& WebsocketLoggingOptions;
+
+export class Logger {
+	options: LoggingOptions;
+
+	constructor(options: LoggingOptions) {
+		this.options = options;
+	}
+
+	urlString(urlString: string) {
+		if(this.options.logFullURLs) {
+			return urlString;
+		}
+		const queryIndex = urlString.indexOf('?');
+		if(queryIndex != -1) {
+			return urlString.substring(0, queryIndex);
+		}
+		return urlString;
+	};
+
+	logOutgoingRequest(url: string, options: RequestInit) {
+		if(!this.options.logOutgoingRequests) {
+			return;
+		}
+		const shouldLogBody = this.options.logOutgoingRequestBody && options.body;
+		console.log(`Sending request ${options.method || 'GET'} ${url}${shouldLogBody ? " with body:" : ""}`);
+		// TODO log headers if needed
+		if(shouldLogBody) {
+			console.log(options.body);
+		}
+	}
+
+	async logOutgoingRequestResponse(res: Response, reqOptions: RequestInit) {
+		if(res.ok) {
+			if(this.options.logOutgoingResponses) {
+				let body: string | undefined;
+				let gotBody = false;
+				let bodyError: Error | undefined;
+				if(this.options.logOutgoingResponseBody) {
+					try {
+						body = await res.text();
+						gotBody = true;
+					} catch(error) {
+						bodyError = error;
+					}
+				}
+				console.log(`Got response ${res.status} for ${reqOptions.method || 'GET'} ${res.url}: ${res.statusText}`);
+				if(bodyError) {
+					console.error(`Failed to fetch body for response: ${bodyError.message}`);
+				}
+				else if(gotBody && body) {
+					console.log(`Response body:\n${body}`);
+				}
+			}
+		} else {
+			if(this.options.logOutgoingRequestFailures ?? this.options.logOutgoingResponses) {
+				let body: string | undefined;
+				let gotBody = false;
+				let bodyError: Error | undefined;
+				if(this.options.logOutgoingResponseBody) {
+					try {
+						body = await res.text();
+						gotBody = true;
+					} catch(error) {
+						console.error(`Failed to fetch body for response to ${res.url} :`);
+						console.error(error);
+					}
+				}
+				console.error(`Got response ${res.status} for ${reqOptions.method || 'GET'} ${res.url}: ${res.statusText}`);
+				if(bodyError) {
+					console.error(`Failed to fetch body for response: ${bodyError.message}`);
+				}
+				else if(gotBody && body) {
+					console.log(`Response body:\n${body}`);
+				}
+			}
+		}
+	}
+
+	logIncomingUserRequest(userReq: express.Request) {
+		if(!this.options.logUserRequests) {
+			return;
+		}
+		console.log(`\n\x1b[42mUser ${userReq.method} ${this.urlString(userReq.originalUrl)}\x1b[0m`);
+		if(this.options.logUserRequestHeaders) {
+			const reqHeaderList = userReq.rawHeaders;
+			for(let i=0; i<reqHeaderList.length; i++) {
+				const headerKey = reqHeaderList[i];
+				i++;
+				const headerVal = reqHeaderList[i];
+				console.log(`\t${headerKey}: ${headerVal}`);
+			}
+		}
+	}
+
+	logIncomingUserRequestResponse(userReq: express.Request, userRes: express.Response, bodyString: string | undefined) {
+		if(!this.options.logUserResponses) {
+			return;
+		}
+		const shouldLogBody = this.options.logUserResponseBody && bodyString;
+		console.log(`\nUser response ${userRes.statusCode} for ${userReq.method} ${this.urlString(userReq.originalUrl)}`);
+		if(this.options.logUserResponseHeaders) {
+			const userResHeaders = userRes.getHeaders();
+			for(const headerKey of Object.keys(userResHeaders)) {
+				console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
+			}
+		}
+		if(shouldLogBody) {
+			console.log(JSON.stringify(bodyString));
+		}
+		console.log();
+	}
+
+	logProxyingRequest(userReq: express.Request, proxyReqOpts: http.RequestOptions, url: string) {
+		if(!this.options.logProxyRequests) {
+			return;
+		}
+		// TODO use remapped method
+		console.log(`\nProxy ${userReq.method} ${this.urlString(url)}`);
+		if(this.options.logProxyRequestHeaders && proxyReqOpts.headers) {
+			const proxyReqHeaders = Object.keys(proxyReqOpts.headers);
+			for(let i=0; i<proxyReqHeaders.length; i++) {
+				const headerKey = proxyReqHeaders[i];
+				const headerVal = proxyReqOpts.headers[headerKey];
+				console.log(`\t${headerKey}: ${headerVal}`);
+			}
+		}
+	}
+
+	logProxyRequest(userReq: express.Request, proxyReq: http.ClientRequest) {
+		if(!this.options.logProxyRequests) {
+			return;
+		}
+		const proxyUrl = urlFromClientRequest(proxyReq);
+		console.log(`\nProxy ${proxyReq.method} ${this.urlString(proxyUrl)}`);
+		if(this.options.logProxyRequestHeaders) {
+			const proxyReqHeaders = proxyReq.getHeaders();
+			for(const headerKey in proxyReqHeaders) {
+				console.log(`\t${headerKey}: ${proxyReqHeaders[headerKey]}`);
+			}
+		}
+	}
+
+	logProxyResponse(userReq: express.Request, userRes: express.Response, proxyReq: http.ClientRequest, proxyRes: http.IncomingMessage, proxyResDataString: string | undefined): boolean {
+		const isErrorResponse = !proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300;
+		if(!(this.options.logProxyResponses
+			|| (this.options.logProxyErrorResponseBody && isErrorResponse))
+		) {
+			return false;
+		}
+		const proxyUrl = urlFromClientRequest(proxyReq);
+		console.log(`\nProxy Response ${proxyRes.statusCode} for ${proxyReq.method} ${this.urlString(proxyUrl)}`);
+		if(this.options.logProxyResponseHeaders) {
+			const proxyResHeaderList = proxyRes.rawHeaders;
+			for(let i=0; i<proxyResHeaderList.length; i++) {
+				const headerKey = proxyResHeaderList[i];
+				i++;
+				const headerVal = proxyResHeaderList[i];
+				console.log(`\t${headerKey}: ${headerVal}`);
+			}
+		}
+		if((this.options.logProxyResponseBody || (this.options.logProxyErrorResponseBody && isErrorResponse)) && proxyResDataString) {
+			console.log(proxyResDataString);
+		}
+		return true;
+	}
+
+	logProxyAndUserResponse(userReq: express.Request, userRes: express.Response, proxyRes: http.IncomingMessage, headers: http.IncomingHttpHeaders | undefined, resDataString: string | undefined): boolean {
+		const isErrorResponse = !proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300;
+		if(!(this.options.logUserResponses || this.options.logProxyResponses
+			|| (this.options.logProxyErrorResponseBody && isErrorResponse))
+		) {
+			return false;
+		}
+		console.log(`\nResponse ${userRes.statusCode} for ${userReq.method} ${this.urlString(userReq.originalUrl)}`);
+		if(this.options.logUserResponseHeaders) {
+			const userResHeaders = userRes.getHeaders();
+			for(const headerKey of Object.keys(userResHeaders)) {
+				if(headers?.[headerKey]) {
+					continue;
+				}
+				console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
+			}
+			if(headers) {
+				for(const headerKey in Object.keys(headers)) {
+					console.log(`\t${headerKey}: ${headers[headerKey]}`);
+				}
+			}
+		}
+		if((this.options.logUserResponseBody || this.options.logProxyResponseBody || ((this.options.logProxyErrorResponseBody || this.options.logUserResponseBody) && isErrorResponse)) && resDataString) {
+			console.log(resDataString);
+		}
+		console.log();
+		return true;
+	}
+
+	logIncomingUserUpgradeRequest(userReq: http.IncomingMessage) {
+		if(!this.options.logUserRequests && !this.options.logWebsocketMessagesFromUser) {
+			return;
+		}
+		console.log(`\n\x1b[104mupgrade ws ${userReq.url}\x1b[0m`);
+		if(this.options.logUserRequestHeaders) {
+			const reqHeaderList = userReq.rawHeaders;
+			for(let i=0; i<reqHeaderList.length; i++) {
+				const headerKey = reqHeaderList[i];
+				i++;
+				const headerVal = reqHeaderList[i];
+				console.log(`\t${headerKey}: ${headerVal}`);
+			}
+		}
+	}
+
+	logIncomingWebsocketClosed(req: http.IncomingMessage): boolean {
+		if(!(this.options.logUserRequests || this.options.logWebsocketMessagesFromUser || this.options.logWebsocketMessagesFromServer)) {
+			return false;
+		}
+		console.log(`closed socket ${req.url}`);
+		return true;
+	}
+
+	logServerWebsocketFailedToOpen(error: WebSocketEventMap['error'], firstAttempt: boolean): boolean {
+		if(!(this.options?.logWebsocketErrors || firstAttempt)) {
+			return false;
+		}
+		console.error(`Plex server websocket failed to open:`);
+		console.error(error);
+		return true;
+	}
+
+	logServerWebsocketClosedWithError(error: WebSocketEventMap['error']): boolean {
+		if(!(this.options?.logWebsocketErrors)) {
+			return false;
+		}
+		console.error(`Plex server websocket closed with an error:`);
+		console.error(error);
+		return true;
+	}
+
+	logWebsocketMessageFromServer(event: WebSocketEventMap['message']): boolean {
+		if(!(this.options.logWebsocketMessagesFromServer)) {
+			return false;
+		}
+		console.log(`\nGot websocket message from server:\n${event.data}`);
+		return true;
+	}
+
+	logWebsocketNotificationToUser(socketInfo: PseuplexClientNotificationWebSocketInfo, dataString: string): boolean {
+		if(!this.options.logWebsocketMessagesToUser) {
+			return false;
+		}
+		console.log(`\nSending ${PseuplexNotificationSocketTypeToName[socketInfo.type]?.toLowerCase()} socket message to token ${socketInfo.plexToken}:\n${dataString}`);
+		return true;
+	}
+
+	logPlexBeingFuckeryError(message: string, error: Error): boolean {
+		if(!this.options.logPlexFuckery) {
+			return false;
+		}
+		console.error(message);
+		console.error(error);
+		return true;
+	}
+}

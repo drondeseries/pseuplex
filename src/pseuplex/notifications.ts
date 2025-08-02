@@ -2,33 +2,19 @@
 import stream from 'stream';
 import crypto from 'crypto';
 import * as plexTypes from '../plex/types';
+import { Logger } from '../logging';
 import { sendWebSocketMessage } from '../utils/stream';
+import {
+	PseuplexClientNotificationWebSocketInfo,
+	PseuplexNotificationSocketType
+} from './types/sockets';
 
 export const NotificationsWebSocketEndpoint = '/:/websockets/notifications';
 export const EventSourceNotificationsSocketEndpoint = '/:/eventsource/notifications';
 
 
 export type PseuplexNotificationsOptions = {
-	loggingOptions: {
-		logWebsocketMessagesFromUser?: boolean,
-		logWebsocketMessagesToUser?: boolean,
-		logWebsocketMessagesFromServer?: boolean,
-		logWebsocketMessagesToServer?: boolean,
-	}
-};
-
-
-
-export enum PseuplexNotificationSocketType {
-	EventSource = 1,
-	Notification = 2,
-}
-
-export type PseuplexClientNotificationWebSocketInfo = {
-	plexToken: string;
-	type: PseuplexNotificationSocketType;
-	socket: stream.Duplex;
-	proxySocket: stream.Duplex;
+	logger?: Logger;
 };
 
 export type NotificationDataCache = {
@@ -62,9 +48,7 @@ export const sendNotificationToSocket = (socketInfo: PseuplexClientNotificationW
 				if(notifDataCache) {
 					notifDataCache[socketType] = dataString;
 				}
-				if(options.loggingOptions.logWebsocketMessagesToUser) {
-					console.log(`\nSending eventsource socket message to token ${socketInfo.plexToken}:\n${dataString}`);
-				}
+				options.logger?.logWebsocketNotificationToUser(socketInfo, dataString);
 			}
 			sendWebSocketMessage(socket, dataString);
 		} break;
@@ -79,9 +63,7 @@ export const sendNotificationToSocket = (socketInfo: PseuplexClientNotificationW
 				if(notifDataCache) {
 					notifDataCache[socketType] = dataString;
 				}
-				if(options.loggingOptions.logWebsocketMessagesToUser) {
-					console.log(`\nSending notification socket message to token ${socketInfo.plexToken}:\n${dataString}`);
-				}
+				options.logger?.logWebsocketNotificationToUser(socketInfo, dataString);
 			}
 			sendWebSocketMessage(socket, dataString);
 		} break;

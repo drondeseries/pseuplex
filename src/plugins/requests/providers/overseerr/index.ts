@@ -49,12 +49,12 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 		return false;
 	}
 
-	private _overseerrReqOpts()  {
+	private _overseerrReqOpts(): overseerrAPI.OverseerrAPIRequestOptions  {
 		const cfg = this.config.overseerr;
 		return {
 			serverURL: cfg.host,
 			apiKey: cfg.apiKey,
-			verbose: this.app.loggingOptions.logOutgoingRequests,
+			logger: this.app.logger,
 		};
 	}
 
@@ -222,7 +222,7 @@ export class OverseerrRequestsProvider implements RequestsProvider {
 			return reqInfo.requestedBy?.id == overseerrUser.id
 		});
 		if(matchingRequest) {
-			if(this.app.loggingOptions.logOutgoingRequests) {
+			if(this.app.logger?.options.logOutgoingRequests) {
 				console.log(`Found existing overserr request ${JSON.stringify(matchingRequest)}`);
 			}
 			// already requested by this user

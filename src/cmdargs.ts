@@ -5,6 +5,7 @@ export type CommandArguments = {
 	logFullURLs?: boolean,
 	logPlexFuckery?: boolean,
 	logOutgoingRequests?: boolean,
+	logOutgoingResponseBody?: boolean;
 	logUserRequests?: boolean,
 	logUserRequestHeaders?: boolean,
 	logUserResponses?: boolean,

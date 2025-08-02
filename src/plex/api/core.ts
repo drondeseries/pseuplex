@@ -2,12 +2,13 @@
 import qs from 'querystring';
 import { PlexAuthContext } from '../types';
 import { parseHttpContentType, plexXMLToJS } from '../serialization';
+import { Logger } from '../../logging';
 import { httpResponseError } from '../../utils/error';
 
 export type PlexAPIRequestOptions = {
 	serverURL: string,
 	authContext?: PlexAuthContext | null,
-	verbose?: boolean,
+	logger?: Logger,
 };
 
 export type PlexServerFetchOptions = PlexAPIRequestOptions & {
@@ -68,20 +69,17 @@ export const plexServerFetch = async <TResult>(options: PlexServerFetchOptions):
 		}
 	}
 	// send request
-	if(options.verbose) {
-		console.log(`Sending request ${method} ${url}`);
-	}
-	const res = await fetch(url, {
+	const reqOpts: RequestInit = {
 		method,
 		headers: {
 			'Accept': 'application/json',
 			...options.headers
 		}
-	});
+	};
+	options.logger?.logOutgoingRequest(url, reqOpts);
+	const res = await fetch(url, reqOpts);
+	await options.logger?.logOutgoingRequestResponse(res, reqOpts);
 	if(!res.ok) {
-		if(options.verbose) {
-			console.error(`Got response ${res.status} for ${method} ${url}: ${res.statusText}`);
-		}
 		res.body?.cancel();
 		throw httpResponseError(url, res);
 	}

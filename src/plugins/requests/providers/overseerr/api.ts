@@ -10,12 +10,13 @@ import {
 	Movie,
 	TVShow
 } from './apitypes';
+import { Logger } from '../../../../logging';
 import { httpResponseError } from '../../../../utils/error';
 
 export type OverseerrAPIRequestOptions = {
 	serverURL: string,
 	apiKey?: string,
-	verbose?: boolean,
+	logger?: Logger,
 };
 
 const overseerrFetch = async (options: {
@@ -25,7 +26,7 @@ const overseerrFetch = async (options: {
 	params?: { [key: string]: any } | null,
 	headers?: { [key: string]: string },
 	apiKey?: string | null,
-	verbose?: boolean,
+	logger?: Logger,
 }) => {
 	// build URL
 	let url: string;
@@ -57,22 +58,15 @@ const overseerrFetch = async (options: {
 		reqBody = JSON.stringify(options.params);
 	}
 	// send request
-	if(options.verbose) {
-		console.log(`Sending request ${method} ${url}`);
-		if(reqBody) {
-			console.log(reqBody);
-		}
-	}
-	// send request
-	const res = await fetch(url, {
+	const reqOpts: RequestInit = {
 		method,
 		headers,
 		body: reqBody
-	});
+	};
+	options.logger?.logOutgoingRequest(url, reqOpts);
+	const res = await fetch(url, reqOpts);
+	await options.logger?.logOutgoingRequestResponse(res, reqOpts);
 	if (!res.ok) {
-		if(options.verbose) {
-			console.error(`Got response ${res.status} for ${method} ${url}: ${res.statusText}`);
-		}
 		res.body?.cancel();
 		throw httpResponseError(url, res);
 	}

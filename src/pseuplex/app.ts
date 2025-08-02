@@ -27,7 +27,6 @@ import {
 import {
 	plexApiProxy,
 	plexHttpProxy,
-	PlexProxyLoggingOptions,
 	PlexProxyOptions,
 } from '../plex/proxy';
 import {
@@ -64,7 +63,9 @@ import {
 	PseuplexRelatedHubsSource,
 } from './metadata';
 import {
+	PseuplexClientNotificationWebSocketInfo,
 	PseuplexClientWebSocketInfo,
+	PseuplexNotificationSocketType,
 	PseuplexPossiblyConfirmedClientWebSocketInfo,
 } from './types/sockets';
 import {
@@ -83,15 +84,13 @@ import { PseuplexSection } from './section';
 import {
 	EventSourceNotificationsSocketEndpoint,
 	NotificationsWebSocketEndpoint,
-	PseuplexClientNotificationWebSocketInfo,
-	PseuplexNotificationSocketType,
 	PseuplexNotificationsOptions,
 	sendMediaUnavailableNotifications,
 	sendMetadataRefreshTimelineNotifications,
 	sendNotificationToSockets,
 } from './notifications';
+import { Logger } from '../logging';
 import { CachedFetcher } from '../fetching/CachedFetcher';
-import { urlLogString } from '../utils/logging';
 import { httpError, HttpResponseError } from '../utils/error';
 import { asyncRequestHandler, expressErrorHandler } from '../utils/requesthandling';
 import {
@@ -139,18 +138,6 @@ type PseuplexAppMetadataChildrenParams = {
 
 type PseuplexAppConfig = PseuplexConfigBase<{[key: string]: any}> & {[key: string]: any};
 
-type PseuplexLoggingOptions = {
-	logPlexFuckery?: boolean;
-	logOutgoingRequests?: boolean;
-	logUserRequests?: boolean;
-	logUserRequestHeaders?: boolean;
-	logWebsocketMessagesFromUser?: boolean;
-	logWebsocketMessagesToUser?: boolean;
-	logWebsocketMessagesFromServer?: boolean;
-	logWebsocketMessagesToServer?: boolean;
-	logWebsocketErrors?: boolean;
-} & PlexProxyLoggingOptions;
-
 type PseuplexPlexServerNotificationsOptions = {
 	socketRetryInterval?: number;
 }
@@ -173,7 +160,7 @@ export type PseuplexAppOptions = {
 	plexMetadataClient: PlexClient;
 	pluginMetadataAccessCacheOptions?: PseuplexMetadataAccessCacheOptions;
 	plexServerNotifications?: PseuplexPlexServerNotificationsOptions;
-	loggingOptions: PseuplexLoggingOptions,
+	logger?: Logger;
 	responseFilterOrders?: PseuplexResponseFilterOrders;
 	plugins: PseuplexPluginClass[];
 	config: PseuplexAppConfig;
@@ -184,9 +171,9 @@ export class PseuplexApp {
 	readonly slug: string;
 	readonly config: PseuplexAppConfig;
 	readonly port: number;
-	forwardMetadataRefreshToPluginMetadata: boolean;
+	readonly forwardMetadataRefreshToPluginMetadata: boolean;
+	readonly logger?: Logger;
 	readonly plexServerNotificationsOptions: PseuplexPlexServerNotificationsOptions;
-	readonly loggingOptions: PseuplexLoggingOptions;
 	readonly plugins: { [slug: string]: PseuplexPlugin } = {};
 	readonly metadataProviders: { [sourceSlug: string]: PseuplexMetadataProvider } = {};
 	readonly responseFilters: PseuplexResponseFilterLists = {};
@@ -223,7 +210,7 @@ export class PseuplexApp {
 		this.forwardMetadataRefreshToPluginMetadata = options.forwardMetadataRefreshToPluginMetadata ?? true;
 		this.alwaysUseLibraryMetadataPath = (options.mapPseuplexMetadataIds || this.forwardMetadataRefreshToPluginMetadata || options.alwaysUseLibraryMetadataPath) ?? false;
 		this.plexServerNotificationsOptions = options.plexServerNotifications ?? {};
-		this.loggingOptions = options.loggingOptions;
+		this.logger = options.logger;
 		if(options.mapPseuplexMetadataIds) {
 			this.metadataIdMappings = IDMappings.create();
 		}
@@ -234,17 +221,17 @@ export class PseuplexApp {
 		this.plexServerProperties = new PlexServerPropertiesStore({
 			serverURL: this.plexServerURL,
 			authContext: this.plexAdminAuthContext,
-			verbose: this.loggingOptions.logOutgoingRequests,
+			logger: this.logger,
 		});
 		this.plexServerAccounts = new PlexServerAccountsStore({
 			plexServerProperties: this.plexServerProperties,
-			logPlexFuckery: this.loggingOptions.logPlexFuckery,
+			logger: this.logger,
 		});
 		this.plexMetadataClient = options.plexMetadataClient;
 		this.plexServerIdToGuidCache = createPlexServerIdToGuidCache({
 			serverURL: this.plexServerURL,
 			authContext: this.plexAdminAuthContext,
-			verbose: this.loggingOptions.logOutgoingRequests,
+			logger: this.logger,
 		});
 		this.plexGuidToInfoCache = new PlexGuidToInfoCache({
 			plexMetadataClient: this.plexMetadataClient
@@ -255,9 +242,7 @@ export class PseuplexApp {
 
 		// define middlewares
 		const plexReqHandlerOpts: PlexAPIRequestHandlerOptions = {
-			logResponses: this.loggingOptions.logUserResponses,
-			logResponseBody: this.loggingOptions.logUserResponseBody,
-			logFullURLs: this.loggingOptions.logFullURLs
+			logger: this.logger,
 		};
 		this.middlewares = {
 			plexAuthentication: createPlexAuthenticationMiddleware(this.plexServerAccounts),
@@ -349,25 +334,14 @@ export class PseuplexApp {
 		// create router and define routes
 		const protocol = options.protocol ?? PseuplexServerProtocol.httpolyglot;
 		const plexProxyArgs: PlexProxyOptions = {
-			...this.loggingOptions,
+			logger: this.logger,
 			ipv4Mode: options.ipv4ForwardingMode
 		};
 		const router = express();
 
 		router.use((req, res, next) => {
 			// log request if needed
-			if(this.loggingOptions.logUserRequests) {
-				console.log(`\n\x1b[42mUser ${req.method} ${urlLogString(this.loggingOptions, req.originalUrl)}\x1b[0m`);
-				if(this.loggingOptions.logUserRequestHeaders) {
-					const reqHeaderList = req.rawHeaders;
-					for(let i=0; i<reqHeaderList.length; i++) {
-						const headerKey = reqHeaderList[i];
-						i++;
-						const headerVal = reqHeaderList[i];
-						console.log(`\t${headerKey}: ${headerVal}`);
-					}
-				}
-			}
+			this.logger?.logIncomingUserRequest(req);
 			next();
 		});
 
@@ -894,18 +868,7 @@ export class PseuplexApp {
 
 		// handle upgrade to socket
 		server.on('upgrade', (req, socket, head) => {
-			if(this.loggingOptions.logUserRequests || this.loggingOptions.logWebsocketMessagesFromUser) {
-				console.log(`\n\x1b[104mupgrade ws ${req.url}\x1b[0m`);
-				if(this.loggingOptions.logUserRequestHeaders) {
-					const reqHeaderList = req.rawHeaders;
-					for(let i=0; i<reqHeaderList.length; i++) {
-						const headerKey = reqHeaderList[i];
-						i++;
-						const headerVal = reqHeaderList[i];
-						console.log(`\t${headerKey}: ${headerVal}`);
-					}
-				}
-			}
+			this.logger?.logIncomingUserUpgradeRequest(req);
 			// socket endpoints seem to only get passed the token
 			const plexToken = plexTypes.parsePlexTokenFromRequest(req);
 			if(plexToken) {
@@ -951,9 +914,7 @@ export class PseuplexApp {
 					} else {
 						console.error(`Couldn't find socket to remove for ${req.url}`);
 					}
-					if(this.loggingOptions.logUserRequests) {
-						console.log(`closed socket ${req.url}`);
-					}
+					this.logger?.logIncomingWebsocketClosed(req);
 				});
 			}
 			plexGeneralProxy.ws(req, socket, head);
@@ -1050,15 +1011,9 @@ export class PseuplexApp {
 		// listen for errors
 		socket.addEventListener('error', (error) => {
 			if(!opened) {
-				if(this.loggingOptions?.logWebsocketErrors || firstAttempt) {
-					console.error(`Plex server websocket failed to open:`);
-					console.error(error);
-				}
+				this.logger?.logServerWebsocketFailedToOpen(error, firstAttempt);
 			} else {
-				if(this.loggingOptions?.logWebsocketErrors) {
-					console.error(`Plex server websocket closed with an error:`);
-					console.error(error);
-				}
+				this.logger?.logServerWebsocketClosedWithError(error);
 			}
 			if(closed) {
 				return;
@@ -1114,9 +1069,7 @@ export class PseuplexApp {
 	}
 
 	private _handlePlexServerNotification(event: WebSocketEventMap['message']) {
-		if(this.loggingOptions.logWebsocketMessagesFromServer) {
-			console.log(`\nGot websocket message from server:\n${event.data}`);
-		}
+		this.logger?.logWebsocketMessageFromServer(event);
 		// parse data
 		let data: plexTypes.PlexNotificationMessage;
 		try {
@@ -1195,7 +1148,7 @@ export class PseuplexApp {
 
 	private _notificationsOptions(): PseuplexNotificationsOptions {
 		return {
-			loggingOptions: this.loggingOptions,
+			logger: this.logger,
 		};
 	}
 
@@ -1245,7 +1198,7 @@ export class PseuplexApp {
 						params: options.plexParams,
 						serverURL: context.plexServerURL,
 						authContext: context.plexAuthContext,
-						verbose: this.loggingOptions.logOutgoingRequests,
+						logger: this.logger,
 					});
 					// transform metadata
 					metadataPage.MediaContainer.Metadata = transformArrayOrSingle(metadataPage.MediaContainer.Metadata, (metadataItem: PseuplexMetadataItem) => {
@@ -1270,7 +1223,7 @@ export class PseuplexApp {
 						serverURL: itemPlexServerURL,
 						authContext: context.plexAuthContext,
 						params: options.plexParams,
-						verbose: this.loggingOptions.logOutgoingRequests,
+						logger: this.logger,
 					});
 					// transform metadata
 					metadataPage.MediaContainer.Metadata = transformArrayOrSingle(metadataPage.MediaContainer.Metadata, (metadataItem: PseuplexMetadataItem) => {
@@ -1369,7 +1322,7 @@ export class PseuplexApp {
 				params: options.plexParams,
 				serverURL: context.plexServerURL,
 				authContext: context.plexAuthContext,
-				verbose: this.loggingOptions.logOutgoingRequests,
+				logger: this.logger,
 			});
 			// transform metadata children
 			forArrayOrSingle(metadataPage.MediaContainer.Metadata, (metadataItem: PseuplexMetadataItem) => {
@@ -1393,7 +1346,7 @@ export class PseuplexApp {
 				params: options.plexParams,
 				serverURL: itemPlexServerURL,
 				authContext: context.plexAuthContext,
-				verbose: this.loggingOptions.logOutgoingRequests,
+				logger: this.logger,
 			});
 			// transform metadata
 			metadataPage.MediaContainer.Metadata = transformArrayOrSingle(metadataPage.MediaContainer.Metadata, (metadataItem: PseuplexMetadataItem) => {
@@ -1442,7 +1395,7 @@ export class PseuplexApp {
 				// TODO include forwarded request headers
 				serverURL: options.context.plexServerURL,
 				authContext: options.context.plexAuthContext,
-				verbose: this.loggingOptions.logOutgoingRequests,
+				logger: this.logger,
 			};
 			switch(options.from) {
 				case PseuplexRelatedHubsSource.Library:
@@ -1462,7 +1415,7 @@ export class PseuplexApp {
 				serverURL: itemPlexServerURL,
 				authContext: options.plexAuthContext,
 				params: options.plexParams,
-				verbose: this.loggingOptions.logOutgoingRequests,
+				logger: this.logger,
 			});*/
 			// TODO transform external plex hubs
 			return {
@@ -1655,7 +1608,8 @@ export class PseuplexApp {
 				} as any);
 				if(result) {
 					promises.push(result.catch((error) => {
-						console.error(`Filter for ${urlLogString(this.loggingOptions, context.userReq.url)} response failed:`);
+						const urlToLog = this.logger?.urlString(context.userReq.url) ?? context.userReq.url;
+						console.error(`Filter for ${urlToLog} response failed:`);
 						console.error(error);
 					}));
 				}
@@ -1811,7 +1765,7 @@ export class PseuplexApp {
 					const metadataTask = plexServerAPI.getLibraryMetadata(itemIDs, {
 						serverURL: this.plexServerURL,
 						authContext: this.plexAdminAuthContext,
-						verbose: this.loggingOptions.logOutgoingRequests,
+						logger: this.logger,
 					});
 					for(const itemID of itemIDs) {
 						// cache ID to guid mapping
@@ -1945,7 +1899,7 @@ export class PseuplexApp {
 						const metadataTask = plexServerAPI.getLibraryMetadata(itemIdsToFetch, {
 							serverURL: this.plexServerURL,
 							authContext: this.plexAdminAuthContext,
-							verbose: this.loggingOptions.logOutgoingRequests,
+							logger: this.logger,
 						});
 						// convert result to a map of ids to guids
 						const guidsMapTask = metadataTask.then((metadataPage) => {

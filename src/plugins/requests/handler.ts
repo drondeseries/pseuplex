@@ -35,6 +35,8 @@ import {
 	RequestPartialMetadataIDParts,
 	TransformRequestMetadataOptions,
 } from './transform';
+import { Logger } from '../../logging';
+import { RequestsPluginDef } from './plugindef';
 import { httpError } from '../../utils/error';
 import {
 	findInArrayOrSingle,
@@ -43,7 +45,6 @@ import {
 	transformArrayOrSingle,
 	WithOptionalPropsRecursive
 } from '../../utils/misc';
-import { RequestsPluginDef } from './plugindef';
 
 export type PlexRequestsHandlerOptions = {
 	plugin: RequestsPluginDef;
@@ -51,7 +52,7 @@ export type PlexRequestsHandlerOptions = {
 	requestProviders: RequestsProvider[];
 	plexMetadataClient: PlexClient;
 	plexGuidToInfoCache?: PlexGuidToInfoCache;
-	loggingOptions: PlexRequestsHandlerLoggingOptions;
+	logger?: Logger;
 };
 
 export type TransformRequestableSeasonsOptions = {
@@ -62,10 +63,6 @@ export type TransformRequestableSeasonsOptions = {
 	qualifiedMetadataIds: boolean;
 };
 
-export type PlexRequestsHandlerLoggingOptions = {
-	logOutgoingRequests?: boolean;
-}
-
 export class PlexRequestsHandler implements PseuplexMetadataProvider {
 	readonly sourceDisplayName = "Plex Requests";
 	readonly sourceSlug = PseuplexMetadataSource.Request;
@@ -75,6 +72,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 	readonly requestProviders: RequestsProviders;
 	readonly plexMetadataClient: PlexClient;
 	readonly plexGuidToInfoCache?: PlexGuidToInfoCache;
+	readonly logger?: Logger;
 
 	constructor(options: PlexRequestsHandlerOptions) {
 		this.plugin = options.plugin;
@@ -85,6 +83,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		}
 		this.requestProviders = requestProviders;
 		this.plexMetadataClient = options.plexMetadataClient;
+		this.plexGuidToInfoCache = options.plexGuidToInfoCache;
+		this.logger = options.logger;
 	}
 
 	get defaultRequestsProviderSlug(): string | null {
@@ -173,7 +173,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			return null;
 		}
 		if(!metadataItem) {
-			console.error(`No matching metadata found for guid ${options.guid}`);
+			console.error(`No matching metadata found from plex for guid ${options.guid}`);
 			return null;
 		}
 		// create hook metadata
@@ -282,7 +282,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		), {
 			serverURL: context.plexServerURL,
 			authContext: context.plexAuthContext,
-			verbose: this.plugin.app.loggingOptions.logOutgoingRequests,
+			logger: this.logger,
 		});
 		const libraryMetadataItem = firstOrSingle(libraryMetadataPage.MediaContainer.Metadata);
 		if(libraryMetadataItem) {
@@ -305,7 +305,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				method: 'GET',
 				endpoint: itemKey,
 				params: options.plexParams,
-				verbose: this.plugin.app.loggingOptions.logOutgoingRequests,
+				logger: this.logger,
 			});
 			plexDisplayedPage.MediaContainer.allowSync = false;
 			if(options.children) {

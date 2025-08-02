@@ -11,29 +11,15 @@ import {
 	serializeResponseContent
 } from './serialization';
 import * as constants from '../constants';
-import {
-	urlLogString,
-	URLLogStringArgs
-} from '../utils/logging';
+import { Logger } from '../logging';
 import {
 	IPv4NormalizeMode,
 	normalizeIPAddress
 } from '../utils/ip';
 
-export type PlexProxyLoggingOptions = {
-	logProxyRequests?: boolean;
-	logProxyRequestHeaders?: boolean;
-	logProxyResponses?: boolean;
-	logProxyResponseHeaders?: boolean;
-	logProxyResponseBody?: boolean;
-	logProxyErrorResponseBody?: boolean;
-	logUserResponses?: boolean;
-	logUserResponseHeaders?: boolean;
-	logUserResponseBody?: boolean;
-} & URLLogStringArgs;
-
-export type PlexProxyOptions = PlexProxyLoggingOptions & {
-	ipv4Mode?: (IPv4NormalizeMode | (() => IPv4NormalizeMode))
+export type PlexProxyOptions = {
+	logger?: Logger;
+	ipv4Mode?: (IPv4NormalizeMode | (() => IPv4NormalizeMode));
 };
 
 function requestIsEncrypted(req: express.Request) {
@@ -49,33 +35,78 @@ function getPortFromRequest(req: express.Request) {
     : requestIsEncrypted(req) ? '443' : '80';
 };
 
-export const plexThinProxy = (serverURL: string, args: PlexProxyOptions, proxyOptions: expressHttpProxy.ProxyOptions = {}) => {
+type ProxiedUserReq = express.Request & {
+	___proxyReqOpts: http.RequestOptions;
+};
+
+type ProxiedResponse = http.IncomingMessage & {
+	___proxyReq: http.ClientRequest;
+};
+
+type ProxyingUserResponse = express.Response & {
+	___proxyReq: http.ClientRequest;
+}
+
+export const plexThinProxy = (serverURL: string, options: PlexProxyOptions, proxyOptions: expressHttpProxy.ProxyOptions = {}) => {
 	proxyOptions = {
 		preserveHostHdr: true,
 		...proxyOptions
 	};
-	const innerProxyReqPathResolver = proxyOptions.proxyReqPathResolver;
-	proxyOptions.proxyReqPathResolver = async (req) => {
-		let url: string;
-		if(innerProxyReqPathResolver) {
-			url = await innerProxyReqPathResolver(req);
-		} else {
-			url = req.url;
-		}
-		// log proxy request
-		if(args.logProxyRequests) {
-			// TODO use remapped method
-			console.log(`\nProxy ${req.method} ${urlLogString(args, url)}`);
-			if(args.logProxyRequestHeaders) {
-				const reqHeaderList = req.rawHeaders;
-				for(let i=0; i<reqHeaderList.length; i++) {
-					const headerKey = reqHeaderList[i];
-					i++;
-					const headerVal = reqHeaderList[i];
-					console.log(`\t${headerKey}: ${headerVal}`);
-				}
+	const innerProxyReqOptDecorator = proxyOptions.proxyReqOptDecorator;
+	proxyOptions.proxyReqOptDecorator = async (reqOpts, userReq) => {
+		const ipv4Mode = ((options.ipv4Mode instanceof Function) ? options.ipv4Mode() : options.ipv4Mode)
+			?? IPv4NormalizeMode.DontChange;
+		reqOpts.headers ??= {};
+		// add x-forwarded headers
+		const encrypted = requestIsEncrypted(userReq);
+		const remoteAddress = userReq.connection?.remoteAddress || userReq.socket?.remoteAddress;
+		const fwdHeaders = {
+			For: remoteAddress ? normalizeIPAddress(remoteAddress, ipv4Mode) : remoteAddress,
+			Port: getPortFromRequest(userReq),
+			Proto: encrypted ? 'https' : 'http',
+		};
+		for(const headerSuffix in fwdHeaders) {
+			if(headerSuffix == null) {
+				continue;
+			}
+			const headerName = 'X-Forwarded-' + headerSuffix;
+			const lowercaseHeaderName = headerName.toLowerCase();
+			const prevHeaderVal = userReq.headers[headerName] || userReq.headers[lowercaseHeaderName];
+			const newHeaderVal = fwdHeaders[headerSuffix];
+			if(newHeaderVal) {
+				const headerVal = (prevHeaderVal ? `${prevHeaderVal},` : '') + newHeaderVal;
+				delete reqOpts.headers[lowercaseHeaderName];
+				reqOpts.headers[headerName] = headerVal;
 			}
 		}
+		const fwdHost = userReq.headers['x-forwarded-host'] || userReq.headers['host'];
+		if(fwdHost) {
+			delete reqOpts.headers['x-forwarded-host'];
+			reqOpts.headers['X-Forwarded-Host'] = fwdHost;
+		}
+		const realIP = userReq.headers['x-real-ip'] || fwdHeaders.For;
+		if(realIP) {
+			delete reqOpts.headers['x-real-ip'];
+			reqOpts.headers['X-Real-IP'] = realIP;
+		}
+		if(innerProxyReqOptDecorator) {
+			reqOpts = await innerProxyReqOptDecorator(reqOpts, userReq);
+		}
+		(userReq as ProxiedUserReq).___proxyReqOpts = reqOpts;
+		return reqOpts;
+	};
+	const innerProxyReqPathResolver = proxyOptions.proxyReqPathResolver;
+	proxyOptions.proxyReqPathResolver = async (userReq) => {
+		let url: string;
+		if(innerProxyReqPathResolver) {
+			url = await innerProxyReqPathResolver(userReq);
+		} else {
+			url = userReq.url;
+		}
+		// log proxy request
+		const proxyReqOpts = (userReq as ProxiedUserReq).___proxyReqOpts;
+		delete (userReq as Partial<ProxiedUserReq>).___proxyReqOpts;
+		options?.logger?.logProxyingRequest(userReq, proxyReqOpts, url);
 		return url;
 	};
 	return expressHttpProxy(serverURL, proxyOptions);
@@ -85,40 +116,8 @@ export const plexProxy = (serverURL: string, args: PlexProxyOptions, opts: expre
 	return plexThinProxy(serverURL, args, {
 		...opts,
 		userResHeaderDecorator: (headers, userReq, userRes, proxyReq, proxyRes) => {
-			const ipv4Mode = ((args.ipv4Mode instanceof Function) ? args.ipv4Mode() : args.ipv4Mode)
-				?? IPv4NormalizeMode.DontChange;
 			// add a custom header to the response to check if we went through pseuplex
 			headers[constants.APP_CUSTOM_HEADER] = 'yes';
-			// add x-forwarded headers
-			const encrypted = requestIsEncrypted(userReq);
-			const remoteAddress = userReq.connection?.remoteAddress || userReq.socket?.remoteAddress;
-			const fwdHeaders = {
-				For: remoteAddress ? normalizeIPAddress(remoteAddress, ipv4Mode) : remoteAddress,
-				Port: getPortFromRequest(userReq),
-				Proto: encrypted ? 'https' : 'http',
-			};
-			for(const headerSuffix in fwdHeaders) {
-				if(headerSuffix == null) {
-					continue;
-				}
-				const headerName = 'X-Forwarded-' + headerSuffix;
-				const lowercaseHeaderName = headerName.toLowerCase();
-				const prevHeaderVal = userReq.headers[headerName] || userReq.headers[lowercaseHeaderName];
-				const newHeaderVal = fwdHeaders[headerSuffix];
-				if(newHeaderVal) {
-					const headerVal = (prevHeaderVal ? `${prevHeaderVal},` : '') + newHeaderVal;
-					delete headers[lowercaseHeaderName];
-					headers[headerName] = headerVal;
-				}
-			}
-			const fwdHost = userReq.headers['x-forwarded-host'] || userReq.headers['host'];
-			if(fwdHost) {
-				delete headers['x-forwarded-host'];
-				headers['X-Forwarded-Host'] = fwdHost;
-			}
-			const realIP = userReq.headers['x-real-ip'] || fwdHeaders.For;
-			delete headers['x-real-ip'];
-			headers['X-Real-IP'] = realIP;
 			// call other modifier if needed
 			if(opts.userResHeaderDecorator) {
 				return opts.userResHeaderDecorator(headers, userReq, userRes, proxyReq, proxyRes);
@@ -179,21 +178,6 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 		proxyReqPathResolver: opts.requestPathModifier,
 		proxyReqBodyDecorator: opts.requestBodyModifier,
 		userResHeaderDecorator: (headers, userReq, userRes, proxyReq, proxyRes) => {
-			const logHeaders = (args.logProxyResponseHeaders || args.logUserResponseHeaders);
-			if(logHeaders) { // don't make separate logs unless we're logging response headers
-				if(args.logProxyResponses) {
-					console.log(`\nProxy Response ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
-					if(args.logProxyResponseHeaders) {
-						const proxyResHeaderList = proxyRes.rawHeaders;
-						for(let i=0; i<proxyResHeaderList.length; i++) {
-							const headerKey = proxyResHeaderList[i];
-							i++;
-							const headerVal = proxyResHeaderList[i];
-							console.log(`\t${headerKey}: ${headerVal}`);
-						}
-					}
-				}
-			}
 			if(opts.responseModifier) {
 				// set the accepted content type if we're going to change back from json to xml
 				const acceptTypes = parseHttpContentTypeFromHeader(userReq, 'accept').contentTypes;
@@ -202,57 +186,42 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 					const xmlAcceptType = acceptTypes.find((item) => item.endsWith('/xml'));
 					headers['content-type'] = xmlAcceptType || 'application/xml';
 				}
-			} else if(logHeaders ? args.logUserResponses : (args.logUserResponses || args.logProxyResponses)) {
-				console.log(`\n${logHeaders ? "User " : ""}Response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
-				if(args.logUserResponseHeaders) {
-					const userResHeaders = userRes.getHeaders();
-					for(const headerKey in userResHeaders) {
-						console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
-					}
-					for(const headerKey in headers) {
-						console.log(`\t${headerKey}: ${headers[headerKey]}`);
-					}
+				(proxyRes as ProxiedResponse).___proxyReq = proxyReq;
+			} else {
+				const logHeaders = (args.logger?.options.logProxyResponseHeaders || args.logger?.options.logUserResponseHeaders);
+				args?.logger?.logProxyResponse(userReq, userRes, proxyReq, proxyRes, undefined);
+				if(logHeaders) { // don't make separate logs unless we're logging response headers
+					args?.logger?.logIncomingUserRequestResponse(userReq, userRes, undefined);
+				} else {
+					args?.logger?.logProxyAndUserResponse(userReq, userRes, proxyRes, headers, undefined);
 				}
 			}
 			return headers;
 		},
 		userResDecorator: opts.responseModifier ? async (proxyRes, proxyResData, userReq, userRes) => {
-			const logHeaders = (args.logProxyResponseHeaders || args.logUserResponseHeaders);
-			const isProxyResError = (!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300);
-			const proxyResString = proxyResData?.toString('utf8');
-			// log proxy response body if needed (under the previous log)
-			if(logHeaders) {
-				if(args.logProxyErrorResponseBody && isProxyResError) {
-					console.log(proxyResString);
-				}
+			const proxyReq = (proxyRes as ProxiedResponse).___proxyReq;
+			delete (proxyRes as Partial<ProxiedResponse>).___proxyReq;
+			const logHeaders = (args.logger?.options.logProxyResponseHeaders || args.logger?.options.logUserResponseHeaders);
+			// decode proxy response string
+			let proxyResString: string;
+			try {
+				proxyResString = proxyResData?.toString('utf8');
+			} catch(error) {
+				// log proxy response
+				args?.logger?.logProxyAndUserResponse(userReq, userRes, proxyRes, undefined, undefined);
+				console.error(`Failed to decode proxy response data to utf8:`);
+				console.error(error);
+				return proxyResData;
 			}
 			// get response content type
 			const contentType = parseHttpContentType(proxyRes.headers['content-type']).contentTypes[0];
 			if(contentType != 'application/json') {
 				// log user response if needed
-				if(args.logUserResponses) {
-					console.log(`\n${logHeaders ? "User " : ""}Response ${proxyRes.statusCode} (${contentType}) for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
-					if(args.logUserResponseHeaders) {
-						const userResHeaders = userRes.getHeaders();
-						for(const headerKey in userResHeaders) {
-							console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
-						}
-					}
-					if(!logHeaders && args.logProxyErrorResponseBody && isProxyResError) {
-						console.log(proxyResString);
-					}
-				}
+				args.logger?.logProxyAndUserResponse(userReq, userRes, proxyRes, undefined, proxyResString);
 				return proxyResData;
 			}
-			// log proxy response if needed
-			if(!logHeaders) {
-				if(args.logProxyResponses) {
-					console.log(`\nProxy response ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
-					if(args.logProxyResponseBody || (args.logProxyErrorResponseBody && isProxyResError)) {
-						console.log(proxyResString);
-					}
-				}
-			}
+			// log proxy response
+			args?.logger?.logProxyResponse(userReq, userRes, proxyReq, proxyRes, (logHeaders ? proxyResString : undefined));
 			// remove any compression headers, since we're modifying it
 			if(userRes.headersSent) {
 				console.error("Too late to remove headers");
@@ -263,31 +232,16 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 			}
 			// parse response
 			let resData = await JSON.parse(proxyResString);
-			if(!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300) {
-				// don't modify errors
-				resData = (await serializeResponseContent(userReq, userRes, resData)).data;
-				// log user response
-				if(args.logUserResponses) {
-					console.log(`\nUser response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
-					if(args.logUserResponseHeaders) {
-						const userResHeaders = userRes.getHeaders();
-						for(const headerKey in userResHeaders) {
-							console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
-						}
-					}
-					if(args.logUserResponseBody) {
-						console.log(resData);
-					}
+			// don't modify errors
+			if(proxyRes.statusCode && proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
+				// modify response
+				if(opts.responseModifier) {
+					resData = await opts.responseModifier(proxyRes, resData, userReq, userRes);
 				}
-				return resData;
-			}
-			// modify response
-			if(opts.responseModifier) {
-				resData = await opts.responseModifier(proxyRes, resData, userReq, userRes);
 			}
 			// serialize response
-			resData = (await serializeResponseContent(userReq, userRes, resData)).data;
-			let encodedResData: (Buffer | string) = resData;
+			const resDataString = (await serializeResponseContent(userReq, userRes, resData)).data;
+			let encodedResData: (Buffer | string) = resDataString;
 			// encode user response
 			if(proxyRes.headers['content-encoding']) {
 				const encoding = proxyRes.headers['content-encoding'];
@@ -297,7 +251,7 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 				// encode
 				if(encoding == 'gzip') {
 					encodedResData = await new Promise((resolve, reject) => {
-						zlib.gzip(resData, (error, result) => {
+						zlib.gzip(resDataString, (error, result) => {
 							if(error) {
 								reject(error);
 							} else {
@@ -306,25 +260,13 @@ export const plexApiProxy = (serverURL: string, args: PlexProxyOptions, opts: {
 						});
 					});
 					userRes.setHeader('Content-Encoding', encoding);
-					userRes.setHeader('X-Plex-Content-Original-Length', resData.length);
+					userRes.setHeader('X-Plex-Content-Original-Length', resDataString.length);
 					userRes.setHeader('X-Plex-Content-Compressed-Length', encodedResData.length);
 					userRes.setHeader('Content-Length', encodedResData.length);
 				}
 			}
 			// log user response if needed
-			if(args.logUserResponses) {
-				console.log(`\nUser response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
-				if(args.logUserResponseHeaders) {
-					const userResHeaders = userRes.getHeaders();
-					for(const headerKey in userResHeaders) {
-						console.log(`\t${headerKey}: ${userResHeaders[headerKey]}`);
-					}
-				}
-				if(args.logUserResponseBody) {
-					console.log(resData);
-				}
-				console.log();
-			}
+			args.logger?.logIncomingUserRequestResponse(userReq, userRes, resDataString);
 			return encodedResData;
 		} : undefined
 	});
@@ -342,7 +284,8 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 		//changeOrigin: false,
 		//autoRewrite: true,
 	});
-	plexGeneralProxy.on('proxyReq', (proxyReq, userReq, userRes) => {
+	const shouldHandleProxyResponse = (args.logger?.options.logProxyResponses || args.logger?.options.logUserResponses || args.logger?.options.logProxyErrorResponseBody);
+	plexGeneralProxy.on('proxyReq', (proxyReq, userReq: express.Request, userRes: express.Response) => {
 		const ipv4Mode = ((args.ipv4Mode instanceof Function) ? args.ipv4Mode() : args.ipv4Mode)
 			?? IPv4NormalizeMode.DontChange;
 		// add x-real-ip to proxy headers
@@ -365,20 +308,17 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 			}
 		}
 		// log proxy request if needed
-		if(args.logProxyRequests) {
-			console.log(`\nProxy ${proxyReq.method} ${urlLogString(args, proxyReq.path)}`);
-			if(args.logProxyRequestHeaders) {
-				const proxyReqHeaders = proxyReq.getHeaders();
-				for(const headerKey in proxyReqHeaders) {
-					console.log(`\t${headerKey}: ${proxyReqHeaders[headerKey]}`);
-				}
-			}
+		args.logger?.logProxyRequest(userReq, proxyReq);
+		if(shouldHandleProxyResponse) {
+			(userRes as ProxyingUserResponse).___proxyReq = proxyReq;
 		}
 	});
-	if(args.logProxyResponses || args.logUserResponses || args.logProxyErrorResponseBody) {
+	if(shouldHandleProxyResponse) {
 		plexGeneralProxy.on('proxyRes', (proxyRes, userReq: express.Request, userRes: express.Response) => {
-			const logHeaders = args.logProxyResponseHeaders || args.logUserResponseHeaders;
-			const logProxyResponseBody = () => {
+			const proxyReq = (userRes as ProxyingUserResponse).___proxyReq;
+			delete (userRes as Partial<ProxyingUserResponse>).___proxyReq;
+			const logHeaders = args.logger?.options.logProxyResponseHeaders || args.logger?.options.logUserResponseHeaders;
+			const logProxyResponseBody = (callback?: () => void) => {
 				// log proxy response body
 				const datas: Buffer[] = [];
 				proxyRes.on('data', (chunk) => {
@@ -391,48 +331,33 @@ export const plexHttpProxy = (serverURL: string, args: PlexProxyOptions) => {
 					if(fullDataString) {
 						console.log(fullDataString);
 					}
+					callback?.();
 				});
 			};
 			const isProxyResError = (!proxyRes.statusCode || proxyRes.statusCode < 200 || proxyRes.statusCode >= 300);
-			if(logHeaders || userReq.url != userReq.originalUrl) {
+			if(logHeaders || proxyReq.path != userReq.originalUrl) {
 				// log proxy response if needed
-				if(args.logProxyResponses || (args.logProxyErrorResponseBody && isProxyResError)) {
-					console.log(`\nProxy Response ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.url)}`);
-					if(args.logProxyResponseHeaders) {
-						const proxyResHeaderList = proxyRes.rawHeaders;
-						for(let i=0; i<proxyResHeaderList.length; i++) {
-							const headerKey = proxyResHeaderList[i];
-							i++;
-							const headerVal = proxyResHeaderList[i];
-							console.log(`\t${headerKey}: ${headerVal}`);
-						}
-					}
-					if(args.logProxyErrorResponseBody && isProxyResError) {
+				if(args.logger?.logProxyResponse(userReq, userRes, proxyReq, proxyRes, undefined)) {
+					if(args.logger.options?.logProxyErrorResponseBody && isProxyResError) {
 						logProxyResponseBody();
 					}
 				}
 				// log user response when finished
-				if(args.logUserResponses) {
+				if(args.logger?.options.logUserResponses) {
 					userRes.on('close', () => {
-						console.log(`\nUser Response ${userRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
-						if(args.logUserResponseHeaders) {
-							const userResHeaders = userRes.getHeaders();
-							for(const headerKey of Object.keys(userResHeaders)) {
-								const headerVal = userResHeaders[headerKey];
-								console.log(`\t${headerKey}: ${headerVal}`);
-							}
-						}
-						console.log();
+						args?.logger?.logIncomingUserRequestResponse(userReq, userRes, undefined);
 					});
 				}
 			} else {
 				// log response if needed
-				if(args.logProxyResponses || args.logUserResponses || (args.logProxyErrorResponseBody && isProxyResError)) {
-					console.log(`\nResponse ${proxyRes.statusCode} for ${userReq.method} ${urlLogString(args, userReq.originalUrl)}`);
-					if(args.logProxyErrorResponseBody && isProxyResError) {
-						logProxyResponseBody();
+				if(args.logger?.logProxyAndUserResponse(userReq, userRes, proxyRes, undefined, undefined)) {
+					if(args.logger?.options.logProxyErrorResponseBody && isProxyResError) {
+						logProxyResponseBody(() => {
+							console.log();
+						});
+					} else {
+						console.log();
 					}
-					console.log();
 				}
 			}
 		});

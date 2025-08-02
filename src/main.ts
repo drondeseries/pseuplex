@@ -28,6 +28,7 @@ import {
 } from './plex/config';
 import { PlexPreferences } from './plex/types/preferences';
 import { PlexClient } from './plex/client';
+import { Logger } from './logging';
 
 modConsoleColors();
 
@@ -51,6 +52,7 @@ const readPlexPrefsIfNeeded = async () => {
 		console.log(`parsed arguments:\n${JSON.stringify(args, null, '\t')}\n`);
 		process.env.DEBUG = '*';
 	}
+	const logger = new Logger(args);
 
 	// load config
 	cfg = await readConfigFile(args.configPath);
@@ -120,7 +122,7 @@ const readPlexPrefsIfNeeded = async () => {
 				authContext: {
 					'X-Plex-Token': cfg.plex.token
 				},
-				verbose: args.logOutgoingRequests,
+				logger,
 			},
 			requestExecutor: new RequestExecutor({
 				maxParallelRequests: 5,
@@ -133,26 +135,7 @@ const readPlexPrefsIfNeeded = async () => {
 		plexServerNotifications: {
 			socketRetryInterval: cfg.plex?.notificationSocketRetryInterval,
 		},
-		loggingOptions: {
-			logPlexFuckery: args.logPlexFuckery,
-			logOutgoingRequests: args.logOutgoingRequests,
-			logFullURLs: args.logFullURLs,
-			logUserRequests: args.logUserRequests,
-			logUserRequestHeaders: args.logUserRequestHeaders,
-			logUserResponses: args.logUserResponses,
-			logUserResponseHeaders: args.logUserResponseHeaders,
-			logUserResponseBody: args.logUserResponseBody,
-			logProxyRequests: args.logProxyRequests,
-			logProxyRequestHeaders: args.logProxyRequestHeaders,
-			logProxyResponses: args.logProxyResponses,
-			logProxyResponseHeaders: args.logProxyResponseHeaders,
-			logProxyResponseBody: args.logProxyResponseBody,
-			logWebsocketMessagesFromUser: args.logWebsocketMessagesFromUser,
-			logWebsocketMessagesToUser: args.logWebsocketMessagesToUser,
-			logWebsocketMessagesFromServer: args.logWebsocketMessagesFromServer,
-			logWebsocketMessagesToServer: args.logWebsocketMessagesToServer,
-			logWebsocketErrors: args.logWebsocketErrors,
-		},
+		logger,
 		plugins: [
 			LetterboxdPlugin,
 			RequestsPlugin,

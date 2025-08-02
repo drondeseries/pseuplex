@@ -101,7 +101,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 						} : undefined),
 						//section: section,
 						//matchToPlexServerMetadata: true
-						loggingOptions: app.loggingOptions,
+						logger: app.logger,
 						requestExecutor,
 					});
 				}
@@ -131,7 +131,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 							},
 						} : undefined),
 						defaultCount: 12,
-						loggingOptions: app.loggingOptions,
+						logger: app.logger,
 						requestExecutor,
 					});
 				}
@@ -195,7 +195,7 @@ export default (class LetterboxdPlugin implements PseuplexPlugin {
 							},
 						} : undefined),
 						defaultCount: 12,
-						loggingOptions: app.loggingOptions,
+						logger: app.logger,
 						requestExecutor,
 					});
 				}

@@ -33,6 +33,7 @@ import {
 	PseuplexHubProvider
 } from './hub';
 import type { PseuplexSection } from './section';
+import { Logger } from '../logging';
 import {
 	HttpResponseError,
 } from '../utils/error';
@@ -110,12 +111,8 @@ export type PseuplexMetadataProviderOptions = {
 	plexMetadataClient: PlexClient;
 	relatedHubsProviders?: PseuplexSimilarItemsHubProvider[];
 	plexGuidToInfoCache?: PlexGuidToInfoCache;
-	loggingOptions?: PseuplexMetadataProviderLoggingOptions;
+	logger?: Logger;
 	requestExecutor?: RequestExecutor;
-};
-
-export type PseuplexMetadataProviderLoggingOptions = {
-	logOutgoingRequests?: boolean;
 };
 
 export type PseuplexMetadataTransformOptions = {
@@ -143,7 +140,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 	readonly basePath: string;
 	readonly section?: PseuplexSection;
 	readonly plexMetadataClient: PlexClient;
-	readonly loggingOptions: PseuplexMetadataProviderLoggingOptions;
+	readonly logger?: Logger;
 	readonly requestExecutor?: RequestExecutor;
 	readonly relatedHubsProviders?: PseuplexSimilarItemsHubProvider[];
 
@@ -155,7 +152,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 		this.basePath = options.basePath;
 		this.section = options.section;
 		this.plexMetadataClient = options.plexMetadataClient;
-		this.loggingOptions = options.loggingOptions || {};
+		this.logger = options.logger;
 		this.requestExecutor = options.requestExecutor;
 		this.relatedHubsProviders = options.relatedHubsProviders;
 		this.idToPlexGuidCache = new CachedFetcher(async (id: string) => {
@@ -376,7 +373,7 @@ export abstract class PseuplexMetadataProviderBase<TMetadataItem> implements Pse
 					serverURL: context?.plexServerURL,
 					authContext: context?.plexAuthContext,
 					params: plexParams,
-					verbose: this.loggingOptions.logOutgoingRequests
+					logger: this.logger,
 				});
 			} catch(error) {
 				if((error as HttpResponseError).httpResponse?.status != 404) {

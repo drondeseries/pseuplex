@@ -6,7 +6,7 @@ import {
 	PlexServerAccountInfo,
 	PlexServerAccountsStore
 } from './accounts';
-import { urlLogString } from '../utils/logging';
+import { Logger } from '../logging';
 import {
 	HttpError,
 	httpError,
@@ -28,25 +28,15 @@ export const handlePlexAPIRequest = async <TResult>(req: express.Request, res: e
 		if(!statusCode) {
 			statusCode = 500;
 		}
-		// log response
-		if(options?.logResponses) {
-			console.log(`\nUser response ${statusCode} for ${req.method} ${urlLogString(options, req.originalUrl)}`);
-			// no response body
-		}
 		// send response
 		res.status(statusCode);
 		if(req.headers.origin) {
 			res.header('access-control-allow-origin', req.headers.origin);
 		}
 		res.send(); // TODO use error message format
+		// log response
+		options?.logger?.logIncomingUserRequestResponse(req, res, undefined);
 		return;
-	}
-	// log response
-	if(options?.logResponses) {
-		console.log(`\nUser response 200 for ${req.method} ${urlLogString(options, req.originalUrl)}`);
-		if(options?.logResponseBody) {
-			console.log(serializedRes.data);
-		}
 	}
 	// send response
 	res.status(200);
@@ -55,12 +45,12 @@ export const handlePlexAPIRequest = async <TResult>(req: express.Request, res: e
 	}
 	res.contentType(serializedRes.contentType)
 	res.send(serializedRes.data);
+	// log response
+	options?.logger?.logIncomingUserRequestResponse(req, res, serializedRes.data);
 };
 
 export type PlexAPIRequestHandlerOptions = {
-	logResponses?: boolean;
-	logResponseBody?: boolean;
-	logFullURLs?: boolean;
+	logger?: Logger;
 };
 export type PlexAPIRequestHandler<TResult> = (req: express.Request, res: express.Response) => Promise<TResult>;
 export type PlexAPIRequestHandlerMiddleware<TResult> = (handler: PlexAPIRequestHandler<TResult>, options?: PlexAPIRequestHandlerOptions) => ((req: express.Request, res: express.Response) => Promise<void>);
