@@ -122,23 +122,25 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		let requestActionTitle: string;
 		let librarySectionID: string | number | undefined;
 		switch(options.mediaType) {
+			// since some clients append a "p" to the video resolution,
+			//  ending the title with a colon will show :p on those clients lol
 			case plexTypes.PlexMediaItemTypeNumeric.Movie:
-				requestActionTitle = "Request Movie";
+				requestActionTitle = "Request Movie :";
 				librarySectionID = options.moviesLibraryId;
 				break;
 			case plexTypes.PlexMediaItemTypeNumeric.Show:
-				requestActionTitle = "Request Seasons";
+				requestActionTitle = "Request Seasons :";
 				librarySectionID = options.tvShowsLibraryId;
 				break;
 			case plexTypes.PlexMediaItemTypeNumeric.Season:
-				requestActionTitle = "Request Season";
+				requestActionTitle = "Request Season :";
 				librarySectionID = options.tvShowsLibraryId;
 				break;
 			case plexTypes.PlexMediaItemTypeNumeric.Episode:
 				if(options.requestProvider.canRequestEpisodes) {
-					requestActionTitle = "Request Episode";
+					requestActionTitle = "Request Episode :";
 				} else {
-					requestActionTitle = "Request Season";
+					requestActionTitle = "Request Season :";
 				}
 				librarySectionID = options.tvShowsLibraryId;
 				break;
