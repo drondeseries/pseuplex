@@ -35,8 +35,7 @@ export const extractP12Data = (p12Data: string | Buffer, password: string | null
 	if(certBags) {
 		// Check if it's a CA certificate (you might need more robust checks depending on your needs)
 		for(const bag of certBags) {
-			const ext: any = bag.cert?.getExtension('basicConstraints');
-			if (ext && ext.cA === true) {
+			if (bag.cert) {
 				const pem = forge.pki.certificateToPem(bag.cert!);
 				if(!ca) {
 					ca = [];
