@@ -86,12 +86,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		this.plexGuidToInfoCache = options.plexGuidToInfoCache;
 		this.logger = options.logger;
 	}
-
-	get defaultRequestsProviderSlug(): string | null {
-		const providers = Object.keys(this.requestProviders);
-		return providers[0];
-	}
-
+	
 	async getRequestsProviderForPlexUser(token: string, userInfo: PlexServerAccountInfo): Promise<RequestsProvider | null> {
 		for(const slug in this.requestProviders) {
 			const provider = this.requestProviders[slug];

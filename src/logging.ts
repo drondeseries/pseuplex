@@ -75,6 +75,14 @@ export class Logger {
 		this.options = options;
 	}
 
+	logDebug(message: string) {
+		if(!this.options.logDebug) {
+			return false;
+		}
+		console.log(message);
+		return true;
+	}
+
 	urlString(urlString: string) {
 		if(this.options.logFullURLs) {
 			return urlString;
@@ -356,8 +364,9 @@ export class Logger {
 		if(!this.options.logOverseerrUserMatches) {
 			return;
 		}
+		const overseerrUserName = overseerrUser.username ?? overseerrUser.plexUsername ?? overseerrUser.email ?? overseerrUser.plexId;
 		// TODO add colored logs
-		console.log(`Registered overseerr user ${overseerrUser.username} to plex token ${plexToken} (${accountInfo.email})`);
+		console.log(`Registered overseerr user ${overseerrUserName} to plex token ${plexToken} (${accountInfo.email})`);
 	}
 
 	logOverseerrUserNotMatched(plexToken: string, accountInfo: PlexServerAccountInfo) {

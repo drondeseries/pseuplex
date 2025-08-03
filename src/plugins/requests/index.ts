@@ -78,8 +78,8 @@ export default (class RequestsPlugin implements RequestsPluginDef, PseuplexPlugi
 	responseFilters?: PseuplexReadOnlyResponseFilters = {
 		findGuidInLibrary: async (resData, context) => {
 			const plexAuthContext = context.userReq.plex.authContext;
-			const userToken = plexAuthContext['X-Plex-Token'];
-			if(!userToken) {
+			const plexUserToken = plexAuthContext?.['X-Plex-Token'];
+			if(!plexUserToken) {
 				return;
 			}
 			const plexUserInfo = context.userReq.plex.userInfo;
@@ -95,7 +95,7 @@ export default (class RequestsPlugin implements RequestsPluginDef, PseuplexPlugi
 				return;
 			}
 			// get request provider
-			const requestProvider = await this.requestsHandler.getRequestsProviderForPlexUser(userToken, plexUserInfo);
+			const requestProvider = await this.requestsHandler.getRequestsProviderForPlexUser(plexUserToken, plexUserInfo);
 			if(!requestProvider) {
 				return;
 			}
@@ -130,6 +130,11 @@ export default (class RequestsPlugin implements RequestsPluginDef, PseuplexPlugi
 		},
 
 		metadataChildren: async (resData, context) => {
+			const plexAuthContext = context.userReq.plex.authContext;
+			const plexUserToken = plexAuthContext?.['X-Plex-Token'];
+			if(!plexUserToken) {
+				return;
+			}
 			const plexUserInfo = context.userReq.plex.userInfo;
 			// get prefs
 			const config = this.config;
@@ -139,10 +144,11 @@ export default (class RequestsPlugin implements RequestsPluginDef, PseuplexPlugi
 				return;
 			}
 			const showRequestableSeasons = userPrefs?.requests?.requestableSeasons ?? config.requests?.requestableSeasons;
-			const requestProviderSlug = this.requestsHandler.defaultRequestsProviderSlug;
+			const requestProvider = await this.requestsHandler.getRequestsProviderForPlexUser(plexUserToken, plexUserInfo);
 			// add requestable seasons if able
-			if(showRequestableSeasons && !context.metadataId.source && requestProviderSlug) {
-				await context.previousFilterPromises;
+			if(showRequestableSeasons && !context.metadataId.source && requestProvider) {
+				await Promise.all(context.previousFilterPromises ?? []);
+				const requestProviderSlug = requestProvider.slug;
 				// get guid for id
 				const plexGuid = await this.app.plexServerIdToGuidCache.getOrFetch(context.metadataId.id);
 				const plexGuidParts = plexGuid ? parsePlexMetadataGuid(plexGuid) : null;
