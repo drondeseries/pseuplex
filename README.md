@@ -148,6 +148,10 @@ You may also want to disable *Enable Relay* and *Enable local network discovery 
 
 At this point, your plex server might not show up on *app.plex.tv* until you start the proxy server, but you should still be able to access it via its local ip.
 
+## Auto SSL
+
+The configuration option `autoP12Password` is provided to automatically decrypt and use the built-in plex direct SSL certificate, so that you don't need to set up your own custom certificate. If you're running any service in front of this proxy (ie, another reverse proxy or anything using its own custom domain name) then it is recommended to **not** use the built-in plex certificate, and instead use your own custom certificate for your domain.
+
 ### Local Access
 
 If you're using a custom domain name for your SSL certificate, you can hardcode the DNS entry mapping on your home router (or pihole if you have it). This way your domain will always resolve to the local ip when accessing via your local network (ie: map `yourdomain.com` to `192.168.1.123` or whatever the local IP of your proxy server is).
