@@ -13,6 +13,7 @@ export type SSLConfig = {
 };
 
 export type CertificateData = {
+	ca?: (string | Buffer)[];
 	cert?: string | Buffer;
 	key?: string | Buffer;
 };
@@ -28,12 +29,28 @@ export const extractP12Data = (p12Data: string | Buffer, password: string | null
 	} else {
 		p12 = forge.pkcs12.pkcs12FromAsn1(p12Asn1);
 	}
+	// get ca certificates
+	let ca: (string | Buffer)[] | undefined;
+	const certBags = p12.getBags({bagType: forge.pki.oids.certBag})[forge.pki.oids.certBag];
+	if(certBags) {
+		// Check if it's a CA certificate (you might need more robust checks depending on your needs)
+		for(const bag of certBags) {
+			const ext: any = bag.cert?.getExtension('basicConstraints');
+			if (ext && ext.cA === true) {
+				const pem = forge.pki.certificateToPem(bag.cert!);
+				if(!ca) {
+					ca = [];
+				}
+				ca.push(pem);
+			}
+		}
+	}
 	// get certificate
-	const certBag = p12.getBags({bagType: forge.pki.oids.certBag})[forge.pki.oids.certBag]?.[0];
-	if(!certBag?.cert) {
+	const firstCertBag = certBags?.[0];
+	if(!firstCertBag?.cert) {
 		throw new Error('No certificates found');
 	}
-	const cert = forge.pki.certificateToPem(certBag.cert);
+	const cert = forge.pki.certificateToPem(firstCertBag.cert);
 	// get private key
 	let privateKey: string | undefined;
 	for (const safeContents of p12.safeContents) {
@@ -48,7 +65,7 @@ export const extractP12Data = (p12Data: string | Buffer, password: string | null
 	if (!privateKey) {
 		throw new Error("Private key not found");
 	}
-	return {cert, key:privateKey};
+	return {cert, key:privateKey, ca};
 };
 
 export const readSSLCertAndKey = async (sslConfig: SSLConfig): Promise<CertificateData> => {
