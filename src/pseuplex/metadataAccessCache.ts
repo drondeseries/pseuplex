@@ -14,6 +14,10 @@ type TokenAndClientId = {
 	clientId: string;
 };
 
+/// This keeps track of the last few metadata pages that a specific user token and client has accessed
+/// The reason for this is because when a new item is added to plex, any plugin metadatas can now be mapped
+///  to plugin metadatas can be sent a "refresh" notification via the websocket. Otherwise we wouldn't know
+///  which specific plugin metadatas to send the notification for, and we'd have to send all of them.
 export class PseuplexMetadataAccessCache {
 	limitPerToken: number;
 	
@@ -21,7 +25,7 @@ export class PseuplexMetadataAccessCache {
 		[token: string]: {
 			[clientId: string]: {
 				[plexGuid: string]: {
-					// metadata ids to key array
+					// metadata ids to metadata key list array
 					[metadataId: string]: Set<string>
 				}
 			}
