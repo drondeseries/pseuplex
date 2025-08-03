@@ -206,7 +206,7 @@ export type TransformRequestMetadataOptions = {
 	requestProviderSlug: string,
 	children?: boolean,
 	qualifiedMetadataIds: boolean;
-	transformRatingKey?: boolean;
+	transformRatingKey: boolean;
 };
 
 export const setMetadataItemKeyToRequestKey = (metadataItem: plexTypes.PlexMetadataItem, opts: TransformRequestMetadataOptions) => {

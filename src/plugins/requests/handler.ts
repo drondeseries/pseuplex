@@ -252,20 +252,17 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 		}
 		// create options for transforming metadata
 		const fullIdString = reqsTransform.createRequestFullMetadataId(id);
-		const transformOpts: TransformRequestMetadataOptions = {
+		const transformOpts = {
 			basePath: options.metadataBasePath || this.basePath,
 			requestProviderSlug: reqProvider.slug,
 			qualifiedMetadataIds: options.qualifiedMetadataIds ?? false,
 		};
-		if(options.children) {
-			transformOpts.parentRatingKey = fullIdString;
-			if(transformOpts.qualifiedMetadataIds) {
-				transformOpts.parentKey = `${transformOpts.basePath}/${fullIdString}`;
-			} else {
-				const partialIdString = reqsTransform.createRequestPartialMetadataId(id);
-				transformOpts.parentKey = `${transformOpts.basePath}/${partialIdString}`;
-			}
-		}
+		const childrenTransformOpts = options.children ? {
+			parentRatingKey: fullIdString,
+			parentKey: (transformOpts.qualifiedMetadataIds ?
+				`${transformOpts.basePath}/${fullIdString}`
+				: `${transformOpts.basePath}/${reqsTransform.createRequestPartialMetadataId(id)}`),
+		} : undefined;
 		// check if item already exists on the plex server
 		const guid = `plex://${id.mediaType}/${id.plexId}`;
 		const libraryMetadataPage = await plexServerAPI.findLibraryMetadata((
@@ -331,7 +328,10 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 					await this.addRequestableSeasons(plexDisplayedPage, id.plexId, {
 						plexParams: options.plexParams as (plexTypes.PlexMetadataChildrenPageParams | undefined),
 						transformExistingKeys: options.transformMatchKeys,
-						transformOptions: transformOpts as TransformRequestableSeasonsOptions,
+						transformOptions: {
+							...transformOpts,
+							...childrenTransformOpts!
+						},
 					});
 				} else {
 					// transform metadata item key since not getting children
@@ -367,7 +367,6 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			};
 		}
 		// item doesn't exist in the plex server library,
-		transformOpts.transformRatingKey = true;
 		//  so get the plex discover ID of the item to fetch
 		let plexId: string;
 		let itemType: plexTypes.PlexMediaItemType | string;
@@ -444,8 +443,13 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				childrenContainer.totalSize = 0;
 			} else if(itemType == plexTypes.PlexMediaItemType.TVShow) {
 				// make seasons requestable
+				const reqChildTransformOpts = {
+					...transformOpts,
+					...childrenTransformOpts!,
+					transformRatingKey: true,
+				};
 				forArrayOrSingle(childrenContainer.Metadata, (metadataItem) => {
-					reqsTransform.transformRequestableChildMetadata(metadataItem, transformOpts);
+					reqsTransform.transformRequestableChildMetadata(metadataItem, reqChildTransformOpts);
 				});
 			}
 		} else {
@@ -465,7 +469,8 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 				}
 				reqsTransform.setMetadataItemKeyToRequestKey(metadataItem, {
 					...transformOpts,
-					children: (itemType == plexTypes.PlexMediaItemType.TVShow)
+					children: (itemType == plexTypes.PlexMediaItemType.TVShow),
+					transformRatingKey: true,
 				});
 			});
 		}
@@ -572,7 +577,10 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 					unavailable: true,
 					metadataIds: {},
 				};
-				reqsTransform.transformRequestableChildMetadata(metadataItem, options.transformOptions);
+				reqsTransform.transformRequestableChildMetadata(metadataItem, {
+					...options.transformOptions,
+					transformRatingKey: true,
+				});
 				return metadataItem;
 			}
 		});
