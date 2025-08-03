@@ -367,6 +367,7 @@ export class PlexRequestsHandler implements PseuplexMetadataProvider {
 			};
 		}
 		// item doesn't exist in the plex server library,
+		transformOpts.transformRatingKey = true;
 		//  so get the plex discover ID of the item to fetch
 		let plexId: string;
 		let itemType: plexTypes.PlexMediaItemType | string;
