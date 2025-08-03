@@ -72,7 +72,7 @@ const readPlexPrefsIfNeeded = async () => {
 
 	// create logger
 	const loggingOptions: LoggingOptions = {...cfg.logging};
-	for(const key in Object.keys(args)) {
+	for(const key of Object.keys(args)) {
 		if(key.startsWith('log')) {
 			const val = args[key];
 			if(val != null) {
@@ -80,6 +80,7 @@ const readPlexPrefsIfNeeded = async () => {
 			}
 		}
 	}
+	console.log(`Logging options: ${JSON.stringify(loggingOptions, null, '\t')}`);
 	const logger = new Logger(loggingOptions);
 	
 	// initialize server SSL
