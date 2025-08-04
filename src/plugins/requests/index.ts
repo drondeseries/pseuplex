@@ -90,8 +90,11 @@ export default (class RequestsPlugin implements RequestsPluginDef, PseuplexPlugi
 			}
 			// wait for all previous filters
 			await Promise.all(context.previousFilterPromises ?? []);
-			// only show request option if no items were found
-			if(!isNullOrEmpty(resData.MediaContainer.Metadata)) {
+			// only show request option if no items were found on the server
+			const itemsOnServer = findInArrayOrSingle(resData.MediaContainer.Metadata, (item) => {
+				return !isNullOrEmpty(item.Media);
+			});
+			if(itemsOnServer) {
 				return;
 			}
 			// get request provider
